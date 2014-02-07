@@ -1,0 +1,31 @@
+*** cm10.2/frameworks/base/services/java/com/android/server/DevicePolicyManagerService.java	2014-02-07 14:34:55.004379665 -0700
+--- cm10.2mods/frameworks/base/services/java/com/android/server/DevicePolicyManagerService.java	2014-01-25 14:30:58.503878802 -0700
+***************
+*** 2694,2705 ****
+      private void saveOriginalSELinuxSettings() {
+          // SELinux booleans
+          String[] seboolNames = SELinux.getBooleanNames();
+!         seboolsOrig = new HashMap<String, Boolean>(seboolNames.length);
+!         for (String sebool : seboolNames) {
+!             boolean value = SELinux.getBooleanValue(sebool);
+!             seboolsOrig.put(sebool, value);
+          }
+-         seboolsOrig = Collections.unmodifiableMap(seboolsOrig);
+      }
+  
+      // Possible SELinux Admin API states:
+--- 2694,2707 ----
+      private void saveOriginalSELinuxSettings() {
+          // SELinux booleans
+          String[] seboolNames = SELinux.getBooleanNames();
+! 	if (seboolNames != null) {
+!             seboolsOrig = new HashMap<String, Boolean>(seboolNames.length);
+!             for (String sebool : seboolNames) {
+!                 boolean value = SELinux.getBooleanValue(sebool);
+!                 seboolsOrig.put(sebool, value);
+!             }
+!             seboolsOrig = Collections.unmodifiableMap(seboolsOrig);
+          }
+      }
+  
+      // Possible SELinux Admin API states:
