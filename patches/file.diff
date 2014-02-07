@@ -1,0 +1,19 @@
+*** omnirom4.4/external/sepolicy/file.te	2014-02-06 19:09:52.892946200 -0700
+--- omnirom4.4mods/external/sepolicy/file.te	2014-02-07 09:08:12.923554600 -0700
+***************
+*** 82,88 ****
+  # Downloaded files
+  type download_file, file_type;
+  # /sys/devices/system/cpu
+! type sysfs_devices_system_cpu, file_type;
+  
+  # Socket types
+  type adbd_socket, file_type;
+--- 82,88 ----
+  # Downloaded files
+  type download_file, file_type;
+  # /sys/devices/system/cpu
+! #type sysfs_devices_system_cpu, file_type;
+  
+  # Socket types
+  type adbd_socket, file_type;

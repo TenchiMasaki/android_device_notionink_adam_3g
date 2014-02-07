@@ -1,0 +1,12 @@
+*** omnirom4.4/frameworks/base/media/java/android/mtp/MtpDatabase.java	2014-02-06 19:10:29.077125700 -0700
+--- omnirom4.4mods/frameworks/base/media/java/android/mtp/MtpDatabase.java	2014-02-07 11:05:00.360537402 -0700
+***************
+*** 895,900 ****
+--- 895,901 ----
+                              ID_WHERE, new String[] {  Integer.toString(handle) }, null, null);
+              if (c != null && c.moveToNext()) {
+                  String path = c.getString(1);
++                 if (path == null) return MtpConstants.RESPONSE_INVALID_OBJECT_HANDLE;
+                  path.getChars(0, path.length(), outFilePath, 0);
+                  outFilePath[path.length()] = 0;
+                  // File transfers from device to host will likely fail if the size is incorrect.

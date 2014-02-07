@@ -1,0 +1,12 @@
+*** omnirom4.4/packages/providers/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-06 19:11:32.621440800 -0700
+--- omnirom4.4mods/packages/providers/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-07 12:01:48.236755400 -0700
+***************
+*** 4755,4760 ****
+--- 4755,4761 ----
+      private static byte[] getCompressedAlbumArt(Context context, String path) {
+          byte[] compressed = null;
+  
++ 		if (path == null) return null;
+          try {
+              File f = new File(path);
+              ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
