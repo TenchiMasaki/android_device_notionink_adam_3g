@@ -20,13 +20,15 @@
 # In particular, you can add lunch options with the add_lunch_combo
 # function: add_lunch_combo generic-eng
 export USE_CCACHE=1
-add_lunch_combo cm_adam_3g-userdebug
+add_lunch_combo omni_adam_3g-userdebug
 echo ""
 echo "Patching Adam Workspace..."
 echo ""
 for p in $(find device/notionink/adam_3g/patches/ -name "*.diff")
         do
+        		echo $p
                 tmp=$(basename $p | awk -F"." '{print $1}')
+                echo $tmp
                 if [ -f $tmp".p" ]; then
                         echo "Patch "$tmp" already applied"
                 else
@@ -42,6 +44,6 @@ for p in $(find device/notionink/adam_3g/patches/ -name "*.diff")
                 echo ""
         done
 echo "Cleaning .orig and .rej files if any..."
-find . \( -name \*cpp.orig -o -name \*xml.orig -o -name \*.h.orig -o -name \*.java.orig -o -name \*.rej \) -delete
+#find . \( -name \*cpp.orig -o -name \*xml.orig -o -name \*.h.orig -o -name \*.java.orig -o -name \*.rej \) -delete
 echo ""
 
