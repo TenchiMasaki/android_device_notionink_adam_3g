@@ -1,0 +1,12 @@
+*** katkiss4.3/build/core/combo/TARGET_linux-arm.mk	2014-01-24 11:03:50.894751546 -0700
+--- kk4.3mods/build/core/combo/TARGET_linux-arm.mk	2014-01-24 11:05:04.439116452 -0700
+***************
+*** 170,176 ****
+  			-Wl,-z,relro \
+  			-Wl,-z,now \
+  			-Wl,--warn-shared-textrel \
+- 			-Wl,--fatal-warnings \
+  			-Wl,--icf=safe \
+  			$(arch_variant_ldflags)
+  
+--- 170,175 ----

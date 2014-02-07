@@ -1,0 +1,22 @@
+*** katkiss4.3/build/core/Makefile	2014-01-22 20:52:43.861326000 -0700
+--- kk4.3mods/build/core/Makefile	2014-02-02 08:53:00.282795000 -0700
+***************
+*** 578,586 ****
+  endif
+  INTERNAL_USERIMAGES_BINARY_PATHS := $(sort $(dir $(INTERNAL_USERIMAGES_DEPS)))
+  
+! 
+! $(if $(filter true, $(strip $(HAVE_SELINUX))) ,SELINUX_FC := $(TARGET_ROOT_OUT)/file_contexts)
+! $(if $(filter true, $(strip $(HAVE_SELINUX))) , INTERNAL_USERIMAGES_DEPS += $(SELINUX_FC))
+  
+  # $(1): the path of the output dictionary file
+  # $(2): additional "key=value" pairs to append to the dictionary file.
+--- 578,585 ----
+  endif
+  INTERNAL_USERIMAGES_BINARY_PATHS := $(sort $(dir $(INTERNAL_USERIMAGES_DEPS)))
+  
+! SELINUX_FC := $(TARGET_ROOT_OUT)/file_contexts
+! INTERNAL_USERIMAGES_DEPS += $(SELINUX_FC)
+  
+  # $(1): the path of the output dictionary file
+  # $(2): additional "key=value" pairs to append to the dictionary file.

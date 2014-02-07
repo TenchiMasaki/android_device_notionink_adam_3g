@@ -1,0 +1,21 @@
+*** katkiss4.3/frameworks/base/core/res/res/values/attrs.xml	2014-02-07 13:41:57.752672638 -0700
+--- kk4.3mods/frameworks/base/core/res/res/values/attrs.xml	2014-01-24 11:59:33.675327605 -0700
+***************
+*** 1548,1555 ****
+          <enum name="KEYCODE_RO" value="217" />
+          <enum name="KEYCODE_KANA" value="218" />
+          <enum name="KEYCODE_ASSIST" value="219" />
+!         <enum name="KEYCODE_BRIGHTNESS_DOWN" value="220" />
+!         <enum name="KEYCODE_BRIGHTNESS_UP" value="221" />
+      </attr>
+  
+      <!-- ***************************************************************** -->
+--- 1548,1555 ----
+          <enum name="KEYCODE_RO" value="217" />
+          <enum name="KEYCODE_KANA" value="218" />
+          <enum name="KEYCODE_ASSIST" value="219" />
+!         <enum name="KEYCODE_BRIGHTNESS_DOWN" value="224" />
+!         <enum name="KEYCODE_BRIGHTNESS_UP" value="223" />
+      </attr>
+  
+      <!-- ***************************************************************** -->
