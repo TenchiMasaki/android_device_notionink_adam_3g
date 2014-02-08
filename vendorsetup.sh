@@ -26,9 +26,7 @@ echo "Patching Adam Workspace..."
 echo ""
 for p in $(find device/notionink/adam_3g/patches/ -name "*.diff")
         do
-        		echo $p
                 tmp=$(basename $p | awk -F"." '{print $1}')
-                echo $tmp
                 if [ -f $tmp".p" ]; then
                         echo "Patch "$tmp" already applied"
                 else

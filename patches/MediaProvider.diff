@@ -1,8 +1,20 @@
 *** omnirom4.4/packages/providers/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-06 19:11:32.621440800 -0700
---- omnirom4.4mods/packages/providers/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-07 12:01:48.236755400 -0700
+--- omnirom4.4mods/packages/providers/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-07 15:22:09.693117457 -0700
+***************
+*** 4553,4558 ****
+--- 4553,4561 ----
+                      throw new FileNotFoundException("No entry for " + uri);
+                  case 1:
+                      if (cursor.moveToFirst()) {
++                         if (cursor.getString(0) == null) {
++ 							throw new FileNotFoundException("No entry for " + uri);
++ 						}
+                          return new File(cursor.getString(0));
+                      } else {
+                          throw new FileNotFoundException("Unable to read entry for " + uri);
 ***************
 *** 4755,4760 ****
---- 4755,4761 ----
+--- 4758,4764 ----
       private static byte[] getCompressedAlbumArt(Context context, String path) {
           byte[] compressed = null;
   
