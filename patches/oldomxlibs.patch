@@ -79,6 +79,21 @@ index d3b954b..25fec75 100644
  
      /* Attach track auxiliary output to specified effect. Use effectId = 0
       * to detach track from effect.
+diff --git a/frameworks/av/media/libmedia/Android.mk b/frameworks/av/media/libmedia/Android.mk
+index dd6d677..1f05670 100644
+--- a/frameworks/av/media/libmedia/Android.mk
++++ b/frameworks/av/media/libmedia/Android.mk
+@@ -26,6 +26,10 @@ LOCAL_CFLAGS += -DRESOURCE_MANAGER
+ endif
+ # RESOURCE MANAGER
+ 
++ifeq ($(BOARD_HAVE_OLD_OMX_LIBS),true)
++LOCAL_CFLAGS += -DBOARD_HAVE_OLD_OMX_LIBS
++endif
++
+ LOCAL_SRC_FILES:= \
+     AudioTrack.cpp \
+     AudioTrackShared.cpp \
 diff --git a/frameworks/av/media/libmedia/AudioSystem.cpp b/frameworks/av/media/libmedia/AudioSystem.cpp
 index a9628a3..634e72a 100644
 --- a/frameworks/av/media/libmedia/AudioSystem.cpp
