@@ -1,0 +1,23 @@
+*** frameworks/av/media/libmedia/AudioTrack.cpp.orig	2014-02-19 09:32:14.428154015 -0700
+--- frameworks/av/media/libmedia/AudioTrack.cpp	2014-02-20 06:52:16.548268065 -0700
+***************
+*** 46,52 ****
+  status_t AudioTrack::initCheck() const { return mStatus; }
+  int    AudioTrack::getSessionId() const { return mSessionId; }
+  
+! 
+  
+  status_t AudioTrack::getMinFrameCount(
+          size_t* frameCount,
+--- 46,56 ----
+  status_t AudioTrack::initCheck() const { return mStatus; }
+  int    AudioTrack::getSessionId() const { return mSessionId; }
+  
+! extern "C" int _ZNK7android10AudioTrack12getSessionIdEv();
+! extern "C" int _ZN7android10AudioTrack12getSessionIdEv()
+! {
+!     return _ZNK7android10AudioTrack12getSessionIdEv();
+! } 
+  
+  status_t AudioTrack::getMinFrameCount(
+          size_t* frameCount,
