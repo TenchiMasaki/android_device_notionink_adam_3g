@@ -1,4 +1,4 @@
-Here's Adam 3G device tree for android CM10.1.
+Here's Adam 3G device tree for android KatKiss 4.4.
 
 Make sure you have adam_common tree downloaded
 
@@ -6,13 +6,22 @@ Copy to android/device/notionink/adam_3g/
 
 run extract-files.sh or copy-files.sh that'll create your vendor directory
 
+Set these environment variables, modifying KKGCC to correct path:
+export KKGCC=/root/katkiss4.4/prebuilts/gcc/linux-x86
+export PATH=$KKGCC/arm/arm-eabi-4.6/bin:$PATH
+export ARM_EABI_TOOLCHAIN=$KKGCC/arm/arm-eabi-4.6/bin
+export ANDROID_TOOLCHAIN=/$KKGCC/x86/i686-linux-android-4.6/bin
+export ARCH=arm
+export SUBARCH=arm
+export CROSS_COMPILE=arm-eabi-
+
 go back to source root
 
 Shell Type: ". build/envsetup.sh"
 
 Let it finish.
 
-Shell Type: "lunch cm_adam_3g-userdebug"
+Shell Type: "lunch kk_adam_3g-userdebug"
 
 Wait for it to get done.
 
