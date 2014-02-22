@@ -1,4 +1,4 @@
-Here's Adam 3G device tree for android CM10.1.
+Here's Adam 3G device tree for android OMNI ROM 4.4.
 
 Make sure you have adam_common tree downloaded
 
@@ -12,9 +12,7 @@ Shell Type: ". build/envsetup.sh"
 
 Let it finish.
 
-Shell Type: "lunch cm_adam_3g-userdebug"
+Shell Type: "brunch adam_3g"
 
 Wait for it to get done.
-
-Then type: "time make -j16" (replace 16 with whatever your machine can handle.)
 
