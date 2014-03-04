@@ -38,7 +38,7 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 $(call inherit-product-if-exists, vendor/notionink/adam/device-vendor.mk)
 
-PRODUCT_NAME := omni_adam_3g
+PRODUCT_NAME := pac_adam_3g
 PRODUCT_DEVICE := adam_3g
 PRODUCT_BRAND := NotionInk
 PRODUCT_MODEL := Notion Ink ADAM
@@ -48,5 +48,5 @@ PRODUCT_MODEL := Notion Ink ADAM
 # Inherit some common CM stuff.
 #$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
 
-# Inherit from our custom product configuration
-$(call inherit-product, vendor/omni/config/common.mk)
+## Inherit from our custom product configuration
+#$(call inherit-product, vendor/omni/config/common.mk)
