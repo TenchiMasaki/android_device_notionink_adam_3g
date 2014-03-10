@@ -8,11 +8,7 @@ run extract-files.sh or copy-files.sh that'll create your vendor directory
 
 go back to source root
 
-Shell Type: ". build/envsetup.sh"
-
-Let it finish.
-
-Shell Type: "brunch adam_3g"
+Shell Type: "./build-pac.sh adam_3g"
 
 Wait for it to get done.
 
