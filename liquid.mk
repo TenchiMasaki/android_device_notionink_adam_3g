@@ -49,7 +49,6 @@ PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=liquid.adam_3g.$(shell date +%m%d%y)
 # Inherit some common LiquidSmooth stuff.
 $(call inherit-product, vendor/liquid/config/common_tablet.mk)
 
-<<<<<<< HEAD:cm.mk
 # Inherit some common CM stuff.
 #$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
 
@@ -59,3 +58,9 @@ $(call inherit-product, vendor/liquid/config/common_tablet.mk)
 # Inherit telephony common stuff
 $(call inherit-product, vendor/liquid/config/telephony.mk)
 
+# Preload bootanimation in to memory
+TARGET_BOOTANIMATION_PRELOAD := true
+TARGET_BOOTANIMATION_TEXTURE_CACHE := false
+TARGET_BOOTANIMATION_USE_RGB565 := true
+TARGET_SCREEN_WIDTH := 1024
+TARGET_SCREEN_HEIGHT := 600
