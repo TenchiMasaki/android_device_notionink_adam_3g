@@ -18,7 +18,9 @@ PRODUCT_PACKAGES := \
     SpareParts \
     PQiToggle \
     Development \
-    libmbm-ril
+    libmbm-ril \
+    Stk \
+    Mms
 
 DEVICE_PACKAGE_OVERLAYS += device/notionink/adam_3g/overlay
 
@@ -36,18 +38,22 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 $(call inherit-product-if-exists, vendor/notionink/adam/device-vendor.mk)
 
-PRODUCT_NAME := pac_adam_3g
+PRODUCT_NAME := omni_adam_3g
 PRODUCT_DEVICE := adam_3g
 PRODUCT_BRAND := NotionInk
 PRODUCT_MODEL := Notion Ink ADAM
+# Release name
+PRODUCT_RELEASE_NAME := NIAdam-3G
+PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=omni.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
+
+# Inherit some common LiquidSmooth stuff.
+#$(call inherit-product, vendor/liquid/config/common_tablet.mk)
 
 # Inherit some common CM stuff.
-
 #$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
 
 ## Inherit from our custom product configuration
-#$(call inherit-product, vendor/omni/config/common.mk)
+$(call inherit-product, vendor/omni/config/common_tablet.mk)
 
 # Inherit telephony common stuff
-$(call inherit-product, vendor/cm/config/telephony.mk)
-
+#$(call inherit-product, vendor/liquid/config/telephony.mk)

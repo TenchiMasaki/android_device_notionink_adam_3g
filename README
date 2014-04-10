@@ -1,4 +1,5 @@
-Here's Adam 3G device tree for android CM11.
+
+Here's Adam 3G device tree for android OmniROM 4.4.
 
 Make sure you have adam_common tree downloaded
 
@@ -8,7 +9,10 @@ run extract-files.sh or copy-files.sh that'll create your vendor directory
 
 go back to source root
 
-Shell Type: "./build-pac.sh adam_3g"
+Shell Type: ". build/envsetup.sh"
+
+Let it finish.
+
+Shell Type: "brunch adam_3g"
 
 Wait for it to get done.
-
