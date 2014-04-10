@@ -1,7 +1,96 @@
-#	
-# system.prop for adam 	  	
-#	  	
+#
+# system.prop for adam
+#
 
-rild.libpath=/system/lib/libmbm-ril.so	  	
+rild.libpath=/system/lib/libmbm-ril.so
 rild.libargs=-d /dev/ttyACM0 -i wwan0
 
+#
+# Common
+#
+
+#Set default.prop properties for root + mtp
+persist.sys.usb.config=mtp,adb
+
+# Save power
+wifi.supplicant_scan_interval=180
+
+# OpenGL settings
+ro.opengles.version=131072
+ro.zygote.disable_gl_preload=true
+ro.opengles.surface.rgb565=true
+
+# Used to enable or disable the use of PBOs on OpenGL ES 3.0 hardware.
+hwui.use_gpu_pixel_buffers=false
+
+# prevent screen flickering
+debug.hwui.render_dirty_regions=false
+
+# GPU producer to CPU consumer not supported
+ro.bq.gpu_to_cpu_unsupported=1
+
+# Used to enable/disable preloading of EGL/GL drivers in Zygote at boot time.
+ro.zygote.disable_gl_preload=true
+
+# Render UI with GPU
+debug.sf.hw=1
+debug.composition.type=gpu
+
+# SGX540 is slower with the scissor optimization enabled
+ro.hwui.disable_scissor_opt=true
+
+# Power Save tweaks
+ro.ril.disable.power.collapse=1
+pm.sleep_mode=1
+
+# keep launcher in memory
+sys.keep_app_1=com.android.launcher3
+
+# Increase VM Heap Size(resolve some fc's)
+# dalvik.vm.heapsize=256m
+
+# Extended JNI checks
+# The extended JNI checks will cause the system to run more slowly, but they can spot a variety of nasty bugs
+# before they have a chance to cause problems.
+# Default=true for development builds, set by android buildsystem.
+# Disable GC freed lines
+ro.kernel.android.checkjni=0
+ro.kernel.checkjni=0
+dalvik.vm.checkjni=false
+dalvik.vm.debug.alloc=0
+dalvik.vm.verify_bytecode=false
+
+#dalvik.vm.dexopt-flags=v=n,o=v
+
+# we have enough storage space to hold precise GC data
+dalvik.gc.type=precise
+
+# AMR Wideband provides improved speech quality compared to Narrowband speech coders
+ro.ril.enable.amr.wideband=1
+
+# Disable Sending Usage Data
+ro.config.nocheckin=1
+
+# Disables built in error reporting.
+profiler.force_disable_err_rpt=1
+profiler.force_disable_ulog=1
+
+# Touch Responsiveness
+debug.performance.tuning=1
+
+# Faster boot.
+
+ro.config.hw_quickpoweron=true
+
+# Increase Performance
+video.accelerate.hw=1
+dev.pm.dyn_sampling_rate=1
+
+# Scrolling Responsiveness
+#windowsmgr.max_events_per_sec=500
+#ro.min_pointer_dur=8
+#ro.max.fling_velocity=12000
+#ro.min.fling_velocity=8000
+
+# Fuse storage
+persist.fuse_sdcard=true

@@ -34,6 +34,8 @@
 #include "u300-ril-sim.h"
 #include "u300-ril-pdp.h"
 #include "u300-ril-device.h"
+#include <arpa/inet.h>
+#include "net-utils.h"
 
 #define LOG_TAG "RIL"
 #include <utils/Log.h>
@@ -52,6 +54,7 @@ static int s_cgreg_stat = 4, s_cgreg_lac = -1, s_cgreg_cid = -1, s_cgreg_act = -
 static int s_gsm_rinfo = 0, s_umts_rinfo = 0;
 static int s_reg_change = 0;
 static int s_cops_mode = -1;
+static int rssi_queue = 0;
 
 static void pollOperatorSelected(void *params);
 
@@ -138,6 +141,126 @@ enum ERINFO_umts {
 
 static int s_cs_status = E2REG_UNKNOWN;
 static int s_ps_status = E2REG_UNKNOWN;
+
+static const struct timespec NORMAL_FAST_DORMANCY_POLL = { 5, 0 };
+static const struct timespec SLOW_FAST_DORMANCY_POLL = { 10, 0 };
+
+static unsigned long long old_rx_packets;
+static unsigned long long old_tx_packets;
+
+static void pollFastDormancy(void *params);
+
+void startPollFastDormancy(void)
+{
+    int err;
+    char prop[PROPERTY_VALUE_MAX];
+
+    property_get("mbm.ril.config.fd", prop, "no");
+    if (strstr(prop, "yes")) {
+        err = ifc_statistics(ril_iface, &old_rx_packets, &old_tx_packets);
+
+        if (err == -1)
+            ALOGE("%s() Unable to read /proc/net/dev. FD disabled!", __func__);
+        else if (err == 1)
+            ALOGE("%s() Interface (%s) not found. FD disabled!", __func__, ril_iface);
+        else {
+            enqueueRILEventName(RIL_EVENT_QUEUE_NORMAL, pollFastDormancy, NULL,
+                                        &NORMAL_FAST_DORMANCY_POLL, NULL);
+            ALOGI("%s() Enabled Fast Dormancy!", __func__ );
+        }
+    }
+}
+
+/**
+ * Poll interface to see if we are able to enter
+ * Fast Dormancy.
+ */
+static void pollFastDormancy(void *params)
+{
+    (void) params;
+    int err;
+    unsigned long long rx_packets;
+    unsigned long long tx_packets;
+    static int dormant = 0;
+
+    /* First check that we still are connected*/
+    if (getE2napState() != E2NAP_STATE_CONNECTED) {
+        ALOGI("%s() Connection Lost. Disabled Fast Dormancy!", __func__ );
+        return;
+    }
+
+    /* Check that we are registered */
+    if ((s_cs_status != E2REG_REGISTERED) && (s_ps_status != E2REG_REGISTERED)) {
+        ALOGI("%s() Registration lost (Restricted). Slow Dormancy!", __func__ );
+        enqueueRILEventName(RIL_EVENT_QUEUE_NORMAL, pollFastDormancy, NULL,
+                                        &SLOW_FAST_DORMANCY_POLL, NULL);
+        return;
+    }
+
+    /* Check that we are registered */
+    if (!(s_creg_stat == CGREG_STAT_REG_HOME_NET ||
+        s_creg_stat == CGREG_STAT_ROAMING ||
+        s_cgreg_stat == CGREG_STAT_REG_HOME_NET ||
+        s_cgreg_stat == CGREG_STAT_ROAMING)) {
+        ALOGI("%s() Registration lost. Slow Dormancy!", __func__ );
+        enqueueRILEventName(RIL_EVENT_QUEUE_NORMAL, pollFastDormancy, NULL,
+                                        &SLOW_FAST_DORMANCY_POLL, NULL);
+        return;
+    }
+
+    /* Check that we are on UMTS */
+    if (!(s_umts_rinfo)) {
+        ALOGI("%s() 2G Network. Slow Dormancy!", __func__ );
+        enqueueRILEventName(RIL_EVENT_QUEUE_NORMAL, pollFastDormancy, NULL,
+                                        &SLOW_FAST_DORMANCY_POLL, NULL);
+        return;
+    }
+
+    err = ifc_statistics(ril_iface, &rx_packets, &tx_packets);
+    if (err == -1) {
+        ALOGE("%s() Unable to read /proc/net/dev. FD disabled!", __func__);
+        return;
+    } else if (err == 1) {
+        ALOGE("%s() Interface (%s) not found. FD disabled!", __func__, ril_iface);
+        return;
+    }
+
+    if ((old_rx_packets == rx_packets) && (old_rx_packets == rx_packets)) {
+        if (dormant == 0) {
+            ALOGI("%s() Data Dormant (RX:%llu TX: %llu) Enter Fast Dormancy!",
+                            __func__, rx_packets, tx_packets );
+            err = at_send_command("AT*EFDORM");
+            if (err != AT_NOERROR) {
+                ALOGW("%s() Failed Fast Dormancy. FD disabled!", __func__);
+                return;
+            } else {
+                dormant = 1;
+            }
+        }
+/* else {
+            ALOGI("%s() Data Still Dormant (RX:%llu TX: %llu) Fast Dormancy!",
+                            __func__, rx_packets, tx_packets );
+        }
+*/
+    } else {
+        if (dormant == 1) {
+            dormant = 0;
+            ALOGI("%s() Data transfer (RX:%llu TX: %llu) Exit Fast Dormancy!",
+                            __func__, rx_packets, tx_packets );
+        }
+/* else {
+            ALOGI("%s() Data transfer (RX:%llu TX: %llu)",
+                            __func__, rx_packets, tx_packets );
+        }
+*/
+        old_rx_packets = rx_packets;
+        old_tx_packets = tx_packets;
+    }
+
+    enqueueRILEventName(RIL_EVENT_QUEUE_NORMAL, pollFastDormancy, NULL,
+                                    &NORMAL_FAST_DORMANCY_POLL, NULL);
+
+}
 
 /**
  * Poll +COPS? and return a success, or if the loop counter reaches
@@ -406,6 +529,14 @@ int getSignalStrength(RIL_SignalStrength_v6 *signalStrength){
     int ber;
     int rssi;
 
+    /* Do not get signal strength when screen is off */
+    if (!getScreenState()) {
+        ALOGI("%s() Screen off, no signal strength returned", __func__);
+        signalStrength->GW_SignalStrength.signalStrength = -1;
+        signalStrength->GW_SignalStrength.bitErrorRate = -1;
+        return 0;
+    }
+
     memset(signalStrength, 0, sizeof(RIL_SignalStrength_v6));
 
     signalStrength->LTE_SignalStrength.signalStrength = -1;
@@ -494,17 +625,30 @@ error:
 void requestNeighboringCellIDs(void *data, size_t datalen, RIL_Token t)
 {
     (void) data; (void) datalen;
+    char prop[PROPERTY_VALUE_MAX];
 
+    /* No cell data available if not regesitered */
     if ((s_cs_status != E2REG_REGISTERED) && (s_ps_status != E2REG_REGISTERED)) {
         No_NCIs(t);
         return;
     }
+
+    /* Do not get nci if screen option set in mbm.ril.config.nci */
+    if (!getScreenState()) {
+        property_get("mbm.ril.config.nci", prop, "screen");
+        if (strstr(prop, "screen")) {
+            No_NCIs(t);
+            return;
+        }
+    }
+
     if (s_gsm_rinfo)        /* GSM (GPRS,2G) */
         Get_GSM_NCIs(t);
     else if (s_umts_rinfo)  /* UTRAN (WCDMA/UMTS, 3G) */
         Get_WCDMA_NCIs(t);
     else
         No_NCIs(t);
+    return;
 }
 
 /**
@@ -690,6 +834,8 @@ void pollSignalStrength(void *arg)
     RIL_SignalStrength_v6 signalStrength;
     (void) arg;
 
+    rssi_queue = 0;
+
     if (getSignalStrength(&signalStrength) < 0)
         ALOGE("%s() Polling the signal strength failed", __func__);
     else
@@ -700,7 +846,11 @@ void pollSignalStrength(void *arg)
 void onSignalStrengthChanged(const char *s)
 {
     (void) s;
-    enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSignalStrength, NULL, NULL);
+
+    if (rssi_queue == 0) {
+        rssi_queue++;
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSignalStrength, NULL, NULL);
+    }
 }
 
 void onRegistrationStatusChanged(const char *s)
@@ -977,7 +1127,8 @@ void onNetworkStatusChanged(const char *s)
 
     /* If registered, poll signal strength for faster update of signal bar */
     if ((s_cs_status == E2REG_REGISTERED) || (s_ps_status == E2REG_REGISTERED)) {
-        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSignalStrength, (void *)-1, NULL);
+        if (getScreenState())
+		enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSignalStrength, (void *)-1, NULL);
         /* Make sure registration state is updated when screen is off */
         if (!getScreenState())
             RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED,
@@ -1302,18 +1453,30 @@ void requestQueryAvailableNetworks(void *data, size_t datalen, RIL_Token t)
     if (err < 0)
         goto no_current;
 
-    /* Read and skip format */
-    err = at_tok_nextint(&line, &skip);
-    if (err < 0)
+    /* If we're unregistered, we may just get
+       a "+COPS: x" response. */
+    if (!at_tok_hasmore(&line)) {
+        /* Read and skip format */
+        err = at_tok_nextint(&line, &skip);
+        if (err < 0)
+            goto no_current;
+    } else
         goto no_current;
 
-    /* Read current numeric operator */
-    err = at_tok_nextstr(&line, &current);
-    if (err < 0)
+    /* A "+COPS: x, n" response is also possible. */
+    if (!at_tok_hasmore(&line)) {
+        /* Read current numeric operator */
+        err = at_tok_nextstr(&line, &current);
+        if (err < 0)
+            goto no_current;
+    } else
         goto no_current;
 
-    /* Read act (Technology) */
-    err = at_tok_nextint(&line, &current_act);
+    /* A "+COPS: x, n, n" response is also possible. */
+    if (!at_tok_hasmore(&line)) {
+        /* Read act (Technology) */
+        err = at_tok_nextint(&line, &current_act);
+    }
 
 no_current:
 
@@ -1366,8 +1529,10 @@ no_current:
             goto error;
 
         /* Find match for current operator in list */
-        if ((strcmp(numeric, current) == 0) && (act == current_act))
-            status = 2;
+        if ((NULL != current) && (current_act != -1)) {
+            if ((strcmp(numeric, current) == 0) && (act == current_act))
+                status = 2;
+        }
 
         responseArray[i * QUERY_NW_NUM_PARAMS + 0] = alloca(strlen(longAlphaNumeric) + 1);
         strcpy(responseArray[i * QUERY_NW_NUM_PARAMS + 0], longAlphaNumeric);
@@ -1434,8 +1599,6 @@ void requestSetPreferredNetworkType(void *data, size_t datalen,
     int err = 0;
     int rat;
 
-    RIL_Errno errorno = RIL_E_GENERIC_FAILURE;
-
     rat = ((int *) data)[0];
 
     switch (rat) {
@@ -1453,8 +1616,8 @@ void requestSetPreferredNetworkType(void *data, size_t datalen,
         ALOGD("[%s] network type = 3g only", __FUNCTION__);
         break;
     default:
-        errorno = RIL_E_MODE_NOT_SUPPORTED;
-        goto error;
+        RIL_onRequestComplete(t, RIL_E_MODE_NOT_SUPPORTED, NULL, 0);
+        return;
     }
 
     pref_net_type = arg;
@@ -1465,8 +1628,7 @@ void requestSetPreferredNetworkType(void *data, size_t datalen,
         return;
     }
 
-error:
-    RIL_onRequestComplete(t, errorno, NULL, 0);
+    RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 }
 
 /**

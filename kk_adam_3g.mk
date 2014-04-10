@@ -42,8 +42,12 @@ PRODUCT_NAME := kk_adam_3g
 PRODUCT_DEVICE := adam_3g
 PRODUCT_BRAND := NotionInk
 PRODUCT_MODEL := Notion Ink ADAM
+# Release name
+PRODUCT_RELEASE_NAME := NIAdam-3G
+PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=kk.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
 
-#$(call inherit-product, device/notionink/adam_common/google_apps.mk)
+# Inherit some common LiquidSmooth stuff.
+#$(call inherit-product, vendor/liquid/config/common_tablet.mk)
 
 # Inherit some common CM stuff.
 #$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
@@ -51,3 +55,10 @@ PRODUCT_MODEL := Notion Ink ADAM
 # Boot animation
 BOOTANIMATION_RESOLUTION := KatKiss
 $(call inherit-product, vendor/eos/common.mk)
+
+## Inherit from our custom product configuration
+$(call inherit-product, vendor/omni/config/common_tablet.mk)
+
+# Inherit telephony common stuff
+#$(call inherit-product, vendor/liquid/config/telephony.mk)
+
