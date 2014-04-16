@@ -53,7 +53,7 @@ $(call inherit-product, vendor/liquid/config/common_tablet.mk)
 #$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
 
 ## Inherit from our custom product configuration
-#$(call inherit-product, vendor/omni/config/common.mk)
+#$(call inherit-product, vendor/omni/config/common_tablet.mk)
 
 # Inherit telephony common stuff
 $(call inherit-product, vendor/liquid/config/telephony.mk)

@@ -71,7 +71,7 @@
 #define TIMEOUT_SEARCH_FOR_TTY 1 /* Poll every Xs for the port*/
 #define TIMEOUT_EMRDY 15 /* Module should respond at least within 15s */
 #define TIMEOUT_DEVICE_REMOVED 3
-#define MAX_BUF 1024
+#define MAX_BUF 2048
 
 /*** Global Variables ***/
 char* ril_iface;
@@ -283,21 +283,60 @@ void setScreenState(int screenState)
 {
     if (screenState == 1) {
         /* Screen is on - be sure to enable all unsolicited notifications again. */
+
+
+        /* Configure Network Registration Status.
+        *  Configure Packet Domain Network Rregistration Status
+        *     n = 0 - disable network registration unsolicited result code.
+        *       = 1 - enable network registration unsolicited result code.
+        *       = 2 - enable network registration and location information unsolicited
+        *             result code.
+        */
         at_send_command("AT+CREG=2");
         at_send_command("AT+CGREG=2");
+
+        /* Configure Packet Domain Event Reporting.
+        *  mode = 0 - buffer unsolicited result codes in the MT. No codes are
+        *             forwarded to the TE.
+        *       = 1 - discard unsolicited result codes when MT-TE link is reserved,
+        *             for example, in online data mode), otherwise forward them
+        *             directly to the TE.
+        *   bfr = 0 - MT buffer of unsolicited result codes defined within this
+        *             command is cleared when <mode> 1 is entered
+        */
         at_send_command("AT+CGEREP=1,0");
 
         isSimSmsStorageFull(NULL);
         pollSignalStrength((void *)-1);
 
-        at_send_command("AT+CMER=3,0,0,1");
+        /* Configure Mobile Equipment Event Reporting.
+        * mode = 0 - buffer unsolicited result codes in the phone. If the phone
+        *            result code buffer is full, codes can be buffered elsewhere
+        *            orthe oldest ones can be removed to make room for the new ones.
+        *      = 3 - forward the unsolicited result codes directly to the terminal
+        *            equipment. Phone terminal equipment link-specific in-band
+        *            technique used to embed result codes and data when phone is
+        *            in on-line data mode.
+        * keyp = 0 - no keypad event reporting.
+        *      = 2 - enables keypad event reporting using +CKEV: <key>,<press>.
+        * disp = 0 - no display event reporting.
+        *  ind = 0 - no indicator event reporting
+        *        1 - indicator event reporting using +CIEV: <ind>,<value>.
+        *            <ind> indicates the indicator order number (as specified for
+        *            +CIND) and <value> is the new value of indicator. Only those
+        *            indicator events, which are not caused by +CIND shall be
+        *            indicated by the TA to the TE.
+        *  bfr = 0 - TA buffer of unsolicited result codes defined within this
+        *            command is cleared when <mode> 1...3 is entered.
+        */
+        at_send_command("AT+CMER=3,0,0,1,0");
 
     } else if (screenState == 0) {
         /* Screen is off - disable all unsolicited notifications. */
         at_send_command("AT+CREG=0");
         at_send_command("AT+CGREG=0");
         at_send_command("AT+CGEREP=0,0");
-        at_send_command("AT+CMER=3,0,0,0");
+        at_send_command("AT+CMER=3,0,0,0,0");
     }
 }
 
@@ -310,8 +349,9 @@ static void requestScreenState(void *data, size_t datalen, RIL_Token t)
     if (datalen < sizeof(int *))
         goto error;
 
-    /* No point of enabling unsolicited if radio is off */
-    if (RADIO_STATE_OFF == getRadioState())
+    /* No point of enabling unsolicited if radio is off 
+       or SIM is locked */
+    if (RADIO_STATE_SIM_READY != getRadioState())
         goto success;
 
     s_screenState = ((int *) data)[0];
@@ -359,6 +399,7 @@ static char isPrioRequest(int request)
 
 static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
 {
+    char prop[PROPERTY_VALUE_MAX];
     ALOGD("%s() %s", __func__, requestToString(request));
 
     /*
@@ -538,8 +579,15 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
             requestGprsRegistrationState(request, data, datalen, t);
             break;
         case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:
-            requestNeighboringCellIDs(data, datalen, t);
-            break;
+            property_get("mbm.ril.config.nci", prop, "no");
+            if (strstr(prop, "no")) {
+                RIL_onRequestComplete(t, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+            }
+            else {
+                requestNeighboringCellIDs(data, datalen, t);
+                break;
+            }
 
         /* OEM */
         /* case RIL_REQUEST_OEM_HOOK_RAW:
@@ -1215,6 +1263,7 @@ static void *queueRunner(void *param)
            device is being removed from filesystem */
 
         int i = TIMEOUT_DEVICE_REMOVED;
+        sleep(1);
         while((i--) && (stat(queueArgs->device_path, &sb) == 0)) {
             ALOGD("%s() Waiting for %s to be removed (%d)...", __func__,
                 queueArgs->device_path, i);

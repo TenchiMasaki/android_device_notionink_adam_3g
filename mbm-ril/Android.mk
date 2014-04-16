@@ -8,6 +8,7 @@
 # XXX using libutils for simulator build only...
 #
 ifeq  ($(strip $(BOARD_ADAM)),true)
+
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -66,4 +67,5 @@ LOCAL_CFLAGS += -DRIL_SHLIB
 LOCAL_CFLAGS += -Wall
 LOCAL_MODULE:= libmbm-ril
 include $(BUILD_SHARED_LIBRARY)
+
 endif
