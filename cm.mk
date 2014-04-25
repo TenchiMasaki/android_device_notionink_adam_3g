@@ -44,7 +44,7 @@ PRODUCT_BRAND := NotionInk
 PRODUCT_MODEL := Notion Ink ADAM
 # Release name
 PRODUCT_RELEASE_NAME := NIAdam-3G
-PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=liquid.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
+PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=pac.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
 
 # Inherit some common LiquidSmooth stuff.
 #$(call inherit-product, vendor/liquid/config/common_tablet.mk)

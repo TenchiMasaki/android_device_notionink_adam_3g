@@ -93,7 +93,7 @@ media.stagefright.enable-record=false
 persist.fuse_sdcard=true
 
 # Disable BootAnimation
-debug.sf.nobootanimation=1
+#debug.sf.nobootanimation=1
 
 # Enable Low Ram Device flag
 ro.config.low_ram=true
