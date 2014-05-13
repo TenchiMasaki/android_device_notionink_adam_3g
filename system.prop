@@ -89,9 +89,6 @@ media.stagefright.enable-record=false
 #ro.max.fling_velocity=12000
 #ro.min.fling_velocity=8000
 
-# Fuse storage
-persist.fuse_sdcard=true
-
 # Disable BootAnimation
 #debug.sf.nobootanimation=1
 
@@ -99,4 +96,4 @@ persist.fuse_sdcard=true
 ro.config.low_ram=true
 
 # Disable JIT
-dalvik.vm.jit.codecachesize=0
+#dalvik.vm.jit.codecachesize=0
