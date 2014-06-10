@@ -1,0 +1,58 @@
+diff --git a/media/libmedia/Android.mk b/media/libmedia/Android.mk
+index 724325f..e0b97a9
+--- a/media/libstagefright/omx/Android.mk
++++ b/media/libstagefright/omx/Android.mk
+@@ -30,6 +30,9 @@ LOCAL_SHARED_LIBRARIES :=               \
+ ifeq ($(BOARD_USES_PROPRIETARY_OMX),SAMSUNG)
+ LOCAL_CFLAGS     += -DSAMSUNG_OMX
+ endif
++ifeq ($(BOARD_USES_PROPRIETARY_OMX),TF101)
++LOCAL_CFLAGS     += -DTF101_OMX
++endif
+ 
+ LOCAL_MODULE:= libstagefright_omx
+ 
+diff --git a/media/libstagefright/omx/OMXMaster.cpp b/media/libstagefright/omx/OMXMaster.cpp
+index 298c6e1..368eb9d
+--- a/media/libstagefright/omx/OMXMaster.cpp
++++ b/media/libstagefright/omx/OMXMaster.cpp
+@@ -48,6 +48,10 @@ void OMXMaster::addVendorPlugin() {
+ #ifdef SAMSUNG_OMX
+     addPlugin("libsomxcore.so");
+ #endif
++
++#ifdef TF101_OMX
++    addPlugin("libnvomx.so");
++#endif
+ }
+ 
+ void OMXMaster::addPlugin(const char *libname) {
+@@ -112,13 +116,28 @@ void OMXMaster::clearPlugins() {
+ 
+     mPluginByComponentName.clear();
+ 
++#ifdef TF101_OMX
++    int plugin = 1;
++#endif
+     for (List<OMXPluginBase *>::iterator it = mPlugins.begin();
+             it != mPlugins.end(); ++it) {
+         if (destroyOMXPlugin)
+             destroyOMXPlugin(*it);
++#ifdef TF101_OMX
++        else {
++           ALOGV("plugin %d", *it);
++           if( *it != NULL && plugin != 1) // 1st plugin is NV, crashes on delete => skip, better than crash for the moment
++	      delete *it;
++        }
++
++        *it = NULL;
++    plugin++;
++#else
+         else
+             delete *it;
++
+         *it = NULL;
++#endif
+     }
+ 
+     mPlugins.clear();
