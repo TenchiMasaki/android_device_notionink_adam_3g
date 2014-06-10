@@ -1,0 +1,21 @@
+*** a//opengl/libs/EGL/egl_object.cpp	2014-01-13 09:10:02.785091300 -0700
+--- b/opengl/libs/EGL/egl_object.cpp	2014-02-02 17:42:27.335142400 -0700
+***************
+*** 107,113 ****
+      if (gl_extensions.isEmpty()) {
+          // call the implementation's glGetString(GL_EXTENSIONS)
+          const char* exts = (const char *)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
+!         gl_extensions.setTo(exts);
+          if (gl_extensions.find("GL_EXT_debug_marker") < 0) {
+              String8 temp("GL_EXT_debug_marker ");
+              temp.append(gl_extensions);
+--- 107,115 ----
+      if (gl_extensions.isEmpty()) {
+          // call the implementation's glGetString(GL_EXTENSIONS)
+          const char* exts = (const char *)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
+!         if (exts != NULL) {
+!             gl_extensions.setTo(exts);
+!         }
+          if (gl_extensions.find("GL_EXT_debug_marker") < 0) {
+              String8 temp("GL_EXT_debug_marker ");
+              temp.append(gl_extensions);
