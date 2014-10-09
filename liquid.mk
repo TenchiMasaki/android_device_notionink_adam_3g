@@ -49,11 +49,11 @@ PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=liquid.adam_3g.$(shell date +%m%d%y)
 # Inherit some common LiquidSmooth stuff.
 $(call inherit-product, vendor/liquid/config/common_tablet.mk)
 
-# Inherit some common CM stuff.
-#$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
-
-## Inherit from our custom product configuration
-#$(call inherit-product, vendor/omni/config/common_tablet.mk)
 
 # Inherit telephony common stuff
 $(call inherit-product, vendor/liquid/config/telephony.mk)
+
+
+# OTA ID
+PRODUCT_PROPERTY_OVERRIDES += \
+    otaupdater.otaid=liquidadam3g

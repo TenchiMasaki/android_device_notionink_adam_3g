@@ -1,5 +1,5 @@
-*** omnirom4.4/packages/providers/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-06 19:11:32.621440800 -0700
---- omnirom4.4mods/packages/providers/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-07 15:22:09.693117457 -0700
+*** a/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-06 19:11:32.621440800 -0700
+--- b/MediaProvider/src/com/android/providers/media/MediaProvider.java	2014-02-07 15:22:09.693117457 -0700
 ***************
 *** 4553,4558 ****
 --- 4553,4561 ----

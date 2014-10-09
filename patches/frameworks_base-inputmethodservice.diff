@@ -1,5 +1,5 @@
-*** a/frameworks/base/core/java/android/inputmethodservice/IInputMethodWrapper.java	2014-03-30 10:29:00.301005939 -0600
---- b/frameworks/base/core/java/android/inputmethodservice/IInputMethodWrapper.java	2014-03-30 10:29:04.362654346 -0600
+*** a/core/java/android/inputmethodservice/IInputMethodWrapper.java	2014-03-30 10:29:00.301005939 -0600
+--- b/core/java/android/inputmethodservice/IInputMethodWrapper.java	2014-03-30 10:29:04.362654346 -0600
 ***************
 *** 284,289 ****
 --- 284,293 ----
