@@ -43,7 +43,7 @@ for p in $(find device/notionink/adam_3g/patches/ -name "*.diff")
                         if [ -d $dir ]; then
                                 echo "Patch dir exists do patching"
                                 cd $dir
-                                patch -p1 < $rootDir"/"$p > /dev/null 2>&1
+                                patch -p1 < $rootDir"/"$p
                                 cd $rootDir
                                 if [ $? == 0 ]; then
                                         echo "     [DONE]"
