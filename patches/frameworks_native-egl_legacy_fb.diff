@@ -1,8 +1,8 @@
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
-index 807c149..6acf364 100644
+index 183478d..52994d6 100644
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
-@@ -48,6 +48,10 @@ ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
+@@ -51,6 +51,10 @@ ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
  	LOCAL_CFLAGS += -DTARGET_DISABLE_TRIPLE_BUFFERING
  endif
  
@@ -14,9 +14,9 @@ index 807c149..6acf364 100644
      LOCAL_CFLAGS += -DFORCE_HWC_COPY_FOR_VIRTUAL_DISPLAYS
  endif
 diff --git a/services/surfaceflinger/DisplayDevice.cpp b/services/surfaceflinger/DisplayDevice.cpp
-old mode 100755
-new mode 100644
-index f56a1c5..99812d2
+old mode 100644
+new mode 100755
+index 564f974..e013996
 --- a/services/surfaceflinger/DisplayDevice.cpp
 +++ b/services/surfaceflinger/DisplayDevice.cpp
 @@ -29,6 +29,14 @@
@@ -34,12 +34,8 @@ index f56a1c5..99812d2
  #include <hardware/gralloc.h>
  
  #include "DisplayHardware/DisplaySurface.h"
-@@ -71,11 +79,15 @@ DisplayDevice::DisplayDevice(
-       mSecureLayerVisible(false),
-       mScreenAcquired(false),
-       mLayerStack(NO_LAYER_STACK),
--      mHardwareOrientation(0),
-       mOrientation()
+@@ -77,7 +85,12 @@ DisplayDevice::DisplayDevice(
+       mActiveConfig(0)
  {
      mNativeWindow = new Surface(producer, false);
 +
@@ -49,109 +45,53 @@ index f56a1c5..99812d2
 +    ANativeWindow* const window = new FramebufferNativeWindow();
 +#endif
  
-     int format;
-     window->query(window, NATIVE_WINDOW_FORMAT, &format);
-@@ -115,12 +127,7 @@ DisplayDevice::DisplayDevice(
-     // was created with createDisplay().
-     switch (mType) {
-         case DISPLAY_PRIMARY:
--            char value[PROPERTY_VALUE_MAX];
-             mDisplayName = "Built-in Screen";
--
--            /* hwrotation applies only to the primary display */
--            property_get("ro.sf.hwrotation", value, "0");
--            mHardwareOrientation = atoi(value);
+     /*
+      * Create our display's surface
+@@ -128,9 +141,14 @@ DisplayDevice::DisplayDevice(
+             mDisplayName = "Virtual Screen";    // e.g. Overlay #n
              break;
-         case DISPLAY_EXTERNAL:
-             mDisplayName = "HDMI Screen";
-@@ -373,7 +380,9 @@ status_t DisplayDevice::orientationToTransfrom(
-         int orientation, int w, int h, Transform* tr)
- {
-     uint32_t flags = 0;
--    int additionalRot = this->getHardwareOrientation();
-+    char value[PROPERTY_VALUE_MAX];
-+    property_get("ro.sf.hwrotation", value, "0");
-+    int additionalRot = atoi(value);
- 
-     if (additionalRot) {
-         additionalRot /= 90;
-@@ -420,11 +429,7 @@ void DisplayDevice::setProjection(int orientation,
-     if (!frame.isValid()) {
-         // the destination frame can be invalid if it has never been set,
-         // in that case we assume the whole display frame.
--        if ((mHardwareOrientation/90) & DisplayState::eOrientationSwapMask) {
--            frame = Rect(h, w);
--        } else {
--            frame = Rect(w, h);
--        }
-+        frame = Rect(w, h);
      }
++    char property[PROPERTY_VALUE_MAX];
++    int panelOrientation = DisplayState::eOrientationDefault;
++    // Set the panel orientation from the property.
++    property_get("persist.panel.orientation", property, "0");
++    panelOrientation = atoi(property) / 90;
  
-     if (viewport.isEmpty()) {
-@@ -479,10 +484,6 @@ void DisplayDevice::setProjection(int orientation,
-     mFrame = frame;
+     // initialize the display orientation transform.
+-    setProjection(DisplayState::eOrientationDefault, mViewport, mFrame);
++    setProjection(panelOrientation, mViewport, mFrame);
  }
  
--int DisplayDevice::getHardwareOrientation() {
--    return mHardwareOrientation;
--}
--
- void DisplayDevice::dump(String8& result) const {
-     const Transform& tr(mGlobalTransform);
-     result.appendFormat(
-diff --git a/services/surfaceflinger/DisplayDevice.h b/services/surfaceflinger/DisplayDevice.h
-index 24ca033..c3abe89 100644
---- a/services/surfaceflinger/DisplayDevice.h
-+++ b/services/surfaceflinger/DisplayDevice.h
-@@ -159,7 +159,6 @@ public:
-      */
-     uint32_t getPageFlipCount() const;
-     void dump(String8& result) const;
--    int getHardwareOrientation();
- 
- private:
-     /*
-@@ -202,11 +201,10 @@ private:
-     /*
-      * Transaction state
-      */
--    status_t orientationToTransfrom(int orientation,
-+    static status_t orientationToTransfrom(int orientation,
-             int w, int h, Transform* tr);
- 
-     uint32_t mLayerStack;
--    int mHardwareOrientation;
-     int mOrientation;
-     // user-provided visible area of the layer stack
-     Rect mViewport;
+ DisplayDevice::~DisplayDevice() {
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
-index 1432ac3..2bb85e6 100644
+old mode 100644
+new mode 100755
+index 419b246..a447620
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
-@@ -741,7 +741,9 @@ status_t SurfaceFlinger::getDisplayInfo(const sp<IBinder>& display, DisplayInfo*
-         info->orientation = 0;
-     }
+@@ -573,10 +573,21 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
+             info.orientation = 0;
+         }
  
--    int additionalRot = mDisplays[0]->getHardwareOrientation() / 90;
-+    char value[PROPERTY_VALUE_MAX];
-+    property_get("ro.sf.hwrotation", value, "0");
-+    int additionalRot = atoi(value) / 90;
-     if ((type == DisplayDevice::DISPLAY_PRIMARY) && (additionalRot & DisplayState::eOrientationSwapMask)) {
-         info->h = hwc.getWidth(type);
-         info->w = hwc.getHeight(type);
-@@ -3241,6 +3243,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
-                             // not fatal
-                         }
+-        info.w = hwConfig.width;
+-        info.h = hwConfig.height;
+-        info.xdpi = xdpi;
+-        info.ydpi = ydpi;
++    	char value[PROPERTY_VALUE_MAX];
++    	property_get("ro.sf.hwrotation", value, "0");
++    	int additionalRot = atoi(value) / 90;
++    	if ((type == DisplayDevice::DISPLAY_PRIMARY) && (additionalRot & DisplayState::eOrientationSwapMask)) {
++	        info.h = hwConfig.width;
++	        info.w = hwConfig.height;
++	        info.ydpi = xdpi;
++	        info.xdpi = ydpi;
++		} else {
++			info.w = hwConfig.width;
++	        info.h = hwConfig.height;
++	        info.xdpi = xdpi;
++	        info.ydpi = ydpi;
++		}
++		
+         info.fps = float(1e9 / hwConfig.refresh);
+         info.appVsyncOffset = VSYNC_EVENT_PHASE_OFFSET_NS;
  
-+#ifndef BOARD_EGL_NEEDS_LEGACY_FB
-                         if (useReadPixels) {
-                             sp<GraphicBuffer> buf = static_cast<GraphicBuffer*>(buffer);
-                             void* vaddr;
-@@ -3249,6 +3252,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
-                                 buf->unlock();
-                             }
-                         }
-+#endif
- 
-                         if (DEBUG_SCREENSHOTS) {
-                             uint32_t* pixels = new uint32_t[reqWidth*reqHeight];

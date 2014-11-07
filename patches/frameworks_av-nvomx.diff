@@ -1,25 +1,30 @@
-diff --git a/media/libmedia/Android.mk b/media/libmedia/Android.mk
-index 724325f..e0b97a9
+diff --git a/media/libstagefright/omx/Android.mk b/media/libstagefright/omx/Android.mk
+index aaa8334..e1fc285 100644
 --- a/media/libstagefright/omx/Android.mk
 +++ b/media/libstagefright/omx/Android.mk
-@@ -30,6 +30,9 @@ LOCAL_SHARED_LIBRARIES :=               \
- ifeq ($(BOARD_USES_PROPRIETARY_OMX),SAMSUNG)
- LOCAL_CFLAGS     += -DSAMSUNG_OMX
+@@ -4,6 +4,9 @@ include $(CLEAR_VARS)
+ ifeq ($(TARGET_DEVICE), manta)
+     LOCAL_CFLAGS += -DSURFACE_IS_BGR32
  endif
 +ifeq ($(BOARD_USES_PROPRIETARY_OMX),TF101)
 +LOCAL_CFLAGS     += -DTF101_OMX
 +endif
  
- LOCAL_MODULE:= libstagefright_omx
- 
+ LOCAL_SRC_FILES:=                     \
+         GraphicBufferSource.cpp       \
 diff --git a/media/libstagefright/omx/OMXMaster.cpp b/media/libstagefright/omx/OMXMaster.cpp
-index 298c6e1..368eb9d
+old mode 100644
+new mode 100755
+index ae3cb33..62352fe
 --- a/media/libstagefright/omx/OMXMaster.cpp
 +++ b/media/libstagefright/omx/OMXMaster.cpp
-@@ -48,6 +48,10 @@ void OMXMaster::addVendorPlugin() {
- #ifdef SAMSUNG_OMX
-     addPlugin("libsomxcore.so");
- #endif
+@@ -45,6 +45,13 @@ OMXMaster::~OMXMaster() {
+ 
+ void OMXMaster::addVendorPlugin() {
+     addPlugin("libstagefrighthw.so");
++#ifdef SAMSUNG_OMX
++    addPlugin("libsomxcore.so");
++#endif
 +
 +#ifdef TF101_OMX
 +    addPlugin("libnvomx.so");
@@ -27,7 +32,17 @@ index 298c6e1..368eb9d
  }
  
  void OMXMaster::addPlugin(const char *libname) {
-@@ -112,13 +116,28 @@ void OMXMaster::clearPlugins() {
+@@ -68,6 +75,9 @@ void OMXMaster::addPlugin(const char *libname) {
+ }
+ 
+ void OMXMaster::addPlugin(OMXPluginBase *plugin) {
++    if (plugin == 0) {
++       return;
++    }
+     Mutex::Autolock autoLock(mLock);
+ 
+     mPlugins.push_back(plugin);
+@@ -106,13 +116,28 @@ void OMXMaster::clearPlugins() {
  
      mPluginByComponentName.clear();
  

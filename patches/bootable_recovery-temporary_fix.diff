@@ -1,0 +1,44 @@
+
+project bootable/recovery/
+diff --git a/Android.mk b/Android.mk
+old mode 100644
+new mode 100755
+diff --git a/roots.cpp b/roots.cpp
+old mode 100644
+new mode 100755
+index 0d47577..9f8f5f2
+--- a/roots.cpp
++++ b/roots.cpp
+@@ -32,7 +32,7 @@
+ #include "make_ext4fs.h"
+ extern "C" {
+ #include "wipe.h"
+-#include "cryptfs.h"
++//#include "cryptfs.h"
+ }
+ 
+ static struct fstab *fstab = NULL;
+@@ -230,7 +230,7 @@ int format_volume(const char* volume) {
+         if (v->length != 0) {
+             length = v->length;
+         } else if (v->key_loc != NULL && strcmp(v->key_loc, "footer") == 0) {
+-            length = -CRYPT_FOOTER_OFFSET;
++//            length = -CRYPT_FOOTER_OFFSET;
+         }
+         int result;
+         if (strcmp(v->fs_type, "ext4") == 0) {
+diff --git a/updater/install.c b/updater/install.c
+old mode 100644
+new mode 100755
+index dad0d08..0758be7
+--- a/updater/install.c
++++ b/updater/install.c
+@@ -1485,7 +1485,7 @@ Value* WipeBlockDeviceFn(const char* name, State* state, int argc, Expr* argv[])
+ 
+     size_t len = strtoull(len_str, NULL, 0);
+     int fd = open(filename, O_WRONLY, 0644);
+-    int success = wipe_block_device(fd, len);
++    int success = 0; //wipe_block_device(fd, len);
+ 
+     free(filename);
+     free(len_str);

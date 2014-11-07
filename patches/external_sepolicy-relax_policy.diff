@@ -1,0 +1,31 @@
+project external/sepolicy/
+diff --git a/app.te b/app.te
+old mode 100644
+new mode 100755
+index b9027fe..5127e5c
+--- a/app.te
++++ b/app.te
+@@ -337,7 +337,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
+ neverallow { appdomain -shell } efs_file:dir_file_class_set read;
+ 
+ # Write to various pseudo file systems.
+-neverallow { appdomain -bluetooth -nfc }
++neverallow { appdomain -bluetooth -nfc -platform_app }
+     sysfs:dir_file_class_set write;
+ neverallow appdomain
+     proc:dir_file_class_set write;
+diff --git a/domain.te b/domain.te
+old mode 100644
+new mode 100755
+index 6b025e3..871ac53
+--- a/domain.te
++++ b/domain.te
+@@ -255,7 +255,7 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
+ # Don't allow raw read/write/open access to generic devices.
+ # Rather force a relabel to a more specific type.
+ # ueventd is exempt from this, as its managing these devices.
+-neverallow { domain -unconfineddomain -ueventd } device:chr_file { open read write };
++neverallow { domain -unconfineddomain -ueventd -system_server -system_app -platform_app -untrusted_app -bootanim -wpa -mediaserver } device:chr_file { open read write };
+ 
+ # Limit what domains can mount filesystems or change their mount flags.
+ # sdcard_type / vfat is exempt as a larger set of domains need

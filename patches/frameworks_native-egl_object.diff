@@ -1,21 +1,16 @@
-*** a//opengl/libs/EGL/egl_object.cpp	2014-01-13 09:10:02.785091300 -0700
---- b/opengl/libs/EGL/egl_object.cpp	2014-02-02 17:42:27.335142400 -0700
-***************
-*** 107,113 ****
-      if (gl_extensions.isEmpty()) {
-          // call the implementation's glGetString(GL_EXTENSIONS)
-          const char* exts = (const char *)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
-!         gl_extensions.setTo(exts);
-          if (gl_extensions.find("GL_EXT_debug_marker") < 0) {
-              String8 temp("GL_EXT_debug_marker ");
-              temp.append(gl_extensions);
---- 107,115 ----
-      if (gl_extensions.isEmpty()) {
-          // call the implementation's glGetString(GL_EXTENSIONS)
-          const char* exts = (const char *)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
-!         if (exts != NULL) {
-!             gl_extensions.setTo(exts);
-!         }
-          if (gl_extensions.find("GL_EXT_debug_marker") < 0) {
-              String8 temp("GL_EXT_debug_marker ");
-              temp.append(gl_extensions);
+project frameworks/native/
+diff --git a/opengl/libs/EGL/egl_object.cpp b/opengl/libs/EGL/egl_object.cpp
+index d3ee76d..31e8c42 100644
+--- a/opengl/libs/EGL/egl_object.cpp
++++ b/opengl/libs/EGL/egl_object.cpp
+@@ -107,7 +107,9 @@ void egl_context_t::onMakeCurrent(EGLSurface draw, EGLSurface read) {
+     if (gl_extensions.isEmpty()) {
+         // call the implementation's glGetString(GL_EXTENSIONS)
+         const char* exts = (const char *)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
+-        gl_extensions.setTo(exts);
++        if (exts != NULL) {
++            gl_extensions.setTo(exts);
++        }
+         if (gl_extensions.find("GL_EXT_debug_marker") < 0) {
+             String8 temp("GL_EXT_debug_marker ");
+             temp.append(gl_extensions);
