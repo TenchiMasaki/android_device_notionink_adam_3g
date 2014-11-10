@@ -1,5 +1,7 @@
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
-index 183478d..52994d6 100644
+old mode 100644
+new mode 100755
+index 183478d..52994d6
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
 @@ -51,6 +51,10 @@ ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
@@ -13,85 +15,51 @@ index 183478d..52994d6 100644
  ifeq ($(TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS),true)
      LOCAL_CFLAGS += -DFORCE_HWC_COPY_FOR_VIRTUAL_DISPLAYS
  endif
-diff --git a/services/surfaceflinger/DisplayDevice.cpp b/services/surfaceflinger/DisplayDevice.cpp
-old mode 100644
-new mode 100755
-index 564f974..e013996
---- a/services/surfaceflinger/DisplayDevice.cpp
-+++ b/services/surfaceflinger/DisplayDevice.cpp
-@@ -29,6 +29,14 @@
- 
- #include <gui/Surface.h>
- 
-+#ifdef BOARD_EGL_NEEDS_LEGACY_FB
-+#include <ui/FramebufferNativeWindow.h>
-+#endif
-+
-+#include <GLES/gl.h>
-+#include <EGL/egl.h>
-+#include <EGL/eglext.h>
-+
- #include <hardware/gralloc.h>
- 
- #include "DisplayHardware/DisplaySurface.h"
-@@ -77,7 +85,12 @@ DisplayDevice::DisplayDevice(
-       mActiveConfig(0)
- {
-     mNativeWindow = new Surface(producer, false);
-+
-+#ifndef BOARD_EGL_NEEDS_LEGACY_FB
-     ANativeWindow* const window = mNativeWindow.get();
-+#else
-+    ANativeWindow* const window = new FramebufferNativeWindow();
-+#endif
- 
-     /*
-      * Create our display's surface
-@@ -128,9 +141,14 @@ DisplayDevice::DisplayDevice(
-             mDisplayName = "Virtual Screen";    // e.g. Overlay #n
-             break;
-     }
-+    char property[PROPERTY_VALUE_MAX];
-+    int panelOrientation = DisplayState::eOrientationDefault;
-+    // Set the panel orientation from the property.
-+    property_get("persist.panel.orientation", property, "0");
-+    panelOrientation = atoi(property) / 90;
- 
-     // initialize the display orientation transform.
--    setProjection(DisplayState::eOrientationDefault, mViewport, mFrame);
-+    setProjection(panelOrientation, mViewport, mFrame);
- }
- 
- DisplayDevice::~DisplayDevice() {
+
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
 old mode 100644
 new mode 100755
-index 419b246..a447620
+index 96a8adb..f4bf226
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
-@@ -573,10 +573,21 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
-             info.orientation = 0;
+@@ -1274,7 +1274,11 @@ void SurfaceFlinger::handleTransactionLocked(uint32_t transactionFlags)
+                     // this display is in both lists. see if something changed.
+                     const DisplayDeviceState& state(curr[j]);
+                     const wp<IBinder>& display(curr.keyAt(j));
+-                    if (state.surface->asBinder() != draw[i].surface->asBinder()) {
++                    const sp<IBinder> state_binder =
++                        state.surface != NULL ? state.surface->asBinder() : NULL;
++                    const sp<IBinder> draw_binder =
++                        draw[i].surface != NULL ? draw[i].surface->asBinder() : NULL;
++                    if (state_binder != draw_binder) {
+                         // changing the surface is like destroying and
+                         // recreating the DisplayDevice, so we just remove it
+                         // from the drawing state, so that it get re-added
+@@ -3027,11 +3031,15 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+             return result;
          }
- 
--        info.w = hwConfig.width;
--        info.h = hwConfig.height;
--        info.xdpi = xdpi;
--        info.ydpi = ydpi;
-+    	char value[PROPERTY_VALUE_MAX];
-+    	property_get("ro.sf.hwrotation", value, "0");
-+    	int additionalRot = atoi(value) / 90;
-+    	if ((type == DisplayDevice::DISPLAY_PRIMARY) && (additionalRot & DisplayState::eOrientationSwapMask)) {
-+	        info.h = hwConfig.width;
-+	        info.w = hwConfig.height;
-+	        info.ydpi = xdpi;
-+	        info.xdpi = ydpi;
-+		} else {
-+			info.w = hwConfig.width;
-+	        info.h = hwConfig.height;
-+	        info.xdpi = xdpi;
-+	        info.ydpi = ydpi;
-+		}
-+		
-         info.fps = float(1e9 / hwConfig.refresh);
-         info.appVsyncOffset = VSYNC_EVENT_PHASE_OFFSET_NS;
- 
+         virtual bool handler() {
++#ifndef BOARD_EGL_NEEDS_LEGACY_FB
+             Mutex::Autolock _l(flinger->mStateLock);
+             sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
+             result = flinger->captureScreenImplLocked(hw, producer,
+                     sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
+                     useIdentityTransform, rotation);
++#else
++			result = false;
++#endif
+             static_cast<GraphicProducerWrapper*>(producer->asBinder().get())->exit(result);
+             return true;
+         }
+@@ -3247,8 +3255,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+                 } else {
+                     result = BAD_VALUE;
+                 }
+-                // queueBuffer takes ownership of syncFd
+                 window->queueBuffer(window, buffer, syncFd);
++                if (syncFd != -1) {
++                    close(syncFd);
++                }
+             }
+         } else {
+             result = BAD_VALUE;
