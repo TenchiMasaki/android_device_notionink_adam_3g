@@ -1,5 +1,4 @@
-
-Here's Adam 3G device tree for android LiquidSmooth 4.4.
+Here's Adam 3G device tree for android CM12.
 
 Make sure you have adam_common tree downloaded
 
@@ -13,10 +12,9 @@ Shell Type: ". build/envsetup.sh"
 
 Let it finish.
 
-Shell Type: "lunch liquid_adam_3g-userdebug"
+Shell Type: "lunch cm_adam_3g-userdebug"
 
 Wait for it to get done.
 
 Then type: "time make -j16" (replace 16 with whatever your machine can handle.)
 
-To make update zip type: "make liquid"

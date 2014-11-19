@@ -156,11 +156,11 @@ index 0000000..de8a57c
 +	subs	r0,r0,#1
 +	bx	lr
 diff --git a/libc/arch-arm/tegra2/bionic/memcpy.S b/libc/arch-arm/tegra2/bionic/memcpy.S
-new file mode 100644
-index 0000000..e90a48f
+new file mode 100755
+index 0000000..f4465f4
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/memcpy.S
-@@ -0,0 +1,403 @@
+@@ -0,0 +1,402 @@
 +/*
 + * Copyright (C) 2008 The Android Open Source Project
 + * All rights reserved.
@@ -189,9 +189,8 @@ index 0000000..e90a48f
 + * SUCH DAMAGE.
 + */
 +
-+#include <machine/cpu-features.h>
-+#include <machine/asm.h>
-+#include "libc_events.h"
++#include <private/bionic_asm.h>
++#include <private/libc_events.h>
 +
 +        /*
 +         * Optimized memcpy() for ARM.
@@ -565,8 +564,8 @@ index 0000000..e90a48f
 +error_string:
 +        .string     "memcpy buffer overflow"
 diff --git a/libc/arch-arm/tegra2/bionic/memset.S b/libc/arch-arm/tegra2/bionic/memset.S
-new file mode 100644
-index 0000000..56978c9
+new file mode 100755
+index 0000000..ec95adc
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/memset.S
 @@ -0,0 +1,132 @@
@@ -598,8 +597,8 @@ index 0000000..56978c9
 + * SUCH DAMAGE.
 + */
 +
-+#include <machine/asm.h>
-+#include "libc_events.h"
++#include <private/bionic_asm.h>
++#include <private/libc_events.h>
 +
 +        /*
 +         * Optimized memset() for ARM.
@@ -703,8 +702,8 @@ index 0000000..56978c9
 +error_string:
 +        .string     "memset buffer overflow"
 diff --git a/libc/arch-arm/tegra2/bionic/strcmp.S b/libc/arch-arm/tegra2/bionic/strcmp.S
-new file mode 100644
-index 0000000..7aff7c4
+new file mode 100755
+index 0000000..94dff8d
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/strcmp.S
 @@ -0,0 +1,377 @@
@@ -737,7 +736,7 @@ index 0000000..7aff7c4
 + */
 +
 +#include <machine/cpu-features.h>
-+#include <machine/asm.h>
++#include <private/bionic_asm.h>
 +
 +#ifdef __ARMEB__
 +#define S2LOMEM lsl
@@ -1086,11 +1085,11 @@ index 0000000..7aff7c4
 +        bx      lr
 +END(strcmp)
 diff --git a/libc/arch-arm/tegra2/bionic/strcpy.S b/libc/arch-arm/tegra2/bionic/strcpy.S
-new file mode 100644
-index 0000000..61625e5
+new file mode 100755
+index 0000000..9ff7c4b
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/strcpy.S
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,132 @@
 +/*
 + * Copyright (C) 2010 The Android Open Source Project
 + * Copyright (c) 2008 ARM Ltd
@@ -1122,8 +1121,7 @@ index 0000000..61625e5
 + * Android adaptation and tweak by Jim Huang <jserv@0xlab.org>.
 + */
 +
-+#include <machine/cpu-features.h>
-+#include <machine/asm.h>
++#include <private/bionic_asm.h>
 +
 +ENTRY(strcpy)
 +	pld [r1, #0]
@@ -1342,21 +1340,21 @@ index 0000000..125e92f
 +	pop	{ r4, r6 }
 +	bx	lr
 diff --git a/libc/arch-arm/tegra2/tegra2.mk b/libc/arch-arm/tegra2/tegra2.mk
-new file mode 100644
-index 0000000..5140036
+new file mode 100755
+index 0000000..a621eb1
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/tegra2.mk
-@@ -0,0 +1,13 @@
-+$(call libc-add-cpu-variant-src,MEMCPY,arch-arm/tegra2/bionic/memcpy.S)
-+$(call libc-add-cpu-variant-src,MEMSET,arch-arm/tegra2/bionic/memset.S)
-+$(call libc-add-cpu-variant-src,STRCMP,arch-arm/tegra2/bionic/strcmp.S)
-+$(call libc-add-cpu-variant-src,STRCPY,arch-arm/tegra2/bionic/strcpy.S)
-+$(call libc-add-cpu-variant-src,MEMMOVE,bionic/memmove.c.arm)
-+$(call libc-add-cpu-variant-src,BCOPY,string/bcopy.c.arm)
-+$(call libc-add-cpu-variant-src,__STRCAT_CHK,bionic/__strcat_chk.cpp)
-+$(call libc-add-cpu-variant-src,__STRCPY_CHK,bionic/__strcpy_chk.cpp)
-+$(call libc-add-cpu-variant-src,STRCAT,string/strcat.c)
-+
-+# armv7-a (non neon) ones from cm10.1
-+$(call libc-add-cpu-variant-src,STRLEN,arch-arm/tegra2/bionic/strlen.S)
-+$(call libc-add-cpu-variant-src,MEMCHR,arch-arm/tegra2/bionic/memchr.S)
+@@ -0,0 +1,12 @@
++libc_bionic_src_files_arm += \
++    arch-arm/tegra2/bionic/memchr.S \
++    arch-arm/tegra2/bionic/memcpy.S \
++    arch-arm/tegra2/bionic/memset.S \
++    upstream-openbsd/lib/libc/string/strcat.c \
++    arch-arm/tegra2/bionic/strcmp.S \
++    arch-arm/tegra2/bionic/strcpy.S \
++    arch-arm/tegra2/bionic/strlen.S \
++    bionic/__strcat_chk.cpp \
++    bionic/__strcpy_chk.cpp \
++    bionic/memmove.c
++    
+

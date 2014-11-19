@@ -1,0 +1,23 @@
+project packages/providers/MediaProvider/
+diff --git a/src/com/android/providers/media/MediaProvider.java b/src/com/android/providers/media/MediaProvider.java
+index 4e67ed8..3c30f8e 100755
+--- a/src/com/android/providers/media/MediaProvider.java
++++ b/src/com/android/providers/media/MediaProvider.java
+@@ -4596,6 +4596,9 @@ public class MediaProvider extends ContentProvider {
+                     throw new FileNotFoundException("No entry for " + uri);
+                 case 1:
+                     if (cursor.moveToFirst()) {
++                        if (cursor.getString(0) == null) {
++							throw new FileNotFoundException("No entry for " + uri);
++						}
+                         return new File(cursor.getString(0));
+                     } else {
+                         throw new FileNotFoundException("Unable to read entry for " + uri);
+@@ -4811,6 +4814,7 @@ public class MediaProvider extends ContentProvider {
+     private static byte[] getCompressedAlbumArt(Context context, String path) {
+         byte[] compressed = null;
+ 
++		if (path == null) return null;
+         try {
+             File f = new File(path);
+             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,

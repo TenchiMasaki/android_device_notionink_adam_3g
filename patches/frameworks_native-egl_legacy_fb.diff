@@ -1,8 +1,10 @@
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
-index 807c149..6acf364 100644
+old mode 100644
+new mode 100755
+index 183478d..52994d6
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
-@@ -48,6 +48,10 @@ ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
+@@ -51,6 +51,10 @@ ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
  	LOCAL_CFLAGS += -DTARGET_DISABLE_TRIPLE_BUFFERING
  endif
  
@@ -13,145 +15,51 @@ index 807c149..6acf364 100644
  ifeq ($(TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS),true)
      LOCAL_CFLAGS += -DFORCE_HWC_COPY_FOR_VIRTUAL_DISPLAYS
  endif
-diff --git a/services/surfaceflinger/DisplayDevice.cpp b/services/surfaceflinger/DisplayDevice.cpp
-old mode 100755
-new mode 100644
-index f56a1c5..99812d2
---- a/services/surfaceflinger/DisplayDevice.cpp
-+++ b/services/surfaceflinger/DisplayDevice.cpp
-@@ -29,6 +29,14 @@
- 
- #include <gui/Surface.h>
- 
-+#ifdef BOARD_EGL_NEEDS_LEGACY_FB
-+#include <ui/FramebufferNativeWindow.h>
-+#endif
-+
-+#include <GLES/gl.h>
-+#include <EGL/egl.h>
-+#include <EGL/eglext.h>
-+
- #include <hardware/gralloc.h>
- 
- #include "DisplayHardware/DisplaySurface.h"
-@@ -71,11 +79,15 @@ DisplayDevice::DisplayDevice(
-       mSecureLayerVisible(false),
-       mScreenAcquired(false),
-       mLayerStack(NO_LAYER_STACK),
--      mHardwareOrientation(0),
-       mOrientation()
- {
-     mNativeWindow = new Surface(producer, false);
-+
-+#ifndef BOARD_EGL_NEEDS_LEGACY_FB
-     ANativeWindow* const window = mNativeWindow.get();
-+#else
-+    ANativeWindow* const window = new FramebufferNativeWindow();
-+#endif
- 
-     int format;
-     window->query(window, NATIVE_WINDOW_FORMAT, &format);
-@@ -115,12 +127,7 @@ DisplayDevice::DisplayDevice(
-     // was created with createDisplay().
-     switch (mType) {
-         case DISPLAY_PRIMARY:
--            char value[PROPERTY_VALUE_MAX];
-             mDisplayName = "Built-in Screen";
--
--            /* hwrotation applies only to the primary display */
--            property_get("ro.sf.hwrotation", value, "0");
--            mHardwareOrientation = atoi(value);
-             break;
-         case DISPLAY_EXTERNAL:
-             mDisplayName = "HDMI Screen";
-@@ -373,7 +380,9 @@ status_t DisplayDevice::orientationToTransfrom(
-         int orientation, int w, int h, Transform* tr)
- {
-     uint32_t flags = 0;
--    int additionalRot = this->getHardwareOrientation();
-+    char value[PROPERTY_VALUE_MAX];
-+    property_get("ro.sf.hwrotation", value, "0");
-+    int additionalRot = atoi(value);
- 
-     if (additionalRot) {
-         additionalRot /= 90;
-@@ -420,11 +429,7 @@ void DisplayDevice::setProjection(int orientation,
-     if (!frame.isValid()) {
-         // the destination frame can be invalid if it has never been set,
-         // in that case we assume the whole display frame.
--        if ((mHardwareOrientation/90) & DisplayState::eOrientationSwapMask) {
--            frame = Rect(h, w);
--        } else {
--            frame = Rect(w, h);
--        }
-+        frame = Rect(w, h);
-     }
- 
-     if (viewport.isEmpty()) {
-@@ -479,10 +484,6 @@ void DisplayDevice::setProjection(int orientation,
-     mFrame = frame;
- }
- 
--int DisplayDevice::getHardwareOrientation() {
--    return mHardwareOrientation;
--}
--
- void DisplayDevice::dump(String8& result) const {
-     const Transform& tr(mGlobalTransform);
-     result.appendFormat(
-diff --git a/services/surfaceflinger/DisplayDevice.h b/services/surfaceflinger/DisplayDevice.h
-index 24ca033..c3abe89 100644
---- a/services/surfaceflinger/DisplayDevice.h
-+++ b/services/surfaceflinger/DisplayDevice.h
-@@ -159,7 +159,6 @@ public:
-      */
-     uint32_t getPageFlipCount() const;
-     void dump(String8& result) const;
--    int getHardwareOrientation();
- 
- private:
-     /*
-@@ -202,11 +201,10 @@ private:
-     /*
-      * Transaction state
-      */
--    status_t orientationToTransfrom(int orientation,
-+    static status_t orientationToTransfrom(int orientation,
-             int w, int h, Transform* tr);
- 
-     uint32_t mLayerStack;
--    int mHardwareOrientation;
-     int mOrientation;
-     // user-provided visible area of the layer stack
-     Rect mViewport;
+
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
-index 1432ac3..2bb85e6 100644
+old mode 100644
+new mode 100755
+index 96a8adb..f4bf226
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
-@@ -741,7 +741,9 @@ status_t SurfaceFlinger::getDisplayInfo(const sp<IBinder>& display, DisplayInfo*
-         info->orientation = 0;
-     }
- 
--    int additionalRot = mDisplays[0]->getHardwareOrientation() / 90;
-+    char value[PROPERTY_VALUE_MAX];
-+    property_get("ro.sf.hwrotation", value, "0");
-+    int additionalRot = atoi(value) / 90;
-     if ((type == DisplayDevice::DISPLAY_PRIMARY) && (additionalRot & DisplayState::eOrientationSwapMask)) {
-         info->h = hwc.getWidth(type);
-         info->w = hwc.getHeight(type);
-@@ -3241,6 +3243,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
-                             // not fatal
-                         }
- 
+@@ -1274,7 +1274,11 @@ void SurfaceFlinger::handleTransactionLocked(uint32_t transactionFlags)
+                     // this display is in both lists. see if something changed.
+                     const DisplayDeviceState& state(curr[j]);
+                     const wp<IBinder>& display(curr.keyAt(j));
+-                    if (state.surface->asBinder() != draw[i].surface->asBinder()) {
++                    const sp<IBinder> state_binder =
++                        state.surface != NULL ? state.surface->asBinder() : NULL;
++                    const sp<IBinder> draw_binder =
++                        draw[i].surface != NULL ? draw[i].surface->asBinder() : NULL;
++                    if (state_binder != draw_binder) {
+                         // changing the surface is like destroying and
+                         // recreating the DisplayDevice, so we just remove it
+                         // from the drawing state, so that it get re-added
+@@ -3027,11 +3031,15 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+             return result;
+         }
+         virtual bool handler() {
 +#ifndef BOARD_EGL_NEEDS_LEGACY_FB
-                         if (useReadPixels) {
-                             sp<GraphicBuffer> buf = static_cast<GraphicBuffer*>(buffer);
-                             void* vaddr;
-@@ -3249,6 +3252,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
-                                 buf->unlock();
-                             }
-                         }
+             Mutex::Autolock _l(flinger->mStateLock);
+             sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
+             result = flinger->captureScreenImplLocked(hw, producer,
+                     sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
+                     useIdentityTransform, rotation);
++#else
++			result = false;
 +#endif
- 
-                         if (DEBUG_SCREENSHOTS) {
-                             uint32_t* pixels = new uint32_t[reqWidth*reqHeight];
+             static_cast<GraphicProducerWrapper*>(producer->asBinder().get())->exit(result);
+             return true;
+         }
+@@ -3247,8 +3255,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+                 } else {
+                     result = BAD_VALUE;
+                 }
+-                // queueBuffer takes ownership of syncFd
+                 window->queueBuffer(window, buffer, syncFd);
++                if (syncFd != -1) {
++                    close(syncFd);
++                }
+             }
+         } else {
+             result = BAD_VALUE;

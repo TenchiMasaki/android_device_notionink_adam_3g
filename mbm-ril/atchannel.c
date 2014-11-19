@@ -44,7 +44,7 @@
 
 #ifdef HAVE_ANDROID_OS
 /* For IOCTL's */
-#include <linux/omap_csmi.h>
+//#include <linux/omap_csmi.h>
 #endif /*HAVE_ANDROID_OS*/
 
 #include "misc.h"

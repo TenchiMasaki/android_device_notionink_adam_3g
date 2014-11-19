@@ -1,0 +1,312 @@
+project external/bluetooth/bluedroid/
+diff --git a/bta/dm/bta_dm_act.c b/bta/dm/bta_dm_act.c
+old mode 100644
+new mode 100755
+index 27679f4..caeb590
+--- a/bta/dm/bta_dm_act.c
++++ b/bta/dm/bta_dm_act.c
+@@ -2545,6 +2545,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
+                             );
+     }
+ 
++#if BLE_INCLUDED == TRUE
+     if((bta_dm_search_cb.p_btm_inq_info)
+        && (bta_dm_search_cb.p_btm_inq_info->results.device_type == BT_DEVICE_TYPE_BLE)
+        && (bta_dm_search_cb.state == BTA_DM_SEARCH_ACTIVE))
+@@ -2552,6 +2553,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
+         /* Do not perform RNR for LE devices at inquiry complete*/
+         bta_dm_search_cb.name_discover_done = TRUE;
+     }
++#endif
+ 
+     /* if name discovery is not done and application needs remote name */
+     if ((!bta_dm_search_cb.name_discover_done)
+diff --git a/btif/include/btif_common.h b/btif/include/btif_common.h
+old mode 100644
+new mode 100755
+index 0145bbf..6c0c301
+--- a/btif/include/btif_common.h
++++ b/btif/include/btif_common.h
+@@ -24,6 +24,8 @@
+ #include "bt_types.h"
+ #include "bta_api.h"
+ 
++#undef TEST_APP_INTERFACE
++
+ #ifndef LOG_TAG
+ #error "LOG_TAG not defined, please add in .c file prior to including bt_common.h"
+ #endif
+diff --git a/btif/include/btif_gatt_multi_adv_util.h b/btif/include/btif_gatt_multi_adv_util.h
+old mode 100644
+new mode 100755
+index 5bcf24c..4248366
+--- a/btif/include/btif_gatt_multi_adv_util.h
++++ b/btif/include/btif_gatt_multi_adv_util.h
+@@ -58,9 +58,11 @@ typedef struct
+     BOOLEAN is_scan_rsp;
+     UINT8 client_if;
+     UINT16 service_uuid_len;
++#if BLE_INCLUDED==TRUE
+     tBTA_BLE_AD_MASK mask;
+     tBTA_BLE_ADV_DATA data;
+     tBTA_BLE_ADV_PARAMS param;
++#endif
+     TIMER_LIST_ENT tle_limited_timer;
+     int timeout_s;
+ }btgatt_multi_adv_inst_cb;
+diff --git a/btif/src/bluetooth.c b/btif/src/bluetooth.c
+old mode 100644
+new mode 100755
+index ea28481..88c1e8d
+--- a/btif/src/bluetooth.c
++++ b/btif/src/bluetooth.c
+@@ -47,11 +47,14 @@
+ #define LOG_TAG "bluedroid"
+ 
+ #include "btif_api.h"
++#include "btm_ble_api.h"
+ #include "bd.h"
+ #include "bt_utils.h"
+ #include "l2cdefs.h"
+ #include "l2c_api.h"
+ 
++#undef TEST_APP_INTERFACE
++
+ #if TEST_APP_INTERFACE == TRUE
+ #include <bt_testapp.h>
+ #endif
+diff --git a/btif/src/btif_core.c b/btif/src/btif_core.c
+old mode 100644
+new mode 100755
+index bbc9f51..384446d
+--- a/btif/src/btif_core.c
++++ b/btif/src/btif_core.c
+@@ -702,8 +702,9 @@ bt_status_t btif_disable_bluetooth(void)
+     btif_config_flush();
+ 
+     /* clear the adv instances on bt turn off */
++#if BTA_GATT_INCLUDED == TRUE
+     btif_gattc_destroy_multi_adv_cb(INVALID_CLIENT_IF);
+-
++#endif
+     if (status != BTA_SUCCESS)
+     {
+         BTIF_TRACE_ERROR("disable bt failed (%d)", status);
+diff --git a/btif/src/btif_dm.c b/btif/src/btif_dm.c
+old mode 100644
+new mode 100755
+index 484e563..31e45e4
+--- a/btif/src/btif_dm.c
++++ b/btif/src/btif_dm.c
+@@ -1922,6 +1922,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
+             BTIF_TRACE_DEBUG("BTA_DM_LINK_UP_EVT. Sending BT_ACL_STATE_CONNECTED");
+ 
+             bd2str(&bd_addr, &bdstr);
++#if BLE_INCLUDED == TRUE
+             if(btif_config_get_int("Remote", (char const *)&bdstr,"DevType", &dev_type) &&
+                     p_data->link_up.link_type == BT_TRANSPORT_LE && dev_type == BT_DEVICE_TYPE_BREDR)
+             {
+@@ -1935,6 +1936,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
+                 }
+                 btif_storage_set_remote_addr_type(&bd_addr, p_data->link_up.remote_addr_type);
+             }
++#endif
+             btif_update_remote_version_property(&bd_addr);
+ 
+             HAL_CBACK(bt_hal_cbacks, acl_state_changed_cb, BT_STATUS_SUCCESS,
+diff --git a/btif/src/btif_gap.c b/btif/src/btif_gap.c
+old mode 100644
+new mode 100755
+index bb121e0..7adcebe
+--- a/btif/src/btif_gap.c
++++ b/btif/src/btif_gap.c
+@@ -55,8 +55,9 @@ static void Gap_BleAttrDBUpdate(BD_ADDR p_bda, UINT16 int_min, UINT16 int_max, U
+     printf("%s:: remote_bd_addr=%02x:%02x:%02x:%02x:%02x:%02x, int_min=%d, int_max=%d, latency=%d sp_tout=%d\n", __FUNCTION__,
+             p_bda[0], p_bda[1], p_bda[2], p_bda[3], p_bda[4], p_bda[5],
+             int_min, int_max, latency, sp_tout);
++#if BLE_INCLUDED == TRUE
+     L2CA_UpdateBleConnParams(p_bda, 50, 70, 0, 1000);
+-
++#endif
+ }
+ 
+ 
+diff --git a/btif/src/btif_gatt_qual.c b/btif/src/btif_gatt_qual.c
+old mode 100644
+new mode 100755
+index 84bd210..57e85a2
+--- a/btif/src/btif_gatt_qual.c
++++ b/btif/src/btif_gatt_qual.c
+@@ -41,6 +41,7 @@
+ #include "bt_utils.h"
+ #include "data_types.h"
+ #include "gatt_api.h"
++#undef TEST_APP_INTERFACE
+ 
+ #ifdef TEST_APP_INTERFACE
+ #include <bt_testapp.h>
+diff --git a/btif/src/btif_smp.c b/btif/src/btif_smp.c
+old mode 100644
+new mode 100755
+index ecbe0e7..85df91c
+--- a/btif/src/btif_smp.c
++++ b/btif/src/btif_smp.c
+@@ -43,6 +43,8 @@
+ #include "data_types.h"
+ #include "smp_api.h"
+ 
++#undef TEST_APP_INTERFACE
++
+ #ifdef TEST_APP_INTERFACE
+ #include <bt_testapp.h>
+ static void SmpInit(void)
+diff --git a/include/bt_testapp.h b/include/bt_testapp.h
+old mode 100644
+new mode 100755
+index 9aef471..db01745
+--- a/include/bt_testapp.h
++++ b/include/bt_testapp.h
+@@ -52,6 +52,7 @@
+ #include "gap_api.h"
+ #include <hardware/hardware.h>
+ #include "data_types.h"
++#include "smp_api.h"
+ 
+ __BEGIN_DECLS
+ 
+diff --git a/main/bte_logmsg.c b/main/bte_logmsg.c
+old mode 100644
+new mode 100755
+index f321396..9873a5c
+--- a/main/bte_logmsg.c
++++ b/main/bte_logmsg.c
+@@ -467,8 +467,9 @@ tBTTRC_FUNC_MAP bttrc_set_level_map[] = {
+ #if (DUN_INCLUDED==TRUE)
+     {BTTRC_ID_STK_DUN, BTTRC_ID_STK_DUN, DUN_SetTraceLevel, "TRC_DUN", DEFAULT_CONF_TRACE_LEVEL},
+ #endif
++#if (HIDH_HOST_INCLUDED==TRUE)
+     {BTTRC_ID_STK_HID, BTTRC_ID_STK_HID, HID_HostSetTraceLevel, "TRC_HID_HOST", DEFAULT_CONF_TRACE_LEVEL},
+-
++#endif
+ #if (GAP_INCLUDED==TRUE)
+     {BTTRC_ID_STK_GAP, BTTRC_ID_STK_GAP, GAP_SetTraceLevel, "TRC_GAP", DEFAULT_CONF_TRACE_LEVEL},
+ #endif
+diff --git a/stack/btm/btm_acl.c b/stack/btm/btm_acl.c
+old mode 100644
+new mode 100755
+index c77b4e5..81bdc71
+--- a/stack/btm/btm_acl.c
++++ b/stack/btm/btm_acl.c
+@@ -3035,6 +3035,7 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
+             return;
+         }
+ 
++#if BLE_INCLUDED == TRUE
+         switch(subcmd)
+         {
+         case WRITE_RSSI_MONITOR_THRESHOLD:
+@@ -3082,6 +3083,7 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
+             BTM_TRACE_EVENT("Rssi Monitor invalid command");
+             break;
+         }
++#endif
+     }
+     BTM_TRACE_EVENT("%s exit", __FUNCTION__);
+ }
+@@ -3104,9 +3106,10 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
+ *******************************************************************************/
+ tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char max)
+ {
++#if BLE_INCLUDED == TRUE
+     void      *p_buf = 0;
+     tACL_CONN *p_conn = 0;
+-    UINT16    op_code = 0x03FF;
++    UINT16    op_code = 0x03FF; 
+     UINT8     sub_cmd = WRITE_RSSI_MONITOR_THRESHOLD;
+     UINT16    conn_handle = 0x0000;
+     UINT8     cmd[5], *p_cursor;
+@@ -3137,8 +3140,8 @@ tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char
+     *p_cursor++ = max;
+ 
+     btsnd_hcic_vendor_spec_cmd(p_buf, op_code, sizeof(cmd), cmd, (void*)rssi_monitor_hci_cmd_complete);
+-
+     BTM_TRACE_API("%s exit", __FUNCTION__);
++#endif
+     return (BTM_CMD_STARTED);
+ }
+ 
+@@ -3155,6 +3158,7 @@ tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char
+ *******************************************************************************/
+ tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
+ {
++#if BLE_INCLUDED == TRUE
+     void      *p_buf = 0;
+     tACL_CONN *p_conn = 0;
+     UINT16    op_code = 0x03FF;
+@@ -3189,6 +3193,7 @@ tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
+     btsnd_hcic_vendor_spec_cmd(p_buf, op_code, sizeof(cmd), cmd, (void*)rssi_monitor_hci_cmd_complete);
+ 
+     BTM_TRACE_API("%s exit", __FUNCTION__);
++#endif
+     return (BTM_CMD_STARTED);
+ }
+ 
+@@ -3208,6 +3213,7 @@ tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
+ *******************************************************************************/
+ tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
+ {
++#if BLE_INCLUDED == TRUE
+     void      *p_buf = 0;
+     tACL_CONN *p_conn = 0;
+     UINT16    op_code = 0x03FF;
+@@ -3242,6 +3248,7 @@ tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
+     btsnd_hcic_vendor_spec_cmd(p_buf, op_code, sizeof(cmd), cmd, (void*)rssi_monitor_hci_cmd_complete);
+ 
+     BTM_TRACE_API("%s exit", __FUNCTION__);
++#endif
+     return (BTM_CMD_STARTED);
+ }
+ 
+@@ -3260,6 +3267,7 @@ tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
+ *******************************************************************************/
+ void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
+ {
++#if BLE_INCLUDED == TRUE
+     BTM_TRACE_EVENT("%s enter", __FUNCTION__);
+     if (p)
+     {
+@@ -3293,6 +3301,7 @@ void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
+     }
+ 
+     BTM_TRACE_EVENT("%s exit", __FUNCTION__);
++#endif
+ }
+ 
+ /*******************************************************************************
+@@ -3311,8 +3320,10 @@ void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
+ void btm_setup_rssi_threshold_callback(tBTM_RSSI_MONITOR_CMD_CPL_CB cmd_cpl_callback,
+                                          tBTM_RSSI_MONITOR_EVENT_CB evt_callback)
+ {
++#if BLE_INCLUDED == TRUE
+     btm_cb.devcb.p_rssi_monitor_cmd_cpl_cb = cmd_cpl_callback;
+     btm_cb.devcb.p_rssi_monitor_event_cb = evt_callback;
++#endif
+ }
+ 
+ /*******************************************************************************
+diff --git a/stack/btm/btm_int.h b/stack/btm/btm_int.h
+old mode 100644
+new mode 100755
+index e1e51b3..c7aea21
+--- a/stack/btm/btm_int.h
++++ b/stack/btm/btm_int.h
+@@ -42,7 +42,9 @@
+ #endif
+ #endif
+ 
++#if BLE_INCLUDED == TRUE
+ tBTM_BLE_MULTI_ADV_CB  btm_multi_adv_cb;
++#endif
+ 
+ #if BTM_MAX_LOC_BD_NAME_LEN > 0
+ typedef char tBTM_LOC_BD_NAME[BTM_MAX_LOC_BD_NAME_LEN + 1];
