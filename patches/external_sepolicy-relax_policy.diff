@@ -17,9 +17,18 @@ index b9027fe..5127e5c
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index f940b38..f7fd5c5
+index f940b38..4f821b6
 --- a/domain.te
 +++ b/domain.te
+@@ -235,7 +235,7 @@ neverallow domain { file_type -exec_type }:file entrypoint;
+ 
+ # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
+ neverallow { domain -rmt_placeholder -kernel -ueventd -init } kmem_device:chr_file *;
+-neverallow { domain -rmt_placeholder } kmem_device:chr_file ~{ create relabelto unlink setattr };
++neverallow { domain -rmt_placeholder -init } kmem_device:chr_file ~{ create relabelto unlink setattr };
+ 
+ # Only init should be able to configure kernel usermodehelpers or
+ # security-sensitive proc settings.
 @@ -256,7 +256,7 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
  # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
@@ -29,13 +38,25 @@ index f940b38..f7fd5c5
  
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
-@@ -287,7 +287,7 @@ neverallow { domain -init } property_data_file:dir { create setattr relabelfrom
+@@ -287,11 +287,11 @@ neverallow { domain -init } property_data_file:dir { create setattr relabelfrom
  neverallow { domain -init } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
-+neverallow { domain -recovery -init } { system_file exec_type }:dir_file_class_set
++neverallow { domain -recovery -init -vold } { system_file exec_type }:dir_file_class_set
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Nothing should be writing to files in the rootfs.
-
+-neverallow { domain -recovery } rootfs:file { create write setattr relabelto append unlink link rename };
++neverallow { domain -recovery -init_shell } rootfs:file { create write setattr relabelto append unlink link rename };
+ 
+ # Restrict context mounts to specific types marked with
+ # the contextmount_type attribute.
+@@ -308,6 +308,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+ # system_app_service rather than the generic type.
+ # New service_types are defined in service.te and new mappings
+ # from service name to service_type are defined in service_contexts.
+-neverallow domain default_android_service:service_manager add;
++#neverallow domain default_android_service:service_manager add;
+ 
+ neverallow { domain -init -recovery -system_server } frp_block_device:blk_file rw_file_perms;
