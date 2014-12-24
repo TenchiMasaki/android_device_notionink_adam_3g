@@ -48,11 +48,11 @@ sys.keep_app_1=com.android.launcher3
 # before they have a chance to cause problems.
 # Default=true for development builds, set by android buildsystem.
 # Disable GC freed lines
-ro.kernel.android.checkjni=0
-ro.kernel.checkjni=0
-dalvik.vm.checkjni=false
-dalvik.vm.debug.alloc=0
-dalvik.vm.verify_bytecode=false
+#ro.kernel.android.checkjni=0
+#ro.kernel.checkjni=0
+#dalvik.vm.checkjni=false
+#dalvik.vm.debug.alloc=0
+#dalvik.vm.verify_bytecode=false
 
 # we have enough storage space to hold precise GC data
 dalvik.gc.type=precise
