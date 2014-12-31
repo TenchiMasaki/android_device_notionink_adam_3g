@@ -2,10 +2,10 @@ project external/bluetooth/bluedroid/
 diff --git a/bta/dm/bta_dm_act.c b/bta/dm/bta_dm_act.c
 old mode 100644
 new mode 100755
-index 27679f4..caeb590
+index 5757e85..929c94c
 --- a/bta/dm/bta_dm_act.c
 +++ b/bta/dm/bta_dm_act.c
-@@ -2545,6 +2545,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
+@@ -2572,6 +2572,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
                              );
      }
  
@@ -13,7 +13,7 @@ index 27679f4..caeb590
      if((bta_dm_search_cb.p_btm_inq_info)
         && (bta_dm_search_cb.p_btm_inq_info->results.device_type == BT_DEVICE_TYPE_BLE)
         && (bta_dm_search_cb.state == BTA_DM_SEARCH_ACTIVE))
-@@ -2552,6 +2553,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
+@@ -2579,6 +2580,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
          /* Do not perform RNR for LE devices at inquiry complete*/
          bta_dm_search_cb.name_discover_done = TRUE;
      }
@@ -21,6 +21,26 @@ index 27679f4..caeb590
  
      /* if name discovery is not done and application needs remote name */
      if ((!bta_dm_search_cb.name_discover_done)
+diff --git a/bta/dm/bta_dm_main.c b/bta/dm/bta_dm_main.c
+old mode 100644
+new mode 100755
+index 908d021..1815c31
+--- a/bta/dm/bta_dm_main.c
++++ b/bta/dm/bta_dm_main.c
+@@ -367,11 +367,13 @@ BOOLEAN bta_dm_search_sm_execute(BT_HDR *p_msg)
+     APPL_TRACE_EVENT("bta_dm_search_sm_execute state:%d, event:0x%x",
+         bta_dm_search_cb.state, p_msg->event);
+ 
++#if BTA_GATT_INCLUDED == TRUE
+     if ((bta_dm_search_cb.state == BTA_DM_SEARCH_IDLE) &&
+            ((p_msg->event == BTA_DM_API_SEARCH_EVT) || (p_msg->event == BTA_DM_API_DISCOVER_EVT)))
+     {
+         bta_dm_gattc_service_search_close(p_msg->event);
+     }
++#endif
+     /* look up the state table for the current state */
+     state_table = bta_dm_search_st_tbl[bta_dm_search_cb.state];
+ 
 diff --git a/btif/include/btif_common.h b/btif/include/btif_common.h
 old mode 100644
 new mode 100755
@@ -57,7 +77,7 @@ index 5bcf24c..4248366
 diff --git a/btif/src/bluetooth.c b/btif/src/bluetooth.c
 old mode 100644
 new mode 100755
-index ea28481..88c1e8d
+index 5c507e4..c93cb9a
 --- a/btif/src/bluetooth.c
 +++ b/btif/src/bluetooth.c
 @@ -47,11 +47,14 @@
@@ -95,10 +115,10 @@ index bbc9f51..384446d
 diff --git a/btif/src/btif_dm.c b/btif/src/btif_dm.c
 old mode 100644
 new mode 100755
-index 484e563..31e45e4
+index 27e2629..d435786
 --- a/btif/src/btif_dm.c
 +++ b/btif/src/btif_dm.c
-@@ -1922,6 +1922,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
+@@ -1936,6 +1936,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
              BTIF_TRACE_DEBUG("BTA_DM_LINK_UP_EVT. Sending BT_ACL_STATE_CONNECTED");
  
              bd2str(&bd_addr, &bdstr);
@@ -106,7 +126,7 @@ index 484e563..31e45e4
              if(btif_config_get_int("Remote", (char const *)&bdstr,"DevType", &dev_type) &&
                      p_data->link_up.link_type == BT_TRANSPORT_LE && dev_type == BT_DEVICE_TYPE_BREDR)
              {
-@@ -1935,6 +1936,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
+@@ -1949,6 +1950,7 @@ static void btif_dm_upstreams_evt(UINT16 event, char* p_param)
                  }
                  btif_storage_set_remote_addr_type(&bd_addr, p_data->link_up.remote_addr_type);
              }
@@ -114,6 +134,19 @@ index 484e563..31e45e4
              btif_update_remote_version_property(&bd_addr);
  
              HAL_CBACK(bt_hal_cbacks, acl_state_changed_cb, BT_STATUS_SUCCESS,
+@@ -2935,10 +2937,10 @@ bt_status_t btif_dm_get_remote_services_by_transport(bt_bdaddr_t *remote_addr, i
+     mask_ext.num_uuid = 0;
+     mask_ext.p_uuid = NULL;
+     mask_ext.srvc_mask = BTA_ALL_SERVICE_MASK;
+-
++#if BTA_GATT_INCLUDED == TRUE
+     BTA_DmDiscoverByTransport(remote_addr->address, &mask_ext,
+                    bte_dm_search_services_evt, TRUE, BT_TRANSPORT_LE);
+-
++#endif
+     return BT_STATUS_SUCCESS;
+ }
+ 
 diff --git a/btif/src/btif_gap.c b/btif/src/btif_gap.c
 old mode 100644
 new mode 100755
@@ -160,10 +193,25 @@ index ecbe0e7..85df91c
  #ifdef TEST_APP_INTERFACE
  #include <bt_testapp.h>
  static void SmpInit(void)
+diff --git a/hci/src/vendor.c b/hci/src/vendor.c
+old mode 100644
+new mode 100755
+index 912b247..e3c8b2f
+--- a/hci/src/vendor.c
++++ b/hci/src/vendor.c
+@@ -102,7 +102,7 @@ void vendor_close(void) {
+ }
+ 
+ void vendor_ssrcleanup(void) {
+-  if (vendor_interface)
++  if (vendor_interface && vendor_interface->ssr_cleanup)
+     vendor_interface->ssr_cleanup();
+ }
+ 
 diff --git a/include/bt_testapp.h b/include/bt_testapp.h
 old mode 100644
 new mode 100755
-index 9aef471..db01745
+index cf6540a..07e0610
 --- a/include/bt_testapp.h
 +++ b/include/bt_testapp.h
 @@ -52,6 +52,7 @@
@@ -177,10 +225,10 @@ index 9aef471..db01745
 diff --git a/main/bte_logmsg.c b/main/bte_logmsg.c
 old mode 100644
 new mode 100755
-index f321396..9873a5c
+index 2afd13a..e4dec10
 --- a/main/bte_logmsg.c
 +++ b/main/bte_logmsg.c
-@@ -467,8 +467,9 @@ tBTTRC_FUNC_MAP bttrc_set_level_map[] = {
+@@ -475,8 +475,9 @@ tBTTRC_FUNC_MAP bttrc_set_level_map[] = {
  #if (DUN_INCLUDED==TRUE)
      {BTTRC_ID_STK_DUN, BTTRC_ID_STK_DUN, DUN_SetTraceLevel, "TRC_DUN", DEFAULT_CONF_TRACE_LEVEL},
  #endif
@@ -194,10 +242,10 @@ index f321396..9873a5c
 diff --git a/stack/btm/btm_acl.c b/stack/btm/btm_acl.c
 old mode 100644
 new mode 100755
-index c77b4e5..81bdc71
+index 4ad971a..b3a1a6c
 --- a/stack/btm/btm_acl.c
 +++ b/stack/btm/btm_acl.c
-@@ -3035,6 +3035,7 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
+@@ -3084,6 +3084,7 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
              return;
          }
  
@@ -205,7 +253,7 @@ index c77b4e5..81bdc71
          switch(subcmd)
          {
          case WRITE_RSSI_MONITOR_THRESHOLD:
-@@ -3082,6 +3083,7 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
+@@ -3131,6 +3132,7 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
              BTM_TRACE_EVENT("Rssi Monitor invalid command");
              break;
          }
@@ -213,7 +261,7 @@ index c77b4e5..81bdc71
      }
      BTM_TRACE_EVENT("%s exit", __FUNCTION__);
  }
-@@ -3104,9 +3106,10 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
+@@ -3153,9 +3155,10 @@ static void rssi_monitor_hci_cmd_complete(void *p_data)
  *******************************************************************************/
  tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char max)
  {
@@ -225,7 +273,7 @@ index c77b4e5..81bdc71
      UINT8     sub_cmd = WRITE_RSSI_MONITOR_THRESHOLD;
      UINT16    conn_handle = 0x0000;
      UINT8     cmd[5], *p_cursor;
-@@ -3137,8 +3140,8 @@ tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char
+@@ -3186,8 +3189,8 @@ tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char
      *p_cursor++ = max;
  
      btsnd_hcic_vendor_spec_cmd(p_buf, op_code, sizeof(cmd), cmd, (void*)rssi_monitor_hci_cmd_complete);
@@ -235,7 +283,7 @@ index c77b4e5..81bdc71
      return (BTM_CMD_STARTED);
  }
  
-@@ -3155,6 +3158,7 @@ tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char
+@@ -3204,6 +3207,7 @@ tBTM_STATUS BTM_Write_Rssi_Monitor_Threshold(BD_ADDR remote_bda, char min, char
  *******************************************************************************/
  tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
  {
@@ -243,7 +291,7 @@ index c77b4e5..81bdc71
      void      *p_buf = 0;
      tACL_CONN *p_conn = 0;
      UINT16    op_code = 0x03FF;
-@@ -3189,6 +3193,7 @@ tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
+@@ -3238,6 +3242,7 @@ tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
      btsnd_hcic_vendor_spec_cmd(p_buf, op_code, sizeof(cmd), cmd, (void*)rssi_monitor_hci_cmd_complete);
  
      BTM_TRACE_API("%s exit", __FUNCTION__);
@@ -251,7 +299,7 @@ index c77b4e5..81bdc71
      return (BTM_CMD_STARTED);
  }
  
-@@ -3208,6 +3213,7 @@ tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
+@@ -3257,6 +3262,7 @@ tBTM_STATUS BTM_Read_Rssi_Monitor_Threshold(BD_ADDR remote_bda)
  *******************************************************************************/
  tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
  {
@@ -259,7 +307,7 @@ index c77b4e5..81bdc71
      void      *p_buf = 0;
      tACL_CONN *p_conn = 0;
      UINT16    op_code = 0x03FF;
-@@ -3242,6 +3248,7 @@ tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
+@@ -3291,6 +3297,7 @@ tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
      btsnd_hcic_vendor_spec_cmd(p_buf, op_code, sizeof(cmd), cmd, (void*)rssi_monitor_hci_cmd_complete);
  
      BTM_TRACE_API("%s exit", __FUNCTION__);
@@ -267,7 +315,7 @@ index c77b4e5..81bdc71
      return (BTM_CMD_STARTED);
  }
  
-@@ -3260,6 +3267,7 @@ tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
+@@ -3309,6 +3316,7 @@ tBTM_STATUS BTM_Enable_Rssi_Monitor(BD_ADDR remote_bda, int enable)
  *******************************************************************************/
  void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
  {
@@ -275,7 +323,7 @@ index c77b4e5..81bdc71
      BTM_TRACE_EVENT("%s enter", __FUNCTION__);
      if (p)
      {
-@@ -3293,6 +3301,7 @@ void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
+@@ -3342,6 +3350,7 @@ void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
      }
  
      BTM_TRACE_EVENT("%s exit", __FUNCTION__);
@@ -283,7 +331,7 @@ index c77b4e5..81bdc71
  }
  
  /*******************************************************************************
-@@ -3311,8 +3320,10 @@ void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
+@@ -3360,8 +3369,10 @@ void btm_handle_rssi_monitor_event(UINT8 *p, UINT8 evt_len)
  void btm_setup_rssi_threshold_callback(tBTM_RSSI_MONITOR_CMD_CPL_CB cmd_cpl_callback,
                                           tBTM_RSSI_MONITOR_EVENT_CB evt_callback)
  {
@@ -297,7 +345,7 @@ index c77b4e5..81bdc71
 diff --git a/stack/btm/btm_int.h b/stack/btm/btm_int.h
 old mode 100644
 new mode 100755
-index e1e51b3..c7aea21
+index 30ca1f0..c407b69
 --- a/stack/btm/btm_int.h
 +++ b/stack/btm/btm_int.h
 @@ -42,7 +42,9 @@

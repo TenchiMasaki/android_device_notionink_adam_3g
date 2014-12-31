@@ -1,0 +1,27 @@
+project build/
+diff --git a/core/combo/arch/arm/armv7-a-neon.mk b/core/combo/arch/arm/armv7-a-neon.mk
+old mode 100644
+new mode 100755
+index 4c25e22..cc8d824
+--- a/core/combo/arch/arm/armv7-a-neon.mk
++++ b/core/combo/arch/arm/armv7-a-neon.mk
+@@ -4,7 +4,7 @@
+ ARCH_ARM_HAVE_ARMV7A            := true
+ ARCH_ARM_HAVE_VFP               := true
+ ARCH_ARM_HAVE_VFP_D32           := true
+-ARCH_ARM_HAVE_NEON              := true
++ARCH_ARM_HAVE_NEON              := false
+ 
+ ifneq (,$(filter cortex-a15 denver,$(TARGET_$(combo_2nd_arch_prefix)CPU_VARIANT)))
+ 	arch_variant_cflags := -mcpu=cortex-a15
+@@ -25,8 +25,7 @@ endif
+ endif
+ 
+ arch_variant_cflags += \
+-    -mfloat-abi=softfp \
+-    -mfpu=neon
++    -mfloat-abi=softfp
+ 
+ arch_variant_ldflags := \
+ 	-Wl,--fix-cortex-a8
+ 	
