@@ -1,0 +1,15 @@
+diff --git a/res/xml/button_settings.xml b/res/xml/button_settings.xml
+old mode 100644
+new mode 100755
+index c36d0e1..8d4e923
+--- a/res/xml/button_settings.xml
++++ b/res/xml/button_settings.xml
+@@ -107,7 +107,7 @@
+         <com.android.settings.cyanogenmod.SystemSettingSwitchPreference
+             android:key="back_wake_screen"
+             android:title="@string/button_wake_title"
+-            android:defaultValue="false" />
++            android:defaultValue="true" />
+ 
+     </PreferenceCategory>
+ 
