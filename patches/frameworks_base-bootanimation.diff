@@ -1,0 +1,78 @@
+diff --git a/cmds/bootanimation/Android.mk b/cmds/bootanimation/Android.mk
+old mode 100644
+new mode 100755
+index 469b6f0..c464d95
+--- a/cmds/bootanimation/Android.mk
++++ b/cmds/bootanimation/Android.mk
+@@ -24,6 +24,15 @@ LOCAL_SHARED_LIBRARIES := \
+     libtinyalsa \
+     libmedia
+ 
++
++ifeq ($(TARGET_BOOTANIMATION_PRELOAD),true)
++    LOCAL_CFLAGS += -DPRELOAD_BOOTANIMATION
++endif
++
++ifeq ($(TARGET_BOOTANIMATION_USE_RGB565),true)
++    LOCAL_CFLAGS += -DUSE_565
++endif
++
+ ifeq ($(TARGET_CONTINUOUS_SPLASH_ENABLED),true)
+     LOCAL_CFLAGS += -DCONTINUOUS_SPLASH
+ endif
+diff --git a/cmds/bootanimation/BootAnimation.cpp b/cmds/bootanimation/BootAnimation.cpp
+old mode 100644
+new mode 100755
+index 730ed48..1b54e86
+--- a/cmds/bootanimation/BootAnimation.cpp
++++ b/cmds/bootanimation/BootAnimation.cpp
+@@ -271,7 +271,11 @@ status_t BootAnimation::initTexture(void* buffer, size_t len)
+     if (codec) {
+         codec->setDitherImage(false);
+         codec->decode(&stream, &bitmap,
++                #ifdef USE_565
++                kRGB_565_SkColorType,
++                #else
+                 kN32_SkColorType,
++                #endif
+                 SkImageDecoder::kDecodePixels_Mode);
+         delete codec;
+     }
+@@ -402,6 +406,38 @@ status_t BootAnimation::readyToRun() {
+         mZip = zipFile;
+     }
+ 
++
++#ifdef PRELOAD_BOOTANIMATION
++    // Preload the bootanimation zip on memory, so we don't stutter
++    // when showing the animation
++    FILE* fd;
++    if (encryptedAnimation && access(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, R_OK) == 0)
++        fd = fopen(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, "r");
++    else if (access(OEM_BOOTANIMATION_FILE, R_OK) == 0)
++        fd = fopen(OEM_BOOTANIMATION_FILE, "r");
++    else if (access(SYSTEM_BOOTANIMATION_FILE, R_OK) == 0)
++        fd = fopen(SYSTEM_BOOTANIMATION_FILE, "r");
++    else
++        return NO_ERROR;
++
++    if (fd != NULL) {
++        // We could use readahead..
++        // ... if bionic supported it :(
++        //readahead(fd, 0, INT_MAX);
++        void *crappyBuffer = malloc(2*1024*1024);
++        if (crappyBuffer != NULL) {
++            // Read all the zip
++            while (!feof(fd))
++                fread(crappyBuffer, 1024, 2*1024, fd);
++
++            free(crappyBuffer);
++        } else {
++            ALOGW("Unable to allocate memory to preload the animation");
++        }
++        fclose(fd);
++    }
++#endif
++
+     return NO_ERROR;
+ }
