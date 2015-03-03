@@ -1,0 +1,17 @@
+diff --git a/config/common.mk b/config/common.mk
+old mode 100644
+new mode 100755
+index 609d897..e18e026
+--- a/config/common.mk
++++ b/config/common.mk
+@@ -82,8 +82,8 @@ PRODUCT_COPY_FILES += \
+     vendor/bliss/prebuilt/common/bin/sysinit:system/bin/sysinit
+ 
+ # Proprietary latinime lib needed for Keyboard swyping
+-PRODUCT_COPY_FILES += \
+-    vendor/bliss/prebuilt/lib/libjni_latinimegoogle.so:system/lib/libjni_latinimegoogle.so
++# PRODUCT_COPY_FILES += \
++#    vendor/bliss/prebuilt/lib/libjni_latinimegoogle.so:system/lib/libjni_latinimegoogle.so
+ 
+ # userinit support
+ PRODUCT_COPY_FILES += \

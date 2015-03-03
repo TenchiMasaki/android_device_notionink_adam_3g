@@ -21,7 +21,7 @@
 # function: add_lunch_combo generic-eng
 export USE_CCACHE=1
 
-add_lunch_combo cm_adam_3g-userdebug
+add_lunch_combo bliss_adam_3g-userdebug
 
 echo ""
 echo "Patching Workspace..."

@@ -38,17 +38,16 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 $(call inherit-product-if-exists, vendor/notionink/adam/device-vendor.mk)
 
-PRODUCT_NAME := cm_adam_3g
+PRODUCT_NAME := bliss_adam_3g
 PRODUCT_DEVICE := adam_3g
 PRODUCT_BRAND := NotionInk
 PRODUCT_MODEL := Notion Ink ADAM
 # Release name
 PRODUCT_RELEASE_NAME := NIAdam-3G
-PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=cm.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
+PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=bliss.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
 
-# Inherit some common CM stuff.
-$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
+# Inherit some common bliss stuff.
+$(call inherit-product, vendor/bliss/config/common_full_tablet_wifionly.mk)
 
 # Inherit telephony common stuff
-$(call inherit-product, vendor/cm/config/telephony.mk)
-
+$(call inherit-product, vendor/bliss/config/telephony.mk)
