@@ -1349,7 +1349,7 @@ index 0000000..a621eb1
 +    arch-arm/tegra2/bionic/memchr.S \
 +    arch-arm/tegra2/bionic/memcpy.S \
 +    arch-arm/tegra2/bionic/memset.S \
-     upstream-openbsd/lib/libc/string/stpcpy.c \
++    upstream-openbsd/lib/libc/string/stpcpy.c \
 +    upstream-openbsd/lib/libc/string/strcat.c \
 +    arch-arm/tegra2/bionic/strcmp.S \
 +    arch-arm/tegra2/bionic/strcpy.S \
