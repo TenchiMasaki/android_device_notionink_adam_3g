@@ -1,4 +1,26 @@
-project build/
+diff --git a/core/Makefile b/core/Makefile
+old mode 100644
+new mode 100755
+index 8e61f45..9ddd685
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -671,6 +671,8 @@ INTERNAL_USERIMAGES_DEPS += $(MKEXTUSERIMG) $(MAKE_EXT4FS) $(E2FSCK)
+ ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
+ INTERNAL_USERIMAGES_DEPS += $(MKF2FSUSERIMG) $(MAKE_F2FS)
+ endif
++else
++INTERNAL_USERIMAGES_DEPS := $(MKYAFFS2)
+ endif
+ 
+ ifeq ($(BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE),squashfs)
+@@ -1230,6 +1232,7 @@ DISTTOOLS :=  $(HOST_OUT_EXECUTABLES)/minigzip \
+ 	  $(HOST_OUT_EXECUTABLES)/mkbootfs \
+ 	  $(HOST_OUT_EXECUTABLES)/mkbootimg \
+ 	  $(HOST_OUT_EXECUTABLES)/fs_config \
++	  $(HOST_OUT_EXECUTABLES)/mkyaffs2image \
+ 	  $(HOST_OUT_EXECUTABLES)/zipalign \
+ 	  $(HOST_OUT_EXECUTABLES)/bsdiff \
+ 	  $(HOST_OUT_EXECUTABLES)/imgdiff \
 diff --git a/tools/releasetools/blockimgdiff.py b/tools/releasetools/blockimgdiff.py
 old mode 100644
 new mode 100755
