@@ -1,11 +1,10 @@
-project external/sepolicy/
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
-index 40ec610..e9ff686
+index 27ec14b..ebb6eef
 --- a/app.te
 +++ b/app.te
-@@ -325,7 +325,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
+@@ -323,7 +323,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
  neverallow { appdomain -shell } efs_file:dir_file_class_set read;
  
  # Write to various pseudo file systems.
@@ -17,10 +16,10 @@ index 40ec610..e9ff686
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index d835ee9..3ea116d
+index 32aa900..cc697ea
 --- a/domain.te
 +++ b/domain.te
-@@ -236,11 +236,11 @@ neverallow { domain -init } kernel:security setsecparam;
+@@ -243,11 +243,11 @@ neverallow { domain -init } kernel:security setsecparam;
  neverallow { domain -init -system_server -ueventd } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
@@ -34,7 +33,7 @@ index d835ee9..3ea116d
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -252,7 +252,7 @@ neverallow domain init:process ptrace;
+@@ -259,17 +259,19 @@ neverallow domain init:process ptrace;
  
  # Init can't do anything with binder calls. If this neverallow rule is being
  # triggered, it's probably due to a service with no SELinux domain.
@@ -43,17 +42,21 @@ index d835ee9..3ea116d
  
  # Don't allow raw read/write/open access to block_device
  # Rather force a relabel to a more specific type
-@@ -262,7 +262,8 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt } block_device:blk_fi
+-neverallow { domain -kernel -init -recovery -vold -uncrypt } block_device:blk_file { open read write };
++neverallow { domain -kernel -init -recovery -vold -uncrypt -fsck } block_device:blk_file { open read write };
+ 
+ # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
  # init is exempt from this as there are character devices that only it uses.
  # ueventd is exempt from this, as it is managing these devices.
 -neverallow { domain -init -ueventd -recovery } device:chr_file { open read write };
 +type unconfineddomain;
-+neverallow { domain -init -ueventd -recovery -unconfineddomain -radio -system_server -system_app -platform_app -untrusted_app -bootanim -wpa -mediaserver -debuggerd  } device:chr_file { open read write };
++allow domain device:chr_file { open read write };
++allow { platform_app untrusted_app } device:chr_file { open read write };
  
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
-@@ -293,7 +294,7 @@ neverallow { domain -init } property_data_file:dir no_w_dir_perms;
+@@ -300,7 +302,7 @@ neverallow { domain -init } property_data_file:dir no_w_dir_perms;
  neverallow { domain -init } property_data_file:file no_w_file_perms;
  
  # Only recovery should be doing writes to /system
@@ -62,7 +65,7 @@ index d835ee9..3ea116d
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Don't allow mounting on top of /system files or directories
-@@ -317,7 +318,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -324,7 +326,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -71,7 +74,7 @@ index d835ee9..3ea116d
  
  # Require that domains explicitly label unknown properties, and do not allow
  # anyone but init to modify unknown properties.
-@@ -342,6 +343,9 @@ neverallow {
+@@ -349,6 +351,9 @@ neverallow {
    -zygote
    -installd
    -dex2oat
@@ -80,11 +83,17 @@ index d835ee9..3ea116d
 +  -shell
  } dalvikcache_data_file:file no_w_file_perms;
  
- # Android does not support System V IPCs.
+ # Only system_server should be able to send commands via the zygote socket
+@@ -380,4 +385,4 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
+ # Nobody should be able to execute su on user builds.
+ # On userdebug/eng builds, only dumpstate, shell, and
+ # su itself execute su.
+-neverallow { domain userdebug_or_eng(`-dumpstate -shell -su') } su_exec:file no_x_file_perms;
++neverallow { domain userdebug_or_eng(`-dumpstate -shell -su -su_exec -untrusted_app -init') } su_exec:file no_x_file_perms;
 diff --git a/init.te b/init.te
 old mode 100644
 new mode 100755
-index da9a722..685cbd7
+index da9a722..e80d991
 --- a/init.te
 +++ b/init.te
 @@ -56,6 +56,13 @@ allow init self:capability sys_time;
@@ -115,5 +124,4 @@ index da9a722..685cbd7
  
  # init should never execute a program without changing to another domain.
 -neverallow init { file_type fs_type }:file execute_no_trans;
-+neverallow init { file_type fs_type -rootfs -su_exec -system_file }:file execute_no_trans;
-
++neverallow init { file_type fs_type -rootfs -su_exec -system_file -shell_exec }:file execute_no_trans;

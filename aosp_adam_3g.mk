@@ -17,21 +17,14 @@ PRODUCT_PACKAGES := \
     Camera \
     SpareParts \
     PQiToggle \
-    Development \
-    libmbm-ril \
-    Stk \
-    Mms
+    Development
 
 DEVICE_PACKAGE_OVERLAYS += device/notionink/adam_3g/overlay
 
-$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 
 # Inherit from ADAM common device tree
 $(call inherit-product, device/notionink/adam_common/device-common.mk)
-
-# Some files for 3G
-PRODUCT_COPY_FILES += \
-    device/notionink/adam_3g/files/rild:/system/bin/rild
 
 # The gps config appropriate for this device
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
