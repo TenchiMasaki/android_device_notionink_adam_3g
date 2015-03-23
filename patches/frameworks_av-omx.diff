@@ -2,7 +2,7 @@ project frameworks/av/
 diff --git a/include/media/AudioTrack.h b/include/media/AudioTrack.h
 old mode 100644
 new mode 100755
-index b5256f0..b1b6c5a
+index fd51b8f..fc14e02
 --- a/include/media/AudioTrack.h
 +++ b/include/media/AudioTrack.h
 @@ -218,6 +218,19 @@ public:
@@ -25,57 +25,7 @@ index b5256f0..b1b6c5a
      /* Terminates the AudioTrack and unregisters it from AudioFlinger.
       * Also destroys all resources associated with the AudioTrack.
       */
-@@ -263,28 +276,46 @@ public:
-      * an uninitialized AudioTrack produces undefined results.
-      * See set() method above for possible return codes.
-      */
-+#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
-+            status_t    initCheck() const;
-+#else
-             status_t    initCheck() const   { return mStatus; }
-+#endif
- 
-     /* Returns this track's estimated latency in milliseconds.
-      * This includes the latency due to AudioTrack buffer size, AudioMixer (if any)
-      * and audio hardware driver.
-      */
--            uint32_t    latency() const     { return mLatency; }
-+#if defined(QCOM_DIRECTTRACK) || defined(BOARD_OMX_NEEDS_LEGACY_AUDIO)
-+             uint32_t    latency() const;
-+#else
-+             uint32_t    latency() const     { return mLatency; }
-+#endif
- 
-     /* getters, see constructors and set() */
- 
-+#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
-+            audio_stream_type_t streamType() const;
-+            audio_format_t format() const;
-+#else
-             audio_stream_type_t streamType() const { return mStreamType; }
-             audio_format_t format() const   { return mFormat; }
-+#endif
- 
-     /* Return frame size in bytes, which for linear PCM is
-      * channelCount * (bit depth per channel / 8).
-      * channelCount is determined from channelMask, and bit depth comes from format.
-      * For non-linear formats, the frame size is typically 1 byte.
-      */
-+#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
-+            size_t      frameSize() const;
-+            uint32_t    channelCount() const;
-+            uint32_t    frameCount() const;
-+#else
-             size_t      frameSize() const   { return mFrameSize; }
--
-             uint32_t    channelCount() const { return mChannelCount; }
--            size_t      frameCount() const  { return mFrameCount; }
-+            uint32_t    frameCount() const  { return mFrameCount; }
-+#endif
- 
-     /* Return the static buffer specified in constructor or set(), or 0 for streaming mode */
-             sp<IMemory> sharedBuffer() const { return mSharedBuffer; }
-@@ -468,7 +499,11 @@ public:
+@@ -471,7 +484,11 @@ public:
       * Returned value:
       *  AudioTrack session ID.
       */
@@ -87,7 +37,7 @@ index b5256f0..b1b6c5a
  
      /* Attach track auxiliary output to specified effect. Use effectId = 0
       * to detach track from effect.
-@@ -552,7 +587,8 @@ public:
+@@ -555,7 +572,8 @@ public:
       * false for the method to return immediately without waiting to try multiple times to write
       * the full content of the buffer.
       */
@@ -97,20 +47,6 @@ index b5256f0..b1b6c5a
  
      /*
       * Dumps the state of an audio track.
-diff --git a/include/media/stagefright/ACodec.h b/include/media/stagefright/ACodec.h
-old mode 100644
-new mode 100755
-index d77ddaf..fcccc6d
---- a/include/media/stagefright/ACodec.h
-+++ b/include/media/stagefright/ACodec.h
-@@ -120,6 +120,7 @@ private:
-         kWhatSetParameters           = 'setP',
-         kWhatSubmitOutputMetaDataBufferIfEOS = 'subm',
-         kWhatOMXDied                 = 'OMXd',
-+        kWhatReleaseCodecInstance    = 'relC',
-     };
- 
-     enum {
 diff --git a/include/media/stagefright/MediaBufferGroup.h b/include/media/stagefright/MediaBufferGroup.h
 old mode 100644
 new mode 100755
@@ -132,25 +68,11 @@ index a006f7f..2c0bf40
  
  protected:
      virtual void signalBufferReturned(MediaBuffer *buffer);
-diff --git a/include/media/stagefright/MediaCodec.h b/include/media/stagefright/MediaCodec.h
-old mode 100644
-new mode 100755
-index bca78b9..54a4e8b
---- a/include/media/stagefright/MediaCodec.h
-+++ b/include/media/stagefright/MediaCodec.h
-@@ -205,6 +205,7 @@ private:
-         kFlagIsEncoder                  = 256,
-         kFlagGatherCodecSpecificData    = 512,
-         kFlagIsAsync                    = 1024,
-+        kFlagIsComponentAllocated       = 2048,
-     };
- 
-     struct BufferInfo {
 diff --git a/media/libmedia/Android.mk b/media/libmedia/Android.mk
-index e012116..03b6915 100644
+index a2e0909..89595a3 100644
 --- a/media/libmedia/Android.mk
 +++ b/media/libmedia/Android.mk
-@@ -63,6 +63,10 @@ LOCAL_SRC_FILES:= \
+@@ -64,6 +64,10 @@ LOCAL_SRC_FILES:= \
  
  LOCAL_SRC_FILES += ../libnbaio/roundup.c
  
@@ -164,10 +86,10 @@ index e012116..03b6915 100644
 diff --git a/media/libmedia/AudioSystem.cpp b/media/libmedia/AudioSystem.cpp
 old mode 100644
 new mode 100755
-index dda3657..0fcd95f
+index 9cae21c..cceaec6
 --- a/media/libmedia/AudioSystem.cpp
 +++ b/media/libmedia/AudioSystem.cpp
-@@ -229,6 +229,13 @@ int AudioSystem::logToLinear(float volume)
+@@ -239,6 +239,13 @@ int AudioSystem::logToLinear(float volume)
      return volume ? 100 - int(dBConvertInverse * log(volume) + 0.5) : 0;
  }
  
@@ -181,7 +103,7 @@ index dda3657..0fcd95f
  status_t AudioSystem::getOutputSamplingRate(uint32_t* samplingRate, audio_stream_type_t streamType)
  {
      audio_io_handle_t output;
-@@ -286,6 +293,13 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t output,
+@@ -283,6 +290,13 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t output,
      return NO_ERROR;
  }
  
@@ -195,7 +117,7 @@ index dda3657..0fcd95f
  status_t AudioSystem::getOutputFrameCount(size_t* frameCount, audio_stream_type_t streamType)
  {
      audio_io_handle_t output;
-@@ -645,6 +659,14 @@ audio_policy_forced_cfg_t AudioSystem::getForceUse(audio_policy_force_use_t usag
+@@ -637,6 +651,14 @@ audio_policy_forced_cfg_t AudioSystem::getForceUse(audio_policy_force_use_t usag
  }
  
  
@@ -213,21 +135,14 @@ index dda3657..0fcd95f
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index 0a89fbb..9f67579
+index 389aacc..9bbba15
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
-@@ -51,6 +51,22 @@ static int64_t getNowUs()
+@@ -52,6 +52,15 @@ static int64_t getNowUs()
  }
  
  // static
 +#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
-+uint32_t AudioTrack::latency() const { return mLatency; }
-+audio_stream_type_t AudioTrack::streamType() const { return mStreamType; }
-+audio_format_t AudioTrack::format() const  { return mFormat; }
-+uint32_t AudioTrack::channelCount() const  { return mChannelCount; }
-+uint32_t AudioTrack::frameCount() const  { return mFrameCount; }
-+size_t AudioTrack::frameSize() const { return mFrameSize; }
-+status_t AudioTrack::initCheck() const { return mStatus; }
 +int AudioTrack::getSessionId() const { return mSessionId; }
 +
 +extern "C" int _ZNK7android10AudioTrack12getSessionIdEv();
@@ -239,7 +154,7 @@ index 0a89fbb..9f67579
  status_t AudioTrack::getMinFrameCount(
          size_t* frameCount,
          audio_stream_type_t streamType,
-@@ -110,6 +126,33 @@ status_t AudioTrack::getMinFrameCount(
+@@ -111,6 +120,33 @@ status_t AudioTrack::getMinFrameCount(
  }
  
  // ---------------------------------------------------------------------------
@@ -273,7 +188,7 @@ index 0a89fbb..9f67579
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1372,6 +1415,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1393,6 +1429,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
@@ -281,318 +196,20 @@ index 0a89fbb..9f67579
  ssize_t AudioTrack::write(const void* buffer, size_t userSize, bool blocking)
  {
      if (mTransfer != TRANSFER_SYNC || mIsTimed) {
-diff --git a/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.cpp b/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.cpp
-old mode 100644
-new mode 100755
-index 638d9bc..86ce385
---- a/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.cpp
-+++ b/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.cpp
-@@ -68,6 +68,8 @@ NuPlayer::Renderer::Renderer(
-       mAudioFirstAnchorTimeMediaUs(-1),
-       mAnchorTimeMediaUs(-1),
-       mAnchorTimeRealUs(-1),
-+      mAnchorNumFramesWritten(-1),
-+      mAnchorMaxMediaUs(-1),
-       mVideoLateByUs(0ll),
-       mHasAudio(false),
-       mHasVideo(false),
-@@ -173,7 +175,8 @@ status_t NuPlayer::Renderer::getCurrentPosition(int64_t *mediaUs) {
-     return getCurrentPosition(mediaUs, ALooper::GetNowUs());
- }
- 
--status_t NuPlayer::Renderer::getCurrentPosition(int64_t *mediaUs, int64_t nowUs) {
-+status_t NuPlayer::Renderer::getCurrentPosition(
-+        int64_t *mediaUs, int64_t nowUs, bool allowPastQueuedVideo) {
-     Mutex::Autolock autoLock(mTimeLock);
-     if (!mHasAudio && !mHasVideo) {
-         return NO_INIT;
-@@ -182,12 +185,21 @@ status_t NuPlayer::Renderer::getCurrentPosition(int64_t *mediaUs, int64_t nowUs)
-     if (mAnchorTimeMediaUs < 0) {
-         return NO_INIT;
-     }
-+
-     int64_t positionUs = (nowUs - mAnchorTimeRealUs) + mAnchorTimeMediaUs;
- 
-     if (mPauseStartedTimeRealUs != -1) {
-         positionUs -= (nowUs - mPauseStartedTimeRealUs);
-     }
- 
-+    // limit position to the last queued media time (for video only stream
-+    // position will be discrete as we don't know how long each frame lasts)
-+    if (mAnchorMaxMediaUs >= 0 && !allowPastQueuedVideo) {
-+        if (positionUs > mAnchorMaxMediaUs) {
-+            positionUs = mAnchorMaxMediaUs;
-+        }
-+    }
-+
-     if (positionUs < mAudioFirstAnchorTimeMediaUs) {
-         positionUs = mAudioFirstAnchorTimeMediaUs;
-     }
-@@ -217,10 +229,12 @@ void NuPlayer::Renderer::setAudioFirstAnchorTimeIfNeeded(int64_t mediaUs) {
-     }
- }
- 
--void NuPlayer::Renderer::setAnchorTime(int64_t mediaUs, int64_t realUs, bool resume) {
-+void NuPlayer::Renderer::setAnchorTime(
-+        int64_t mediaUs, int64_t realUs, int64_t numFramesWritten, bool resume) {
-     Mutex::Autolock autoLock(mTimeLock);
-     mAnchorTimeMediaUs = mediaUs;
-     mAnchorTimeRealUs = realUs;
-+    mAnchorNumFramesWritten = numFramesWritten;
-     if (resume) {
-         mPauseStartedTimeRealUs = -1;
-     }
-@@ -541,7 +555,7 @@ size_t NuPlayer::Renderer::fillAudioBuffer(void *buffer, size_t size) {
-             int64_t mediaTimeUs;
-             CHECK(entry->mBuffer->meta()->findInt64("timeUs", &mediaTimeUs));
-             ALOGV("rendering audio at media time %.2f secs", mediaTimeUs / 1E6);
--            onNewAudioMediaTime(mediaTimeUs);
-+            setAudioFirstAnchorTimeIfNeeded(mediaTimeUs);
-         }
- 
-         size_t copy = entry->mBuffer->size() - entry->mOffset;
-@@ -564,6 +578,14 @@ size_t NuPlayer::Renderer::fillAudioBuffer(void *buffer, size_t size) {
-         notifyIfMediaRenderingStarted();
-     }
- 
-+    if (mAudioFirstAnchorTimeMediaUs >= 0) {
-+        int64_t nowUs = ALooper::GetNowUs();
-+        setAnchorTime(mAudioFirstAnchorTimeMediaUs, nowUs - getPlayedOutAudioDurationUs(nowUs));
-+    }
-+
-+    // we don't know how much data we are queueing for offloaded tracks
-+    mAnchorMaxMediaUs = -1;
-+
-     if (hasEOS) {
-         (new AMessage(kWhatStopAudioSink, id()))->post();
-     }
-@@ -663,6 +685,11 @@ bool NuPlayer::Renderer::onDrainAudioQueue() {
-             break;
-         }
-     }
-+    mAnchorMaxMediaUs =
-+        mAnchorTimeMediaUs +
-+                (int64_t)(max((long long)mNumFramesWritten - mAnchorNumFramesWritten, 0LL)
-+                        * 1000LL * mAudioSink->msecsPerFrame());
-+
-     return !mAudioQueue.empty();
- }
- 
-@@ -674,7 +701,7 @@ int64_t NuPlayer::Renderer::getPendingAudioPlayoutDurationUs(int64_t nowUs) {
- 
- int64_t NuPlayer::Renderer::getRealTimeUs(int64_t mediaTimeUs, int64_t nowUs) {
-     int64_t currentPositionUs;
--    if (getCurrentPosition(&currentPositionUs, nowUs) != OK) {
-+    if (getCurrentPosition(&currentPositionUs, nowUs, true /* allowPastQueuedVideo */) != OK) {
-         // If failed to get current position, e.g. due to audio clock is not ready, then just
-         // play out video immediately without delay.
-         return nowUs;
-@@ -690,7 +717,8 @@ void NuPlayer::Renderer::onNewAudioMediaTime(int64_t mediaTimeUs) {
-     }
-     setAudioFirstAnchorTimeIfNeeded(mediaTimeUs);
-     int64_t nowUs = ALooper::GetNowUs();
--    setAnchorTime(mediaTimeUs, nowUs + getPendingAudioPlayoutDurationUs(nowUs));
-+    setAnchorTime(
-+            mediaTimeUs, nowUs + getPendingAudioPlayoutDurationUs(nowUs), mNumFramesWritten);
- }
- 
- void NuPlayer::Renderer::postDrainVideoQueue() {
-@@ -733,6 +761,9 @@ void NuPlayer::Renderer::postDrainVideoQueue() {
-         } else {
-             realTimeUs = getRealTimeUs(mediaTimeUs, nowUs);
-         }
-+        if (!mHasAudio) {
-+            mAnchorMaxMediaUs = mediaTimeUs + 100000; // smooth out videos >= 10fps
-+        }
- 
-         // Heuristics to handle situation when media time changed without a
-         // discontinuity. If we have not drained an audio buffer that was
-@@ -1103,6 +1134,7 @@ void NuPlayer::Renderer::onAudioSinkChanged() {
-     }
-     CHECK(!mDrainAudioQueuePending);
-     mNumFramesWritten = 0;
-+    mAnchorNumFramesWritten = -1;
-     uint32_t written;
-     if (mAudioSink->getFramesWritten(&written) == OK) {
-         mNumFramesWritten = written;
-@@ -1158,7 +1190,8 @@ void NuPlayer::Renderer::onResume() {
-     if (mPauseStartedTimeRealUs != -1) {
-         int64_t newAnchorRealUs =
-             mAnchorTimeRealUs + ALooper::GetNowUs() - mPauseStartedTimeRealUs;
--        setAnchorTime(mAnchorTimeMediaUs, newAnchorRealUs, true /* resume */);
-+        setAnchorTime(
-+                mAnchorTimeMediaUs, newAnchorRealUs, mAnchorNumFramesWritten, true /* resume */);
-     }
- 
-     if (!mAudioQueue.empty()) {
 diff --git a/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h b/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h
 old mode 100644
 new mode 100755
-index b15a266..7b46a59
+index 003d1d0..1d15c48
 --- a/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h
 +++ b/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h
-@@ -61,11 +61,13 @@ struct NuPlayer::Renderer : public AHandler {
- 
-     // Following setters and getters are protected by mTimeLock.
-     status_t getCurrentPosition(int64_t *mediaUs);
--    status_t getCurrentPosition(int64_t *mediaUs, int64_t nowUs);
-+    status_t getCurrentPosition(
-+            int64_t *mediaUs, int64_t nowUs, bool allowPastQueuedVideo = false);
-     void setHasMedia(bool audio);
-     void setAudioFirstAnchorTime(int64_t mediaUs);
-     void setAudioFirstAnchorTimeIfNeeded(int64_t mediaUs);
--    void setAnchorTime(int64_t mediaUs, int64_t realUs, bool resume = false);
-+    void setAnchorTime(
-+            int64_t mediaUs, int64_t realUs, int64_t numFramesWritten = -1, bool resume = false);
-     void setVideoLateByUs(int64_t lateUs);
-     int64_t getVideoLateByUs();
-     void setPauseStartedTimeRealUs(int64_t realUs);
-@@ -148,6 +150,8 @@ private:
-     int64_t mAudioFirstAnchorTimeMediaUs;
-     int64_t mAnchorTimeMediaUs;
-     int64_t mAnchorTimeRealUs;
-+    int64_t mAnchorNumFramesWritten;
-+    int64_t mAnchorMaxMediaUs;
-     int64_t mVideoLateByUs;
-     bool mHasAudio;
-     bool mHasVideo;
-@@ -174,6 +178,7 @@ private:
-     int32_t mTotalBuffersQueued;
-     int32_t mLastAudioBufferDrained;
+@@ -204,6 +204,7 @@ private:
+     status_t getCurrentPositionFromAnchor(
+             int64_t *mediaUs, int64_t nowUs, bool allowPastQueuedVideo = false);
  
 +
      size_t fillAudioBuffer(void *buffer, size_t size);
  
      bool onDrainAudioQueue();
-diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
-old mode 100644
-new mode 100755
-index 2048808..3ab1770
---- a/media/libstagefright/ACodec.cpp
-+++ b/media/libstagefright/ACodec.cpp
-@@ -498,6 +498,10 @@ void ACodec::initiateShutdown(bool keepComponentAllocated) {
-     sp<AMessage> msg = new AMessage(kWhatShutdown, id());
-     msg->setInt32("keepComponentAllocated", keepComponentAllocated);
-     msg->post();
-+    if (!keepComponentAllocated) {
-+        // ensure shutdown completes in 3 seconds
-+        (new AMessage(kWhatReleaseCodecInstance, id()))->post(3000000);
-+    }
- }
- 
- void ACodec::signalRequestIDRFrame() {
-@@ -3797,6 +3801,19 @@ bool ACodec::BaseState::onMessageReceived(const sp<AMessage> &msg) {
-             break;
-         }
- 
-+        case ACodec::kWhatReleaseCodecInstance:
-+        {
-+            ALOGI("[%s] forcing the release of codec",
-+                    mCodec->mComponentName.c_str());
-+            status_t err = mCodec->mOMX->freeNode(mCodec->mNode);
-+            ALOGE_IF("[%s] failed to release codec instance: err=%d",
-+                       mCodec->mComponentName.c_str(), err);
-+            sp<AMessage> notify = mCodec->mNotify->dup();
-+            notify->setInt32("what", CodecBase::kWhatShutdownCompleted);
-+            notify->post();
-+            break;
-+        }
-+
-         default:
-             return false;
-     }
-@@ -4456,6 +4473,13 @@ bool ACodec::UninitializedState::onMessageReceived(const sp<AMessage> &msg) {
-             break;
-         }
- 
-+        case ACodec::kWhatReleaseCodecInstance:
-+        {
-+            // nothing to do, as we have already signaled shutdown
-+            handled = true;
-+            break;
-+        }
-+
-         default:
-             return BaseState::onMessageReceived(msg);
-     }
-@@ -4493,10 +4517,9 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
-     Vector<OMXCodec::CodecNameAndQuirks> matchingCodecs;
- 
-     AString mime;
--
-+    int32_t encoder = false;
-     AString componentName;
-     uint32_t quirks = 0;
--    int32_t encoder = false;
-     if (msg->findString("componentName", &componentName)) {
-         ssize_t index = matchingCodecs.add();
-         OMXCodec::CodecNameAndQuirks *entry = &matchingCodecs.editItemAt(index);
-@@ -4535,6 +4558,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
-         status_t err = omx->allocateNode(componentName.c_str(), observer, &node);
-         androidSetThreadPriority(tid, prevPriority);
- 
-+        if(err == OK && node != NULL) {
-+            // set component name
-+            mCodec->mComponentName = componentName;
-+            mCodec->mFlags = 0;
-+
-+            if (componentName.endsWith(".secure")) {
-+                mCodec->mFlags |= kFlagIsSecure;
-+                mCodec->mFlags |= kFlagPushBlankBuffersToNativeWindowOnShutdown;
-+            }
-+
-+            mCodec->mQuirks = quirks;
-+            mCodec->mOMX = omx;
-+            mCodec->mNode = node;
-+        }
-+
-+        if ((err == OK) && !encoder && !strncasecmp(mime.c_str(), "video/", 6)) {
-+            int32_t width=0, height=0;
-+            if (msg->findInt32("width", &width)
-+                    && msg->findInt32("height", &height)) {
-+                //set and check if resolution is supported
-+                OMX_VIDEO_CODINGTYPE compressionFormat;
-+                err = GetVideoCodingTypeFromMime(mime.c_str(), &compressionFormat);
-+
-+#ifdef QCOM_HARDWARE
-+                if (err != OK) {
-+                    err = ExtendedCodec::setVideoOutputFormat(mime.c_str(),
-+                                                              &compressionFormat);
-+                }
-+#endif
-+                if (err == OK) {
-+                    err = mCodec->setVideoFormatOnPort(kPortIndexInput, width,
-+                                                       height, compressionFormat);
-+                }
-+
-+                if(err != OK) {
-+                    ALOGE("setVideoFormatOnPort Failed");
-+                }
-+            }
-+        }
-+
-         if (err == OK) {
-             break;
-         } else {
-@@ -4559,18 +4622,6 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
-     notify = new AMessage(kWhatOMXMessage, mCodec->id());
-     observer->setNotificationMessage(notify);
- 
--    mCodec->mComponentName = componentName;
--    mCodec->mFlags = 0;
--
--    if (componentName.endsWith(".secure")) {
--        mCodec->mFlags |= kFlagIsSecure;
--        mCodec->mFlags |= kFlagPushBlankBuffersToNativeWindowOnShutdown;
--    }
--
--    mCodec->mQuirks = quirks;
--    mCodec->mOMX = omx;
--    mCodec->mNode = node;
--
-     {
-         sp<AMessage> notify = mCodec->mNotify->dup();
-         notify->setInt32("what", CodecBase::kWhatComponentAllocated);
 diff --git a/media/libstagefright/Android.mk b/media/libstagefright/Android.mk
 old mode 100644
 new mode 100755
@@ -622,134 +239,6 @@ index e24824b..c56ffe8
  
          if ((err = mAudioTrack->initCheck()) != OK) {
              mAudioTrack.clear();
-diff --git a/media/libstagefright/CameraSource.cpp b/media/libstagefright/CameraSource.cpp
-old mode 100644
-new mode 100755
-index 2b50763..f76aed6
---- a/media/libstagefright/CameraSource.cpp
-+++ b/media/libstagefright/CameraSource.cpp
-@@ -677,63 +677,80 @@ void CameraSource::stopCameraRecording() {
- 
- void CameraSource::releaseCamera() {
-     ALOGV("releaseCamera");
--    if (mCamera != 0) {
-+    sp<Camera> camera;
-+    bool coldCamera = false;
-+    {
-+        Mutex::Autolock autoLock(mLock);
-+        // get a local ref and clear ref to mCamera now
-+        camera = mCamera;
-+        mCamera.clear();
-+        coldCamera = (mCameraFlags & FLAGS_HOT_CAMERA) == 0;
-+    }
-+
-+    if (camera != 0) {
-         int64_t token = IPCThreadState::self()->clearCallingIdentity();
--        if ((mCameraFlags & FLAGS_HOT_CAMERA) == 0) {
-+        if (coldCamera) {
-             ALOGV("Camera was cold when we started, stopping preview");
--            mCamera->stopPreview();
--            mCamera->disconnect();
-+            camera->stopPreview();
-+            camera->disconnect();
-         }
--        mCamera->unlock();
--        mCamera.clear();
--        mCamera = 0;
-+        camera->unlock();
-         IPCThreadState::self()->restoreCallingIdentity(token);
-     }
--    if (mCameraRecordingProxy != 0) {
--        mCameraRecordingProxy->asBinder()->unlinkToDeath(mDeathNotifier);
--        mCameraRecordingProxy.clear();
-+
-+    {
-+        Mutex::Autolock autoLock(mLock);
-+        if (mCameraRecordingProxy != 0) {
-+            mCameraRecordingProxy->asBinder()->unlinkToDeath(mDeathNotifier);
-+            mCameraRecordingProxy.clear();
-+        }
-+        mCameraFlags = 0;
-     }
--    mCameraFlags = 0;
- }
- 
- status_t CameraSource::reset() {
-     ALOGD("reset: E");
--    Mutex::Autolock autoLock(mLock);
--    mStarted = false;
--    mFrameAvailableCondition.signal();
- 
--    int64_t token;
--    bool isTokenValid = false;
--    if (mCamera != 0) {
--        token = IPCThreadState::self()->clearCallingIdentity();
--        isTokenValid = true;
--    }
--    releaseQueuedFrames();
--    while (!mFramesBeingEncoded.empty()) {
--        if (NO_ERROR !=
--            mFrameCompleteCondition.waitRelative(mLock,
--                    mTimeBetweenFrameCaptureUs * 1000LL + CAMERA_SOURCE_TIMEOUT_NS)) {
--            ALOGW("Timed out waiting for outstanding frames being encoded: %zu",
--                mFramesBeingEncoded.size());
-+    {
-+        Mutex::Autolock autoLock(mLock);
-+        mStarted = false;
-+        mFrameAvailableCondition.signal();
-+
-+        int64_t token;
-+        bool isTokenValid = false;
-+        if (mCamera != 0) {
-+            token = IPCThreadState::self()->clearCallingIdentity();
-+            isTokenValid = true;
-+        }
-+        releaseQueuedFrames();
-+        while (!mFramesBeingEncoded.empty()) {
-+            if (NO_ERROR !=
-+                mFrameCompleteCondition.waitRelative(mLock,
-+                        mTimeBetweenFrameCaptureUs * 1000LL + CAMERA_SOURCE_TIMEOUT_NS)) {
-+                ALOGW("Timed out waiting for outstanding frames being encoded: %zu",
-+                    mFramesBeingEncoded.size());
-+            }
-+        }
-+        stopCameraRecording();
-+        if (isTokenValid) {
-+            IPCThreadState::self()->restoreCallingIdentity(token);
-         }
--    }
--    stopCameraRecording();
--    releaseCamera();
--    if (isTokenValid) {
--        IPCThreadState::self()->restoreCallingIdentity(token);
--    }
- 
--    if (mCollectStats) {
--        ALOGI("Frames received/encoded/dropped: %d/%d/%d in %" PRId64 " us",
--                mNumFramesReceived, mNumFramesEncoded, mNumFramesDropped,
--                mLastFrameTimestampUs - mFirstFrameTimeUs);
--    }
-+        if (mCollectStats) {
-+            ALOGI("Frames received/encoded/dropped: %d/%d/%d in %" PRId64 " us",
-+                    mNumFramesReceived, mNumFramesEncoded, mNumFramesDropped,
-+                    mLastFrameTimestampUs - mFirstFrameTimeUs);
-+        }
- 
--    if (mNumGlitches > 0) {
--        ALOGW("%d long delays between neighboring video frames", mNumGlitches);
-+        if (mNumGlitches > 0) {
-+            ALOGW("%d long delays between neighboring video frames", mNumGlitches);
-+        }
-+
-+        CHECK_EQ(mNumFramesReceived, mNumFramesEncoded + mNumFramesDropped);
-     }
- 
--    CHECK_EQ(mNumFramesReceived, mNumFramesEncoded + mNumFramesDropped);
-+    releaseCamera();
-+
-     ALOGD("reset: X");
-     return OK;
- }
 diff --git a/media/libstagefright/MediaBufferGroup.cpp b/media/libstagefright/MediaBufferGroup.cpp
 old mode 100644
 new mode 100755
@@ -768,49 +257,6 @@ index 6ac6d4a..fc94611
  status_t MediaBufferGroup::acquire_buffer(
          MediaBuffer **out, bool nonBlocking) {
      Mutex::Autolock autoLock(mLock);
-diff --git a/media/libstagefright/MediaCodec.cpp b/media/libstagefright/MediaCodec.cpp
-old mode 100644
-new mode 100755
-index 5f55484..df47bd5
---- a/media/libstagefright/MediaCodec.cpp
-+++ b/media/libstagefright/MediaCodec.cpp
-@@ -738,6 +738,7 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
-                             err, actionCode, mState);
-                     if (err == DEAD_OBJECT) {
-                         mFlags |= kFlagSawMediaServerDie;
-+                        mFlags &= ~kFlagIsComponentAllocated;
-                     }
- 
-                     bool sendErrorResponse = true;
-@@ -863,6 +864,7 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
-                 {
-                     CHECK_EQ(mState, INITIALIZING);
-                     setState(INITIALIZED);
-+                    mFlags |= kFlagIsComponentAllocated;
- 
-                     CHECK(msg->findString("componentName", &mComponentName));
- 
-@@ -1136,6 +1138,7 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
-                         setState(UNINITIALIZED);
-                         mComponentName.clear();
-                     }
-+                    mFlags &= ~kFlagIsComponentAllocated;
- 
-                     (new AMessage)->postReply(mReplyID);
-                     break;
-@@ -1336,9 +1339,10 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
-             uint32_t replyID;
-             CHECK(msg->senderAwaitsResponse(&replyID));
- 
--            if (mState != INITIALIZED
-+            if (!(mFlags & kFlagIsComponentAllocated) && mState != INITIALIZED
-                     && mState != CONFIGURED && !isExecuting()) {
--                // We may be in "UNINITIALIZED" state already without the
-+                // We may be in "UNINITIALIZED" state already and
-+                // also shutdown the encoder/decoder without the
-                 // client being aware of this if media server died while
-                 // we were being stopped. The client would assume that
-                 // after stop() returned, it would be safe to call release()
 diff --git a/media/libstagefright/OMXClient.cpp b/media/libstagefright/OMXClient.cpp
 old mode 100644
 new mode 100755
@@ -920,24 +366,6 @@ index ae3cb33..ae1f47c
      }
  
      mPlugins.clear();
-diff --git a/media/libstagefright/omx/OMXNodeInstance.cpp b/media/libstagefright/omx/OMXNodeInstance.cpp
-old mode 100644
-new mode 100755
-index d07ec14..f9c84e2
---- a/media/libstagefright/omx/OMXNodeInstance.cpp
-+++ b/media/libstagefright/omx/OMXNodeInstance.cpp
-@@ -149,6 +149,11 @@ static status_t StatusFromOMXError(OMX_ERRORTYPE err) {
- status_t OMXNodeInstance::freeNode(OMXMaster *master) {
-     static int32_t kMaxNumIterations = 10;
- 
-+    // exit if we have already freed the node
-+    if (mHandle == NULL) {
-+        return OK;
-+    }
-+
-     // Transition the node from its current state all the way down
-     // to "Loaded".
-     // This ensures that all active buffers are properly freed even
 diff --git a/media/libstagefright/omx/SoftOMXComponent.cpp b/media/libstagefright/omx/SoftOMXComponent.cpp
 old mode 100644
 new mode 100755
@@ -961,69 +389,13 @@ new mode 100755
 diff --git a/media/libstagefright/omx/SoftVideoEncoderOMXComponent.cpp b/media/libstagefright/omx/SoftVideoEncoderOMXComponent.cpp
 old mode 100644
 new mode 100755
-diff --git a/media/ndk/NdkMediaExtractor.cpp b/media/ndk/NdkMediaExtractor.cpp
-old mode 100644
-new mode 100755
-index 970a43c..db57d0b
---- a/media/ndk/NdkMediaExtractor.cpp
-+++ b/media/ndk/NdkMediaExtractor.cpp
-@@ -256,18 +256,23 @@ PsshInfo* AMediaExtractor_getPsshInfo(AMediaExtractor *ex) {
-         len -= datalen;
-     }
- 
--    // there are <numentries> in the buffer, we need
--    // (source buffer size) + 4 + (4 * numentries) bytes for the PsshInfo structure
--    size_t newsize = buffer->size() + 4 + (4 * numentries);
-+    // there are <numentries> in the source buffer, we need
-+    // (source buffer size) - (sizeof(uint32_t) * numentries) + sizeof(size_t)
-+    //  + ((sizeof(void*) + sizeof(size_t)) * numentries) bytes for the PsshInfo structure
-+    // Or in other words, the data lengths in the source structure are replaced by size_t
-+    // (which may be the same size or larger, for 64 bit), and in addition there is an
-+    // extra pointer for each entry, and an extra size_t for the entire PsshInfo.
-+    size_t newsize = buffer->size() - (sizeof(uint32_t) * numentries) + sizeof(size_t)
-+            + ((sizeof(void*) + sizeof(size_t)) * numentries);
-     ex->mPsshBuf = new ABuffer(newsize);
-     ex->mPsshBuf->setRange(0, newsize);
- 
-     // copy data
-     const uint8_t* src = buffer->data();
-     uint8_t* dst = ex->mPsshBuf->data();
--    uint8_t* dstdata = dst + 4 + numentries * sizeof(PsshEntry);
--    *((uint32_t*)dst) = numentries;
--    dst += 4;
-+    uint8_t* dstdata = dst + sizeof(size_t) + numentries * sizeof(PsshEntry);
-+    *((size_t*)dst) = numentries;
-+    dst += sizeof(size_t);
-     for (size_t i = 0; i < numentries; i++) {
-         // copy uuid
-         memcpy(dst, src, 16);
-@@ -276,14 +281,14 @@ PsshInfo* AMediaExtractor_getPsshInfo(AMediaExtractor *ex) {
- 
-         // get/copy data length
-         uint32_t datalen = *((uint32_t*)src);
--        memcpy(dst, src, 4);
--        src += 4;
--        dst += 4;
-+        *((size_t*)dst) = datalen;
-+        src += sizeof(uint32_t);
-+        dst += sizeof(size_t);
- 
-         // the next entry in the destination is a pointer to the actual data, which we store
-         // after the array of PsshEntry
--        memcpy(dst, &dstdata, sizeof(dstdata));
--        dst += 4;
-+        *((void**)dst) = dstdata;
-+        dst += sizeof(void*);
- 
-         // copy the actual data
-         memcpy(dstdata, src, datalen);
 diff --git a/services/audioflinger/Android.mk b/services/audioflinger/Android.mk
 old mode 100644
 new mode 100755
-index 697fb37..c742e00
+index f0196c6..d849e4f
 --- a/services/audioflinger/Android.mk
 +++ b/services/audioflinger/Android.mk
-@@ -67,6 +67,7 @@ LOCAL_SRC_FILES += FastThread.cpp FastThreadState.cpp
+@@ -73,6 +73,7 @@ LOCAL_SRC_FILES += FastThread.cpp FastThreadState.cpp
  LOCAL_SRC_FILES += FastCapture.cpp FastCaptureState.cpp
  
  LOCAL_CFLAGS += -DSTATE_QUEUE_INSTANTIATIONS='"StateQueueInstantiations.cpp"'
@@ -1031,164 +403,3 @@ index 697fb37..c742e00
  
  # Define ANDROID_SMP appropriately. Used to get inline tracing fast-path.
  ifeq ($(TARGET_CPU_SMP),true)
-diff --git a/services/audioflinger/Threads.cpp b/services/audioflinger/Threads.cpp
-old mode 100644
-new mode 100755
-index e443476..71a6a73
---- a/services/audioflinger/Threads.cpp
-+++ b/services/audioflinger/Threads.cpp
-@@ -4660,7 +4660,11 @@ void AudioFlinger::DuplicatingThread::threadLoop_mix()
-     if (outputsReady(outputTracks)) {
-         mAudioMixer->process(AudioBufferProvider::kInvalidPTS);
-     } else {
--        memset(mSinkBuffer, 0, mSinkBufferSize);
-+        if (mMixerBufferValid) {
-+            memset(mMixerBuffer, 0, mMixerBufferSize);
-+        } else {
-+            memset(mSinkBuffer, 0, mSinkBufferSize);
-+        }
-     }
-     sleepTime = 0;
-     writeFrames = mNormalFrameCount;
-diff --git a/services/audiopolicy/AudioPolicyEffects.cpp b/services/audiopolicy/AudioPolicyEffects.cpp
-old mode 100644
-new mode 100755
-index 3c1c042..e7e1b36
---- a/services/audiopolicy/AudioPolicyEffects.cpp
-+++ b/services/audiopolicy/AudioPolicyEffects.cpp
-@@ -105,26 +105,28 @@ status_t AudioPolicyEffects::addInputEffects(audio_io_handle_t input,
-     inputDesc->mRefCount++;
- 
-     ALOGV("addInputEffects(): input: %d, refCount: %d", input, inputDesc->mRefCount);
--
--    Vector <EffectDesc *> effects = mInputSources.valueAt(index)->mEffects;
--    for (size_t i = 0; i < effects.size(); i++) {
--        EffectDesc *effect = effects[i];
--        sp<AudioEffect> fx = new AudioEffect(NULL, &effect->mUuid, -1, 0, 0, audioSession, input);
--        status_t status = fx->initCheck();
--        if (status != NO_ERROR && status != ALREADY_EXISTS) {
--            ALOGW("addInputEffects(): failed to create Fx %s on source %d",
-+    if (inputDesc->mRefCount == 1) {
-+        Vector <EffectDesc *> effects = mInputSources.valueAt(index)->mEffects;
-+        for (size_t i = 0; i < effects.size(); i++) {
-+            EffectDesc *effect = effects[i];
-+            sp<AudioEffect> fx = new AudioEffect(NULL, &effect->mUuid, -1, 0, 0,
-+                                                 audioSession, input);
-+            status_t status = fx->initCheck();
-+            if (status != NO_ERROR && status != ALREADY_EXISTS) {
-+                ALOGW("addInputEffects(): failed to create Fx %s on source %d",
-+                      effect->mName, (int32_t)aliasSource);
-+                // fx goes out of scope and strong ref on AudioEffect is released
-+                continue;
-+            }
-+            for (size_t j = 0; j < effect->mParams.size(); j++) {
-+                fx->setParameter(effect->mParams[j]);
-+            }
-+            ALOGV("addInputEffects(): added Fx %s on source: %d",
-                   effect->mName, (int32_t)aliasSource);
--            // fx goes out of scope and strong ref on AudioEffect is released
--            continue;
--        }
--        for (size_t j = 0; j < effect->mParams.size(); j++) {
--            fx->setParameter(effect->mParams[j]);
-+            inputDesc->mEffects.add(fx);
-         }
--        ALOGV("addInputEffects(): added Fx %s on source: %d", effect->mName, (int32_t)aliasSource);
--        inputDesc->mEffects.add(fx);
-+        inputDesc->setProcessorEnabled(true);
-     }
--    inputDesc->setProcessorEnabled(true);
--
-     return status;
- }
- 
-@@ -241,26 +243,28 @@ status_t AudioPolicyEffects::addOutputSessionEffects(audio_io_handle_t output,
-     }
-     procDesc->mRefCount++;
- 
--    ALOGV("addOutputSessionEffects(): session: %d, refCount: %d", audioSession, procDesc->mRefCount);
--
--    Vector <EffectDesc *> effects = mOutputStreams.valueAt(index)->mEffects;
--    for (size_t i = 0; i < effects.size(); i++) {
--        EffectDesc *effect = effects[i];
--        sp<AudioEffect> fx = new AudioEffect(NULL, &effect->mUuid, 0, 0, 0, audioSession, output);
--        status_t status = fx->initCheck();
--        if (status != NO_ERROR && status != ALREADY_EXISTS) {
--            ALOGE("addOutputSessionEffects(): failed to create Fx  %s on session %d",
--                  effect->mName, audioSession);
--            // fx goes out of scope and strong ref on AudioEffect is released
--            continue;
-+    ALOGV("addOutputSessionEffects(): session: %d, refCount: %d",
-+          audioSession, procDesc->mRefCount);
-+    if (procDesc->mRefCount == 1) {
-+        Vector <EffectDesc *> effects = mOutputStreams.valueAt(index)->mEffects;
-+        for (size_t i = 0; i < effects.size(); i++) {
-+            EffectDesc *effect = effects[i];
-+            sp<AudioEffect> fx = new AudioEffect(NULL, &effect->mUuid, 0, 0, 0,
-+                                                 audioSession, output);
-+            status_t status = fx->initCheck();
-+            if (status != NO_ERROR && status != ALREADY_EXISTS) {
-+                ALOGE("addOutputSessionEffects(): failed to create Fx  %s on session %d",
-+                      effect->mName, audioSession);
-+                // fx goes out of scope and strong ref on AudioEffect is released
-+                continue;
-+            }
-+            ALOGV("addOutputSessionEffects(): added Fx %s on session: %d for stream: %d",
-+                  effect->mName, audioSession, (int32_t)stream);
-+            procDesc->mEffects.add(fx);
-         }
--        ALOGV("addOutputSessionEffects(): added Fx %s on session: %d for stream: %d",
--              effect->mName, audioSession, (int32_t)stream);
--        procDesc->mEffects.add(fx);
--    }
--
--    procDesc->setProcessorEnabled(true);
- 
-+        procDesc->setProcessorEnabled(true);
-+    }
-     return status;
- }
- 
-@@ -281,7 +285,8 @@ status_t AudioPolicyEffects::releaseOutputSessionEffects(audio_io_handle_t outpu
- 
-     EffectVector *procDesc = mOutputSessions.valueAt(index);
-     procDesc->mRefCount--;
--    ALOGV("releaseOutputSessionEffects(): session: %d, refCount: %d", audioSession, procDesc->mRefCount);
-+    ALOGV("releaseOutputSessionEffects(): session: %d, refCount: %d",
-+          audioSession, procDesc->mRefCount);
-     if (procDesc->mRefCount == 0) {
-         procDesc->setProcessorEnabled(false);
-         procDesc->mEffects.clear();
-diff --git a/services/camera/libcameraservice/api1/Camera2Client.cpp b/services/camera/libcameraservice/api1/Camera2Client.cpp
-old mode 100644
-new mode 100755
-index 2a6aa7b..f3a88a1
---- a/services/camera/libcameraservice/api1/Camera2Client.cpp
-+++ b/services/camera/libcameraservice/api1/Camera2Client.cpp
-@@ -419,12 +419,20 @@ void Camera2Client::disconnect() {
- 
-     ALOGV("Camera %d: Waiting for threads", mCameraId);
- 
--    mStreamingProcessor->join();
--    mFrameProcessor->join();
--    mCaptureSequencer->join();
--    mJpegProcessor->join();
--    mZslProcessorThread->join();
--    mCallbackProcessor->join();
-+    {
-+        // Don't wait with lock held, in case the other threads need to
-+        // complete callbacks that re-enter Camera2Client
-+        mBinderSerializationLock.unlock();
-+
-+        mStreamingProcessor->join();
-+        mFrameProcessor->join();
-+        mCaptureSequencer->join();
-+        mJpegProcessor->join();
-+        mZslProcessorThread->join();
-+        mCallbackProcessor->join();
-+
-+        mBinderSerializationLock.lock();
-+    }
- 
-     ALOGV("Camera %d: Deleting streams", mCameraId);
- 

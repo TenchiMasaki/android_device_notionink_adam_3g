@@ -19,10 +19,10 @@ index aa415d5..e314762
 diff --git a/include/gui/ISurfaceComposer.h b/include/gui/ISurfaceComposer.h
 old mode 100644
 new mode 100755
-index 8c3d49e..db18762
+index 51717a4..aaf1d46
 --- a/include/gui/ISurfaceComposer.h
 +++ b/include/gui/ISurfaceComposer.h
-@@ -144,7 +144,20 @@ public:
+@@ -145,7 +145,20 @@ public:
              Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
              uint32_t minLayerZ, uint32_t maxLayerZ,
              bool useIdentityTransform,
@@ -43,7 +43,7 @@ index 8c3d49e..db18762
  
      /* Clears the frame statistics for animations.
       *
-@@ -175,6 +188,9 @@ public:
+@@ -176,6 +189,9 @@ public:
          GET_BUILT_IN_DISPLAY,
          SET_TRANSACTION_STATE,
          AUTHENTICATE_SURFACE,
@@ -56,7 +56,7 @@ index 8c3d49e..db18762
 diff --git a/include/gui/SurfaceComposerClient.h b/include/gui/SurfaceComposerClient.h
 old mode 100644
 new mode 100755
-index 37d953e..6824354
+index 4cbfc09..c79f6d2
 --- a/include/gui/SurfaceComposerClient.h
 +++ b/include/gui/SurfaceComposerClient.h
 @@ -40,6 +40,9 @@ namespace android {
@@ -101,12 +101,12 @@ index 37d953e..6824354
 diff --git a/include/gui/SurfaceControl.h b/include/gui/SurfaceControl.h
 old mode 100644
 new mode 100755
-index 9f62f7c..f9ebe7a
+index 84fb9f9..1db8956
 --- a/include/gui/SurfaceControl.h
 +++ b/include/gui/SurfaceControl.h
 @@ -60,6 +60,7 @@ public:
-     status_t    setLayerStack(uint32_t layerStack);
-     status_t    setLayer(uint32_t layer);
+     status_t    setLayerStack(int32_t layerStack);
+     status_t    setLayer(int32_t layer);
      status_t    setPosition(float x, float y);
 +	status_t 	setPosition(int32_t x, int32_t y);
      status_t    setSize(uint32_t w, uint32_t h);
@@ -133,20 +133,10 @@ index 799944f..688640c
 diff --git a/include/ui/PixelFormat.h b/include/ui/PixelFormat.h
 old mode 100644
 new mode 100755
-index e7e8ffc..39e4ea2
+index 7e46945..ed7c1d8
 --- a/include/ui/PixelFormat.h
 +++ b/include/ui/PixelFormat.h
-@@ -25,6 +25,9 @@
- #ifndef UI_PIXELFORMAT_H
- #define UI_PIXELFORMAT_H
- 
-+#include <stdint.h>
-+#include <sys/types.h>
-+#include <utils/Errors.h>
- #include <hardware/hardware.h>
- 
- namespace android {
-@@ -66,6 +69,59 @@ enum {
+@@ -69,6 +69,59 @@ enum {
  
  typedef int32_t PixelFormat;
  
@@ -203,8 +193,8 @@ index e7e8ffc..39e4ea2
 +status_t getPixelFormatInfo(PixelFormat format, PixelFormatInfo* info);
 +#endif
 +
- uint32_t bytesPerPixel(PixelFormat format);
- uint32_t bitsPerPixel(PixelFormat format);
+ ssize_t bytesPerPixel(PixelFormat format);
+ ssize_t bitsPerPixel(PixelFormat format);
  
 diff --git a/libs/binder/MemoryDealer.cpp b/libs/binder/MemoryDealer.cpp
 old mode 100644
@@ -230,23 +220,21 @@ index 8739625..d6e359d
 diff --git a/libs/gui/Android.mk b/libs/gui/Android.mk
 old mode 100644
 new mode 100755
-index 8a965dd..8aecb56
+index ca94aa3..bae11f0
 --- a/libs/gui/Android.mk
 +++ b/libs/gui/Android.mk
-@@ -82,7 +82,11 @@ LOCAL_SHARED_LIBRARIES := \
+@@ -47,6 +47,10 @@ LOCAL_SHARED_LIBRARIES := \
  	liblog
  
  
--LOCAL_MODULE := libgui
 +ifeq ($(BOARD_USE_MHEAP_SCREENSHOT),true)
 +    LOCAL_CFLAGS += -DUSE_MHEAP_SCREENSHOT
 +endif
 +
-+LOCAL_MODULE:= libgui
+ LOCAL_MODULE:= libgui
  
  ifeq ($(TARGET_BOARD_PLATFORM), tegra)
- 	LOCAL_CFLAGS += -DDONT_USE_FENCE_SYNC
-@@ -91,6 +95,10 @@ ifeq ($(TARGET_BOARD_PLATFORM), tegra3)
+@@ -56,6 +60,10 @@ ifeq ($(TARGET_BOARD_PLATFORM), tegra3)
  	LOCAL_CFLAGS += -DDONT_USE_FENCE_SYNC
  endif
  
@@ -260,10 +248,10 @@ index 8a965dd..8aecb56
 diff --git a/libs/gui/ISurfaceComposer.cpp b/libs/gui/ISurfaceComposer.cpp
 old mode 100644
 new mode 100755
-index 78886d5..b8be981
+index ebb687a..06e2fa1
 --- a/libs/gui/ISurfaceComposer.cpp
 +++ b/libs/gui/ISurfaceComposer.cpp
-@@ -98,24 +98,53 @@ public:
+@@ -103,12 +103,40 @@ public:
          remote()->transact(BnSurfaceComposer::BOOT_FINISHED, data, &reply);
      }
  
@@ -280,16 +268,16 @@ index 78886d5..b8be981
 +        data.writeInterfaceToken(ISurfaceComposer::getInterfaceDescriptor());
 +        data.writeStrongBinder(display);
 +        data.write(sourceCrop);
-+        data.writeInt32(static_cast<int32_t>(reqWidth));
-+        data.writeInt32(static_cast<int32_t>(reqHeight));
-+        data.writeInt32(static_cast<int32_t>(minLayerZ));
-+        data.writeInt32(static_cast<int32_t>(maxLayerZ));
++        data.writeInt32(reqWidth);
++        data.writeInt32(reqHeight);
++        data.writeInt32(minLayerZ);
++        data.writeInt32(maxLayerZ);
 +        data.writeInt32(static_cast<int32_t>(useIdentityTransform));
 +        data.writeInt32(static_cast<int32_t>(rotation));
 +        remote()->transact(BnSurfaceComposer::CAPTURE_SCREEN_DEPRECATED, data, &reply);
 +        *heap = interface_cast<IMemoryHeap>(reply.readStrongBinder());
-+        *width = static_cast<uint32_t>(reply.readInt32());
-+        *height = static_cast<uint32_t>(reply.readInt32());
++        *width = reply.readInt32();
++        *height = reply.readInt32();
 +        return reply.readInt32();
 +    }
 +#endif
@@ -305,24 +293,15 @@ index 78886d5..b8be981
      {
          Parcel data, reply;
          data.writeInterfaceToken(ISurfaceComposer::getInterfaceDescriptor());
-         data.writeStrongBinder(display);
-         data.writeStrongBinder(IInterface::asBinder(producer));
-         data.write(sourceCrop);
--        data.writeUint32(reqWidth);
--        data.writeUint32(reqHeight);
--        data.writeUint32(minLayerZ);
--        data.writeUint32(maxLayerZ);
-+        data.writeInt32(static_cast<int32_t>(reqWidth));
-+        data.writeInt32(static_cast<int32_t>(reqHeight));
-+        data.writeInt32(static_cast<int32_t>(minLayerZ));
-+        data.writeInt32(static_cast<int32_t>(maxLayerZ));
+@@ -121,6 +149,7 @@ public:
+         data.writeInt32(maxLayerZ);
          data.writeInt32(static_cast<int32_t>(useIdentityTransform));
          data.writeInt32(static_cast<int32_t>(rotation));
 +        data.writeInt32(isCpuConsumer);
          remote()->transact(BnSurfaceComposer::CAPTURE_SCREEN, data, &reply);
          return reply.readInt32();
      }
-@@ -348,6 +377,31 @@ status_t BnSurfaceComposer::onTransact(
+@@ -346,6 +375,31 @@ status_t BnSurfaceComposer::onTransact(
              bootFinished();
              return NO_ERROR;
          }
@@ -344,7 +323,7 @@ index 78886d5..b8be981
 +                    sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
 +                    useIdentityTransform,
 +                    static_cast<ISurfaceComposer::Rotation>(rotation));
-+            reply->writeStrongBinder(IInterface::asBinder(heap));
++            reply->writeStrongBinder(heap->asBinder());
 +            reply->writeInt32(static_cast<int32_t>(w));
 +            reply->writeInt32(static_cast<int32_t>(h));
 +            reply->writeInt32(static_cast<int32_t>(res));
@@ -354,10 +333,10 @@ index 78886d5..b8be981
          case CAPTURE_SCREEN: {
              CHECK_INTERFACE(ISurfaceComposer, data, reply);
              sp<IBinder> display = data.readStrongBinder();
-@@ -361,11 +415,13 @@ status_t BnSurfaceComposer::onTransact(
-             uint32_t maxLayerZ = data.readUint32();
+@@ -359,11 +413,13 @@ status_t BnSurfaceComposer::onTransact(
+             uint32_t maxLayerZ = data.readInt32();
              bool useIdentityTransform = static_cast<bool>(data.readInt32());
-             int32_t rotation = data.readInt32();
+             uint32_t rotation = data.readInt32();
 +            bool isCpuConsumer = data.readInt32();
  
              status_t res = captureScreen(display, producer,
@@ -372,10 +351,10 @@ index 78886d5..b8be981
 diff --git a/libs/gui/SensorEventQueue.cpp b/libs/gui/SensorEventQueue.cpp
 old mode 100644
 new mode 100755
-index 76ae470..23f3551
+index 1305e9f..a78e2a7
 --- a/libs/gui/SensorEventQueue.cpp
 +++ b/libs/gui/SensorEventQueue.cpp
-@@ -133,8 +133,14 @@ status_t SensorEventQueue::disableSensor(Sensor const* sensor) const {
+@@ -130,8 +130,14 @@ status_t SensorEventQueue::disableSensor(Sensor const* sensor) const {
  
  status_t SensorEventQueue::enableSensor(int32_t handle, int32_t samplingPeriodUs,
                                          int maxBatchReportLatencyUs, int reservedFlags) const {
@@ -394,7 +373,7 @@ index 76ae470..23f3551
 diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
 old mode 100644
 new mode 100755
-index 707a321..07ca1b3
+index 6446926..8aa9f4e
 --- a/libs/gui/SurfaceComposerClient.cpp
 +++ b/libs/gui/SurfaceComposerClient.cpp
 @@ -483,6 +483,25 @@ void SurfaceComposerClient::dispose() {
@@ -521,7 +500,7 @@ index 707a321..07ca1b3
 diff --git a/libs/gui/SurfaceControl.cpp b/libs/gui/SurfaceControl.cpp
 old mode 100644
 new mode 100755
-index 1983027..2a39898
+index 7597c99..befd805
 --- a/libs/gui/SurfaceControl.cpp
 +++ b/libs/gui/SurfaceControl.cpp
 @@ -104,6 +104,11 @@ status_t SurfaceControl::setPosition(float x, float y) {
@@ -536,97 +515,39 @@ index 1983027..2a39898
  status_t SurfaceControl::setSize(uint32_t w, uint32_t h) {
      status_t err = validate();
      if (err < 0) return err;
-diff --git a/libs/gui/tests/Android.mk b/libs/gui/tests/Android.mk
-deleted file mode 100644
-index 128a32a..0000000
---- a/libs/gui/tests/Android.mk
-+++ /dev/null
-@@ -1,50 +0,0 @@
--# Build the unit tests,
--LOCAL_PATH:= $(call my-dir)
--include $(CLEAR_VARS)
--LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
--
--LOCAL_MODULE := libgui_test
--
--LOCAL_MODULE_TAGS := tests
--
--LOCAL_SRC_FILES := \
--    BufferQueue_test.cpp \
--    CpuConsumer_test.cpp \
--    FillBuffer.cpp \
--    GLTest.cpp \
--    IGraphicBufferProducer_test.cpp \
--    MultiTextureConsumer_test.cpp \
--    SRGB_test.cpp \
--    StreamSplitter_test.cpp \
--    SurfaceTextureClient_test.cpp \
--    SurfaceTextureFBO_test.cpp \
--    SurfaceTextureGLThreadToGL_test.cpp \
--    SurfaceTextureGLToGL_test.cpp \
--    SurfaceTextureGL_test.cpp \
--    SurfaceTextureMultiContextGL_test.cpp \
--    Surface_test.cpp \
--    TextureRenderer.cpp \
--
--LOCAL_SHARED_LIBRARIES := \
--	libEGL \
--	libGLESv1_CM \
--	libGLESv2 \
--	libbinder \
--	libcutils \
--	libgui \
--	libsync \
--	libui \
--	libutils \
--
--# Build the binary to $(TARGET_OUT_DATA_NATIVE_TESTS)/$(LOCAL_MODULE)
--# to integrate with auto-test framework.
--include $(BUILD_NATIVE_TEST)
--
--# Include subdirectory makefiles
--# ============================================================
--
--# If we're building with ONE_SHOT_MAKEFILE (mm, mmm), then what the framework
--# team really wants is to build the stuff defined by this makefile.
--ifeq (,$(ONE_SHOT_MAKEFILE))
--include $(call first-makefiles-under,$(LOCAL_PATH))
--endif
 diff --git a/libs/ui/Android.mk b/libs/ui/Android.mk
 old mode 100644
 new mode 100755
-index 1ce8626..cf5d7b9
+index eec97be..2991671
 --- a/libs/ui/Android.mk
 +++ b/libs/ui/Android.mk
-@@ -56,7 +56,11 @@ ifneq ($(BOARD_FRAMEBUFFER_FORCE_FORMAT),)
+@@ -38,6 +38,10 @@ ifneq ($(BOARD_FRAMEBUFFER_FORCE_FORMAT),)
  LOCAL_CFLAGS += -DFRAMEBUFFER_FORCE_FORMAT=$(BOARD_FRAMEBUFFER_FORCE_FORMAT)
  endif
  
--LOCAL_MODULE := libui
 +ifeq ($(BOARD_HAVE_PIXEL_FORMAT_INFO),true)
 +LOCAL_CFLAGS += -DHAVE_PIXEL_FORMAT_INFO
 +endif
 +
-+LOCAL_MODULE:= libui
+ LOCAL_MODULE:= libui
  
  include $(BUILD_SHARED_LIBRARY)
- 
 diff --git a/libs/ui/PixelFormat.cpp b/libs/ui/PixelFormat.cpp
 old mode 100644
 new mode 100755
-index 99ed6f7..dbef05b
+index 5ce7fba..a716949
 --- a/libs/ui/PixelFormat.cpp
 +++ b/libs/ui/PixelFormat.cpp
-@@ -20,6 +20,113 @@
+@@ -21,6 +21,113 @@
  namespace android {
  // ----------------------------------------------------------------------------
  
-+#ifdef HAVE_PIXEL_FORMAT_INFOx
++#ifdef HAVE_PIXEL_FORMAT_INFO
 +static const int COMPONENT_YUV = 0xFF;
 +
 +struct Info {
 +    size_t      size;
-+    uint32_t      bitsPerPixel;
++    size_t      bitsPerPixel;
 +    struct {
 +        uint8_t     ah;
 +        uint8_t     al;
@@ -728,51 +649,9 @@ index 99ed6f7..dbef05b
 +}
 +#endif
 +
- uint32_t bytesPerPixel(PixelFormat format) {
+ ssize_t bytesPerPixel(PixelFormat format) {
      switch (format) {
          case PIXEL_FORMAT_RGBA_8888:
-diff --git a/libs/ui/tests/Android.mk b/libs/ui/tests/Android.mk
-deleted file mode 100644
-index 6438b1f..0000000
---- a/libs/ui/tests/Android.mk
-+++ /dev/null
-@@ -1,36 +0,0 @@
--#
--# Copyright (C) 2014 The Android Open Source Project
--#
--# Licensed under the Apache License, Version 2.0 (the "License");
--# you may not use this file except in compliance with the License.
--# You may obtain a copy of the License at
--#
--#      http://www.apache.org/licenses/LICENSE-2.0
--#
--# Unless required by applicable law or agreed to in writing, software
--# distributed under the License is distributed on an "AS IS" BASIS,
--# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
--# See the License for the specific language governing permissions and
--# limitations under the License.
--#
--
--LOCAL_PATH := $(call my-dir)
--
--include $(CLEAR_VARS)
--LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
--LOCAL_SHARED_LIBRARIES := libui
--LOCAL_SRC_FILES := Region_test.cpp
--LOCAL_MODULE := Region_test
--include $(BUILD_NATIVE_TEST)
--
--include $(CLEAR_VARS)
--LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
--LOCAL_SRC_FILES := vec_test.cpp
--LOCAL_MODULE := vec_test
--include $(BUILD_NATIVE_TEST)
--
--include $(CLEAR_VARS)
--LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
--LOCAL_SRC_FILES := mat_test.cpp
--LOCAL_MODULE := mat_test
--include $(BUILD_NATIVE_TEST)
 diff --git a/opengl/libs/EGL/egl_object.cpp b/opengl/libs/EGL/egl_object.cpp
 index d3ee76d..31e8c42 100644
 --- a/opengl/libs/EGL/egl_object.cpp
@@ -791,10 +670,10 @@ index d3ee76d..31e8c42 100644
 diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
 old mode 100644
 new mode 100755
-index 9b2acea..45b3e5a
+index c316ef6..7014288
 --- a/services/sensorservice/SensorService.cpp
 +++ b/services/sensorservice/SensorService.cpp
-@@ -748,12 +748,15 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+@@ -778,12 +778,15 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
  
      status_t err = sensor->batch(connection.get(), handle, reservedFlags, samplingPeriodNs,
                                   maxBatchReportLatencyNs);
@@ -811,7 +690,7 @@ index 9b2acea..45b3e5a
          connection->setFirstFlushPending(handle, true);
          status_t err_flush = sensor->flush(connection.get(), handle);
          // Flush may return error if the underlying h/w sensor uses an older HAL.
-@@ -762,13 +765,19 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+@@ -792,13 +795,19 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
          } else {
              connection->setFirstFlushPending(handle, false);
          }
@@ -834,11 +713,11 @@ index 9b2acea..45b3e5a
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
 old mode 100644
 new mode 100755
-index 342d685..f61fe22
+index eade2e2..72ea7bf
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
 @@ -51,6 +51,10 @@ ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
-     LOCAL_CFLAGS += -DTARGET_DISABLE_TRIPLE_BUFFERING
+ 	LOCAL_CFLAGS += -DTARGET_DISABLE_TRIPLE_BUFFERING
  endif
  
 +ifeq ($(BOARD_EGL_NEEDS_LEGACY_FB),true)
@@ -868,10 +747,10 @@ new mode 100755
 diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
 old mode 100644
 new mode 100755
-index 91e9a02..7c1a821
+index 5e3dfab..6d60ac5
 --- a/services/surfaceflinger/Layer.cpp
 +++ b/services/surfaceflinger/Layer.cpp
-@@ -127,7 +127,7 @@ void Layer::onFirstRef() {
+@@ -129,7 +129,7 @@ void Layer::onFirstRef() {
      mSurfaceFlingerConsumer->setName(mName);
  
  #ifdef TARGET_DISABLE_TRIPLE_BUFFERING
@@ -883,10 +762,10 @@ index 91e9a02..7c1a821
 diff --git a/services/surfaceflinger/RenderEngine/GLES11RenderEngine.cpp b/services/surfaceflinger/RenderEngine/GLES11RenderEngine.cpp
 old mode 100644
 new mode 100755
-index 2e6af49..bc791bb
+index c2768f3..ff0036f
 --- a/services/surfaceflinger/RenderEngine/GLES11RenderEngine.cpp
 +++ b/services/surfaceflinger/RenderEngine/GLES11RenderEngine.cpp
-@@ -210,28 +210,45 @@ void GLES11RenderEngine::disableBlending() {
+@@ -216,28 +216,45 @@ void GLES11RenderEngine::disableBlending() {
  }
  
  void GLES11RenderEngine::bindImageAsFramebuffer(EGLImageKHR image,
@@ -965,10 +844,10 @@ index 87eb3e4..5c3fdec
 diff --git a/services/surfaceflinger/RenderEngine/GLES20RenderEngine.cpp b/services/surfaceflinger/RenderEngine/GLES20RenderEngine.cpp
 old mode 100644
 new mode 100755
-index 8712c9a..8e3cad6
+index 8ebafbc..a9887cb
 --- a/services/surfaceflinger/RenderEngine/GLES20RenderEngine.cpp
 +++ b/services/surfaceflinger/RenderEngine/GLES20RenderEngine.cpp
-@@ -179,27 +179,44 @@ void GLES20RenderEngine::disableBlending() {
+@@ -185,27 +185,44 @@ void GLES20RenderEngine::disableBlending() {
  
  
  void GLES20RenderEngine::bindImageAsFramebuffer(EGLImageKHR image,
@@ -1046,10 +925,10 @@ index 3d6243e..4cdd41d
 diff --git a/services/surfaceflinger/RenderEngine/RenderEngine.cpp b/services/surfaceflinger/RenderEngine/RenderEngine.cpp
 old mode 100644
 new mode 100755
-index 767b714..8eab75b
+index a77e0e9..ee0c243
 --- a/services/surfaceflinger/RenderEngine/RenderEngine.cpp
 +++ b/services/surfaceflinger/RenderEngine/RenderEngine.cpp
-@@ -258,9 +258,11 @@ void RenderEngine::dump(String8& result) {
+@@ -262,9 +262,11 @@ void RenderEngine::dump(String8& result) {
  // ---------------------------------------------------------------------------
  
  RenderEngine::BindImageAsFramebuffer::BindImageAsFramebuffer(
@@ -1063,7 +942,7 @@ index 767b714..8eab75b
  
      ALOGE_IF(mStatus != GL_FRAMEBUFFER_COMPLETE_OES,
              "glCheckFramebufferStatusOES error %d", mStatus);
-@@ -268,7 +270,7 @@ RenderEngine::BindImageAsFramebuffer::BindImageAsFramebuffer(
+@@ -272,7 +274,7 @@ RenderEngine::BindImageAsFramebuffer::BindImageAsFramebuffer(
  
  RenderEngine::BindImageAsFramebuffer::~BindImageAsFramebuffer() {
      // back to main framebuffer
@@ -1075,7 +954,7 @@ index 767b714..8eab75b
 diff --git a/services/surfaceflinger/RenderEngine/RenderEngine.h b/services/surfaceflinger/RenderEngine/RenderEngine.h
 old mode 100644
 new mode 100755
-index acbff9b..c5d1e1e
+index 8d7529c..cd22373
 --- a/services/surfaceflinger/RenderEngine/RenderEngine.h
 +++ b/services/surfaceflinger/RenderEngine/RenderEngine.h
 @@ -51,8 +51,8 @@ class RenderEngine {
@@ -1089,7 +968,7 @@ index acbff9b..c5d1e1e
  
  protected:
      RenderEngine();
-@@ -82,8 +82,9 @@ public:
+@@ -83,8 +83,9 @@ public:
          RenderEngine& mEngine;
          uint32_t mTexName, mFbName;
          uint32_t mStatus;
@@ -1103,7 +982,7 @@ index acbff9b..c5d1e1e
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
 old mode 100644
 new mode 100755
-index 6a5a39e..2e0dfd8
+index 80d3cc2..7c90b3b
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
 @@ -25,6 +25,9 @@
@@ -1116,7 +995,7 @@ index 6a5a39e..2e0dfd8
  
  #include <cutils/log.h>
  #include <cutils/properties.h>
-@@ -2706,12 +2709,18 @@ status_t SurfaceFlinger::onTransact(
+@@ -2752,12 +2755,18 @@ status_t SurfaceFlinger::onTransact(
              break;
          }
          case CAPTURE_SCREEN:
@@ -1135,7 +1014,7 @@ index 6a5a39e..2e0dfd8
                      !PermissionCache::checkPermission(sReadFramebuffer, pid, uid)) {
                  ALOGE("Permission Denial: "
                          "can't read framebuffer pid=%d, uid=%d", pid, uid);
-@@ -2955,7 +2964,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3001,7 +3010,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          const sp<IGraphicBufferProducer>& producer,
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
@@ -1145,7 +1024,7 @@ index 6a5a39e..2e0dfd8
  
      if (CC_UNLIKELY(display == 0))
          return BAD_VALUE;
-@@ -3005,6 +3015,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3051,6 +3061,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          uint32_t minLayerZ,maxLayerZ;
          bool useIdentityTransform;
          Transform::orientation_flags rotation;
@@ -1153,7 +1032,7 @@ index 6a5a39e..2e0dfd8
          status_t result;
      public:
          MessageCaptureScreen(SurfaceFlinger* flinger,
-@@ -3012,12 +3023,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3058,12 +3069,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
                  const sp<IGraphicBufferProducer>& producer,
                  Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
                  uint32_t minLayerZ, uint32_t maxLayerZ,
@@ -1169,7 +1048,7 @@ index 6a5a39e..2e0dfd8
                result(PERMISSION_DENIED)
          {
          }
-@@ -3027,9 +3040,19 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3073,9 +3086,19 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          virtual bool handler() {
              Mutex::Autolock _l(flinger->mStateLock);
              sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
@@ -1189,10 +1068,10 @@ index 6a5a39e..2e0dfd8
 +                return BAD_VALUE;
 +            }
 +#endif
-             static_cast<GraphicProducerWrapper*>(IInterface::asBinder(producer).get())->exit(result);
+             static_cast<GraphicProducerWrapper*>(producer->asBinder().get())->exit(result);
              return true;
          }
-@@ -3052,7 +3075,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3098,7 +3121,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
      sp<MessageBase> msg = new MessageCaptureScreen(this,
              display, IGraphicBufferProducer::asInterface( wrapper ),
              sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
@@ -1201,7 +1080,7 @@ index 6a5a39e..2e0dfd8
  
      status_t res = postMessageAsync(msg);
      if (res == NO_ERROR) {
-@@ -3136,7 +3159,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3181,7 +3204,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(
          const sp<IGraphicBufferProducer>& producer,
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
@@ -1211,7 +1090,7 @@ index 6a5a39e..2e0dfd8
  {
      ATRACE_CALL();
  
-@@ -3160,8 +3184,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3205,8 +3229,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
  
      status_t result = NO_ERROR;
      if (native_window_api_connect(window, NATIVE_WINDOW_API_EGL) == NO_ERROR) {
@@ -1224,7 +1103,7 @@ index 6a5a39e..2e0dfd8
  
          int err = 0;
          err = native_window_set_buffers_dimensions(window, reqWidth, reqHeight);
-@@ -3184,7 +3210,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3229,7 +3255,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                  if (image != EGL_NO_IMAGE_KHR) {
                      // this binds the given EGLImage as a framebuffer for the
                      // duration of this scope.
@@ -1233,7 +1112,7 @@ index 6a5a39e..2e0dfd8
                      if (imageBond.getStatus() == NO_ERROR) {
                          // this will in fact render into our dequeued buffer
                          // via an FBO, which means we didn't have to create
-@@ -3229,6 +3255,14 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3276,6 +3302,14 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                                  ALOGW("captureScreen: error creating EGL fence: %#x", eglGetError());
                              }
                          }
@@ -1248,19 +1127,7 @@ index 6a5a39e..2e0dfd8
                          if (DEBUG_SCREENSHOTS) {
                              uint32_t* pixels = new uint32_t[reqWidth*reqHeight];
                              getRenderEngine().readPixels(0, 0, reqWidth, reqHeight, pixels);
-@@ -3246,10 +3280,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(
-                 } else {
-                     result = BAD_VALUE;
-                 }
-+                // queueBuffer takes ownership of syncFd
-                 window->queueBuffer(window, buffer, syncFd);
--                if (syncFd != -1) {
--                    close(syncFd);
--                }
-             }
-         } else {
-             result = BAD_VALUE;
-@@ -3288,6 +3320,139 @@ void SurfaceFlinger::checkScreenshot(size_t w, size_t s, size_t h, void const* v
+@@ -3333,6 +3367,139 @@ void SurfaceFlinger::checkScreenshot(size_t w, size_t s, size_t h, void const* v
      }
  }
  
@@ -1400,7 +1267,7 @@ index 6a5a39e..2e0dfd8
  // ---------------------------------------------------------------------------
  
  SurfaceFlinger::LayerVector::LayerVector() {
-@@ -3334,6 +3499,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
+@@ -3379,6 +3546,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
  }; // namespace android
  
  
@@ -1408,7 +1275,7 @@ index 6a5a39e..2e0dfd8
  #if defined(__gl_h_)
  #error "don't include gl/gl.h in this file"
  #endif
-@@ -3341,3 +3507,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
+@@ -3386,3 +3554,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
  #if defined(__gl2_h_)
  #error "don't include gl2/gl2.h in this file"
  #endif
@@ -1416,7 +1283,7 @@ index 6a5a39e..2e0dfd8
 diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
 old mode 100644
 new mode 100755
-index 710dac7..709a895
+index 4deb815..e54b4e9
 --- a/services/surfaceflinger/SurfaceFlinger.h
 +++ b/services/surfaceflinger/SurfaceFlinger.h
 @@ -205,7 +205,15 @@ private:
@@ -1435,7 +1302,7 @@ index 710dac7..709a895
      virtual status_t getDisplayStats(const sp<IBinder>& display,
              DisplayStatInfo* stats);
      virtual status_t getDisplayConfigs(const sp<IBinder>& display,
-@@ -322,7 +330,17 @@ private:
+@@ -327,7 +335,17 @@ private:
              const sp<IGraphicBufferProducer>& producer,
              Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
              uint32_t minLayerZ, uint32_t maxLayerZ,

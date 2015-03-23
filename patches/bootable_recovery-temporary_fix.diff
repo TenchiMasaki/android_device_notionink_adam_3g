@@ -30,10 +30,10 @@ index 0d47577..9f8f5f2
 diff --git a/updater/install.c b/updater/install.c
 old mode 100644
 new mode 100755
-index dad0d08..0758be7
+index 2b2ffb0..4523ff4
 --- a/updater/install.c
 +++ b/updater/install.c
-@@ -1485,7 +1485,7 @@ Value* WipeBlockDeviceFn(const char* name, State* state, int argc, Expr* argv[])
+@@ -1521,7 +1521,7 @@ Value* WipeBlockDeviceFn(const char* name, State* state, int argc, Expr* argv[])
  
      size_t len = strtoull(len_str, NULL, 0);
      int fd = open(filename, O_WRONLY, 0644);
