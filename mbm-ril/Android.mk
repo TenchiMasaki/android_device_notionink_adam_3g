@@ -61,8 +61,8 @@ LOCAL_MODULE_TAGS := optional
 # Build shared library
 LOCAL_SHARED_LIBRARIES += \
     libcutils libutils
-LOCAL_LDLIBS += -lpthread
-LOCAL_LDLIBS += -lrt
+#LOCAL_LDLIBS += -lpthread
+#LOCAL_LDLIBS += -lrt
 LOCAL_CFLAGS += -DRIL_SHLIB
 LOCAL_CFLAGS += -Wall
 LOCAL_MODULE:= libmbm-ril

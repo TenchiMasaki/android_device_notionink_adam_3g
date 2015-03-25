@@ -50,6 +50,13 @@ static void *dummyDispatch(void *data, size_t datalen);
 #define dispatchImsSms dummyDispatch
 #define dispatchUiccSubscripton dummyDispatch
 
+#define dispatchSIM_APDU dummyDispatch
+#define dispatchSimAuthentication dummyDispatch
+#define dispatchNVReadItem dummyDispatch
+#define dispatchNVWriteItem  dummyDispatch
+#define dispatchDataProfile dummyDispatch
+#define dispatchRadioCapability dummyResponse
+
 static void *dispatchCallForward(void *data, size_t datalen);
 static void *dispatchDial(void *data, size_t datalen);
 static void *dispatchSIM_IO(void *data, size_t datalen);
@@ -87,6 +94,9 @@ static void dummyResponse(void);
 #define responseCellInfoList dummyResponse
 #define responseGetDataCallProfile dummyResponse
 #define responseUiccSubscription dummyResponse
+#define responseHardwareConfig dummyResponse
+#define responseDcRtInfo dummyResponse
+#define responseRadioCapability dummyResponse
 
 #define dispatchDataCall dispatchStrings
 #define responseSetupDataCall responseStrings
@@ -357,3 +367,4 @@ void freeRequestData(int requestId, void *data, size_t datalen)
         freeGsmBrSmsCnf(data, datalen);
     }
 }
+  
