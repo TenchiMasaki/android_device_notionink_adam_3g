@@ -1,7 +1,7 @@
 diff --git a/include/media/AudioTrack.h b/include/media/AudioTrack.h
 old mode 100644
 new mode 100755
-index a6cab53..9032c55
+index a6cab53..d4c824e
 --- a/include/media/AudioTrack.h
 +++ b/include/media/AudioTrack.h
 @@ -226,6 +226,19 @@ public:
@@ -24,7 +24,57 @@ index a6cab53..9032c55
      /* Terminates the AudioTrack and unregisters it from AudioFlinger.
       * Also destroys all resources associated with the AudioTrack.
       */
-@@ -478,7 +491,11 @@ public:
+@@ -273,28 +286,46 @@ public:
+      * an uninitialized AudioTrack produces undefined results.
+      * See set() method above for possible return codes.
+      */
++#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
++            status_t    initCheck() const;
++#else
+             status_t    initCheck() const   { return mStatus; }
++#endif
+ 
+     /* Returns this track's estimated latency in milliseconds.
+      * This includes the latency due to AudioTrack buffer size, AudioMixer (if any)
+      * and audio hardware driver.
+      */
+-            uint32_t    latency() const     { return mLatency; }
++#if defined(QCOM_DIRECTTRACK) || defined(BOARD_OMX_NEEDS_LEGACY_AUDIO)
++             uint32_t    latency() const;
++#else
++             uint32_t    latency() const     { return mLatency; }
++#endif
+ 
+     /* getters, see constructors and set() */
+ 
++#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
+             audio_stream_type_t streamType() const;
++            audio_format_t format() const;
++#else
++            audio_stream_type_t streamType() const { return mStreamType; }
+             audio_format_t format() const   { return mFormat; }
++#endif
+ 
+     /* Return frame size in bytes, which for linear PCM is
+      * channelCount * (bit depth per channel / 8).
+      * channelCount is determined from channelMask, and bit depth comes from format.
+      * For non-linear formats, the frame size is typically 1 byte.
+      */
++#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
++            size_t      frameSize() const;
++            uint32_t    channelCount() const;
++            uint32_t    frameCount() const;
++#else
+             size_t      frameSize() const   { return mFrameSize; }
+-
+             uint32_t    channelCount() const { return mChannelCount; }
+-            size_t      frameCount() const  { return mFrameCount; }
++            uint32_t    frameCount() const  { return mFrameCount; }
++#endif
+ 
+     /* Return the static buffer specified in constructor or set(), or 0 for streaming mode */
+             sp<IMemory> sharedBuffer() const { return mSharedBuffer; }
+@@ -478,7 +509,11 @@ public:
       * Returned value:
       *  AudioTrack session ID.
       */
@@ -36,7 +86,7 @@ index a6cab53..9032c55
  
      /* Attach track auxiliary output to specified effect. Use effectId = 0
       * to detach track from effect.
-@@ -568,7 +585,8 @@ public:
+@@ -568,7 +603,8 @@ public:
       * false for the method to return immediately without waiting to try multiple times to write
       * the full content of the buffer.
       */
@@ -136,14 +186,21 @@ index 9cae21c..cceaec6
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index d88999b..1fde309
+index cd63af8..bb199b3
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
-@@ -57,6 +57,15 @@ static int64_t getNowUs()
+@@ -57,6 +57,22 @@ static int64_t getNowUs()
  }
  
  // static
 +#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
++uint32_t AudioTrack::latency() const { return mLatency; }
++//audio_stream_type_t AudioTrack::streamType() const { return mStreamType; }
++audio_format_t AudioTrack::format() const  { return mFormat; }
++uint32_t AudioTrack::channelCount() const  { return mChannelCount; }
++uint32_t AudioTrack::frameCount() const  { return mFrameCount; }
++size_t AudioTrack::frameSize() const { return mFrameSize; }
++status_t AudioTrack::initCheck() const { return mStatus; }
 +int AudioTrack::getSessionId() const { return mSessionId; }
 +
 +extern "C" int _ZNK7android10AudioTrack12getSessionIdEv();
@@ -155,7 +212,7 @@ index d88999b..1fde309
  status_t AudioTrack::getMinFrameCount(
          size_t* frameCount,
          audio_stream_type_t streamType,
-@@ -116,6 +125,33 @@ status_t AudioTrack::getMinFrameCount(
+@@ -116,6 +132,33 @@ status_t AudioTrack::getMinFrameCount(
  }
  
  // ---------------------------------------------------------------------------
@@ -189,7 +246,7 @@ index d88999b..1fde309
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1716,6 +1752,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1720,6 +1763,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
@@ -200,10 +257,10 @@ index d88999b..1fde309
 diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
 old mode 100644
 new mode 100755
-index 892f616..8e20c22
+index 7ee35d6..104dabe
 --- a/media/libstagefright/ACodec.cpp
 +++ b/media/libstagefright/ACodec.cpp
-@@ -5255,6 +5255,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5263,6 +5263,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
          status_t err = omx->allocateNode(componentName.c_str(), observer, &node);
          androidSetThreadPriority(tid, prevPriority);
  
@@ -250,7 +307,7 @@ index 892f616..8e20c22
          if (err == OK) {
              break;
          } else {
-@@ -5278,7 +5318,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5286,7 +5326,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
  
      notify = new AMessage(kWhatOMXMessage, mCodec->id());
      observer->setNotificationMessage(notify);
@@ -259,7 +316,7 @@ index 892f616..8e20c22
      mCodec->mComponentName = componentName;
      mCodec->mFlags = 0;
  
-@@ -5291,7 +5331,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5299,7 +5339,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
      mCodec->mQuirks = quirks;
      mCodec->mOMX = omx;
      mCodec->mNode = node;
