@@ -55,6 +55,7 @@ static void *dummyDispatch(void *data, size_t datalen);
 #define dispatchNVReadItem dummyDispatch
 #define dispatchNVWriteItem  dummyDispatch
 #define dispatchDataProfile dummyDispatch
+#define dispatchRadioCapability dummyResponse
 
 static void *dispatchCallForward(void *data, size_t datalen);
 static void *dispatchDial(void *data, size_t datalen);
@@ -95,6 +96,7 @@ static void dummyResponse(void);
 #define responseUiccSubscription dummyResponse
 #define responseHardwareConfig dummyResponse
 #define responseDcRtInfo dummyResponse
+#define responseRadioCapability dummyResponse
 
 #define dispatchDataCall dispatchStrings
 #define responseSetupDataCall responseStrings

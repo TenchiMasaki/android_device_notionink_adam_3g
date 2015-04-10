@@ -1,8 +1,7 @@
-project external/sepolicy/
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
-index 3b3072c..f30dea7
+index 503b06d..c4493ea
 --- a/app.te
 +++ b/app.te
 @@ -340,7 +340,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
@@ -17,10 +16,10 @@ index 3b3072c..f30dea7
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index 85d5524..dbe2945
+index f6b7659..312a7a9
 --- a/domain.te
 +++ b/domain.te
-@@ -231,11 +231,11 @@ neverallow { domain -init } kernel:security setsecparam;
+@@ -235,11 +235,11 @@ neverallow { domain -init } kernel:security setsecparam;
  neverallow { domain -init -system_server -ueventd -unconfineddomain } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
@@ -34,7 +33,7 @@ index 85d5524..dbe2945
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -256,7 +256,7 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
+@@ -260,12 +260,12 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
  # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
  # ueventd is exempt from this, as its managing these devices.
@@ -43,12 +42,18 @@ index 85d5524..dbe2945
  
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
-@@ -287,11 +287,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
+ # this capability, including device-specific domains.
+-neverallow { domain -kernel -init -recovery -vold -zygote } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
++neverallow { domain -kernel -init -recovery -vold -zygote -sysinit } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
+ 
+ #
+ # Assert that, to the extent possible, we're not loading executable content from
+@@ -291,11 +291,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
  neverallow { domain -init -recovery } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
-+neverallow { domain -recovery -init -vold } { system_file exec_type }:dir_file_class_set
++neverallow { domain -recovery -init -vold -debuggerd -installd -sysinit -init_shell } { system_file exec_type }:dir_file_class_set
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Nothing should be writing to files in the rootfs.
@@ -57,7 +62,7 @@ index 85d5524..dbe2945
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -308,6 +308,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -312,6 +312,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
