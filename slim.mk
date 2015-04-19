@@ -50,4 +50,4 @@ PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=slim.adam_3g.$(shell date +%m%d%y).$
 $(call inherit-product, vendor/slim/config/common_full_tablet_wifionly.mk)
 
 # Inherit telephony common stuff
-$(call inherit-product, vendor/slim/config/common_multicarrier.mk)
+$(call inherit-product, vendor/slim/config/gsm.mk)
