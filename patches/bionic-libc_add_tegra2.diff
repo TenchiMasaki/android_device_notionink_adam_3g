@@ -1346,7 +1346,7 @@ new file mode 100644
 index 0000000..5140036
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/tegra2.mk
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,12 @@
 +$(call libc-add-cpu-variant-src,MEMCPY,arch-arm/tegra2/bionic/memcpy.S)
 +$(call libc-add-cpu-variant-src,MEMSET,arch-arm/tegra2/bionic/memset.S)
 +$(call libc-add-cpu-variant-src,STRCMP,arch-arm/tegra2/bionic/strcmp.S)
@@ -1359,4 +1359,3 @@ index 0000000..5140036
 +
 +# armv7-a (non neon) ones from cm10.1
 +$(call libc-add-cpu-variant-src,STRLEN,arch-arm/tegra2/bionic/strlen.S)
-+$(call libc-add-cpu-variant-src,MEMCHR,arch-arm/tegra2/bionic/memchr.S)
