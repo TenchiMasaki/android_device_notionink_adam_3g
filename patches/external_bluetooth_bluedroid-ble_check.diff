@@ -358,3 +358,50 @@ index 30ca1f0..c407b69
  
  #if BTM_MAX_LOC_BD_NAME_LEN > 0
  typedef char tBTM_LOC_BD_NAME[BTM_MAX_LOC_BD_NAME_LEN + 1];
+diff --git a/wipowerif/src/wipower.c b/wipowerif/src/wipower.c
+old mode 100644
+new mode 100755
+index aa2ce6f..c623f29
+--- a/wipowerif/src/wipower.c
++++ b/wipowerif/src/wipower.c
+@@ -64,9 +64,6 @@ unsigned char gStatus;
+ wipower_state_t gState;
+ unsigned char gCurrentLimit;
+ timer_t  wp_data_timer;
+-/* adv_inst is captured during MultiAdvertiser and
+-** need to track same for wipower instance */
+-extern UINT8 wipower_inst_id;
+ 
+ char power_removal_event[] = {0x17, 0x00};
+ void dispatch_wp_events (UINT16 len, char* p_param);
+@@ -298,6 +295,10 @@ void dispatch_wp_events (UINT16 len, char* p_param) {
+                 ALOGE("wipower_hal_cbacks not registered");
+             }
+ 
++            if(alert == 0x01) {
++                /*Disable this event now*/
++                enable_power_apply(0x00, 0x01, 0x00);
++            }
+         }
+ 
+     } break;
+@@ -449,7 +450,7 @@ int enable_data_notify(bool enable)
+ 
+ int enable_power_apply(bool enable, bool on, bool time_flag)
+ {
+-    UINT8 en[6];
++    UINT8 en[5];
+     if (DBG)
+         ALOGI("%s:%d", __func__, enable);
+ 
+@@ -471,8 +472,8 @@ int enable_power_apply(bool enable, bool on, bool time_flag)
+         en[3] = WIPOWER_ADV_30MS_LSB;
+         en[4] = WIPOWER_ADV_30MS_MSB;
+     }
+-    en[5] = wipower_inst_id;
+-    BTA_DmVendorSpecificCommand(WP_HCI_VS_CMD, 6, en, enable_power_cb);
++
++    BTA_DmVendorSpecificCommand(WP_HCI_VS_CMD, 5, en, enable_power_cb);
+     return 0;
+ }
+ 
