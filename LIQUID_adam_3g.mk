@@ -38,7 +38,7 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 $(call inherit-product-if-exists, vendor/notionink/adam/device-vendor.mk)
 
-PRODUCT_NAME := liquid_adam_3g
+PRODUCT_NAME := LIQUID_adam_3g
 PRODUCT_DEVICE := adam_3g
 PRODUCT_BRAND := NotionInk
 PRODUCT_MODEL := Notion Ink ADAM
@@ -47,12 +47,7 @@ PRODUCT_RELEASE_NAME := NIAdam-3G
 PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=liquid.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
 
 # Inherit some common LiquidSmooth stuff.
-$(call inherit-product, vendor/liquid/config/common_tablet.mk)
-
-
-# Inherit telephony common stuff
-$(call inherit-product, vendor/liquid/config/telephony.mk)
-
+$(call inherit-product, vendor/liquid/config/common_full_tablet_lte.mk)
 
 # OTA ID
 PRODUCT_PROPERTY_OVERRIDES += \

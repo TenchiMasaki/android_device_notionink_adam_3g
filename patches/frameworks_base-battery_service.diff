@@ -1,0 +1,15 @@
+diff --git a/services/core/java/com/android/server/BatteryService.java b/services/core/java/com/android/server/BatteryService.java
+old mode 100644
+new mode 100755
+index 2f90e3b..1586288
+--- a/services/core/java/com/android/server/BatteryService.java
++++ b/services/core/java/com/android/server/BatteryService.java
+@@ -182,7 +182,7 @@ public final class BatteryService extends SystemService {
+                 IBatteryPropertiesRegistrar.Stub.asInterface(b);
+         try {
+             batteryPropertiesRegistrar.registerListener(new BatteryListener());
+-        } catch (RemoteException e) {
++        } catch (Exception e) {
+             // Should never happen.
+         }
+ 
