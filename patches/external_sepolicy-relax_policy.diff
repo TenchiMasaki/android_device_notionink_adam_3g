@@ -1,11 +1,10 @@
-project external/sepolicy/
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
-index b9027fe..5127e5c
+index 503b06d..c4493ea
 --- a/app.te
 +++ b/app.te
-@@ -337,7 +337,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
+@@ -340,7 +340,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
  neverallow { appdomain -shell } efs_file:dir_file_class_set read;
  
  # Write to various pseudo file systems.
@@ -17,10 +16,10 @@ index b9027fe..5127e5c
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index 86dabe3..9630c63
+index f6b7659..392c4aa
 --- a/domain.te
 +++ b/domain.te
-@@ -231,11 +231,11 @@ neverallow { domain -init } kernel:security setsecparam;
+@@ -235,11 +235,11 @@ neverallow { domain -init } kernel:security setsecparam;
  neverallow { domain -init -system_server -ueventd -unconfineddomain } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
@@ -34,7 +33,7 @@ index 86dabe3..9630c63
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -256,7 +256,7 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
+@@ -260,12 +260,12 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
  # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
  # ueventd is exempt from this, as its managing these devices.
@@ -43,12 +42,26 @@ index 86dabe3..9630c63
  
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
-@@ -287,11 +287,11 @@ neverallow { domain -init } property_data_file:dir { create setattr relabelfrom
- neverallow { domain -init } property_data_file:file { create setattr relabelfrom write append unlink link rename };
+ # this capability, including device-specific domains.
+-neverallow { domain -kernel -init -recovery -vold -zygote } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
++neverallow { domain -kernel -init -recovery -vold -zygote -sysinit } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
+ 
+ #
+ # Assert that, to the extent possible, we're not loading executable content from
+@@ -279,6 +279,7 @@ neverallow {
+     userdebug_or_eng(`-su')
+     -system_server
+     -zygote
++    -init
+ } { file_type -system_file -exec_type }:file execute;
+ neverallow {
+     domain
+@@ -291,11 +292,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
+ neverallow { domain -init -recovery } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
-+neverallow { domain -recovery -init -vold } { system_file exec_type }:dir_file_class_set
++neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd } { system_file exec_type }:dir_file_class_set
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Nothing should be writing to files in the rootfs.
@@ -57,21 +70,21 @@ index 86dabe3..9630c63
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -308,6 +308,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -312,6 +313,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
 -neverallow domain default_android_service:service_manager add;
-+#neverallow domain default_android_service:service_manager add;
++neverallow { domain -system_server } default_android_service:service_manager add;
  
  neverallow { domain -init -recovery -system_server } frp_block_device:blk_file rw_file_perms;
 diff --git a/init.te b/init.te
 old mode 100644
 new mode 100755
-index b5b7993..adfc00d
+index 5275f4f..9159ee2
 --- a/init.te
 +++ b/init.te
-@@ -114,6 +114,6 @@ allow init kernel:process setsched;
+@@ -118,6 +118,6 @@ allow init app_data_file:{ lnk_file dir } { getattr relabelfrom };
  
  # The init domain is only entered via setcon from the kernel domain,
  # never via an exec-based transition.
@@ -79,3 +92,15 @@ index b5b7993..adfc00d
 +neverallow { domain -kernel -sysinit } init:process dyntransition;
  neverallow domain init:process transition;
  neverallow init { file_type fs_type }:file entrypoint;
+diff --git a/logd.te b/logd.te
+old mode 100644
+new mode 100755
+index cde721a..6a51b9d
+--- a/logd.te
++++ b/logd.te
+@@ -34,4 +34,4 @@ neverallow logd domain:process ptrace;
+ neverallow logd system_file:dir_file_class_set write;
+ 
+ # Write to files in /data/data or system files on /data
+-neverallow logd { app_data_file system_data_file }:dir_file_class_set write;
++neverallow logd { app_data_file }:dir_file_class_set write;

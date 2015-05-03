@@ -41,10 +41,13 @@ $(call inherit-product-if-exists, vendor/notionink/adam/device-vendor.mk)
 PRODUCT_NAME := slim_adam_3g
 PRODUCT_DEVICE := adam_3g
 PRODUCT_BRAND := NotionInk
-PRODUCT_MODEL := Notion Ink ADAM
+PRODUCT_MODEL := Notion_Ink_ADAM
 # Release name
 PRODUCT_RELEASE_NAME := NIAdam-3G
 PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=slim.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
+
+TARGET_VENDOR_PRODUCT_NAME := adam_3g
+TARGET_VENDOR_DEVICE_NAME := Notion_Ink_ADAM
 
 # Inherit some common Slim stuff.
 $(call inherit-product, vendor/slim/config/common_full_tablet_wifionly.mk)
