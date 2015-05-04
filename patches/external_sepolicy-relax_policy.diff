@@ -1,3 +1,4 @@
+project external/sepolicy/
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
@@ -16,7 +17,7 @@ index 503b06d..c4493ea
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index f6b7659..312a7a9
+index f6b7659..392c4aa
 --- a/domain.te
 +++ b/domain.te
 @@ -235,11 +235,11 @@ neverallow { domain -init } kernel:security setsecparam;
@@ -48,12 +49,20 @@ index f6b7659..312a7a9
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -291,11 +291,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
+@@ -279,6 +279,7 @@ neverallow {
+     userdebug_or_eng(`-su')
+     -system_server
+     -zygote
++    -init
+ } { file_type -system_file -exec_type }:file execute;
+ neverallow {
+     domain
+@@ -291,11 +292,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
  neverallow { domain -init -recovery } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
-+neverallow { domain -recovery -init -vold -debuggerd -installd -sysinit -init_shell } { system_file exec_type }:dir_file_class_set
++neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd } { system_file exec_type }:dir_file_class_set
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Nothing should be writing to files in the rootfs.
@@ -62,12 +71,12 @@ index f6b7659..312a7a9
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -312,6 +312,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -312,6 +313,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
 -neverallow domain default_android_service:service_manager add;
-+#neverallow domain default_android_service:service_manager add;
++neverallow { domain -system_server } default_android_service:service_manager add;
  
  neverallow { domain -init -recovery -system_server } frp_block_device:blk_file rw_file_perms;
 diff --git a/init.te b/init.te
@@ -84,3 +93,15 @@ index 5275f4f..9159ee2
 +neverallow { domain -kernel -sysinit } init:process dyntransition;
  neverallow domain init:process transition;
  neverallow init { file_type fs_type }:file entrypoint;
+diff --git a/logd.te b/logd.te
+old mode 100644
+new mode 100755
+index cde721a..6a51b9d
+--- a/logd.te
++++ b/logd.te
+@@ -34,4 +34,4 @@ neverallow logd domain:process ptrace;
+ neverallow logd system_file:dir_file_class_set write;
+ 
+ # Write to files in /data/data or system files on /data
+-neverallow logd { app_data_file system_data_file }:dir_file_class_set write;
++neverallow logd { app_data_file }:dir_file_class_set write;
