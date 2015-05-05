@@ -84,13 +84,23 @@ index de7cb33..8008064 100644
                  doRequest = true;
              }
          }
-@@ -10739,7 +10746,8 @@
+@@ -10682,13 +10690,15 @@ public class WindowManagerService extends IWindowManager.Stub
              return;
          }
  
 -        if (mWaitingForConfig || mAppsFreezingScreen > 0 || mWindowsFreezingScreen
+-                || mClientFreezingScreen) {
 +        if (mWaitingForConfig || mAppsFreezingScreen > 0
 +                || mWindowsFreezingScreen == WINDOWS_FREEZING_SCREENS_ACTIVE
-                 || mClientFreezingScreen || !mOpeningApps.isEmpty()) {
++                || mClientFreezingScreen || !mOpeningApps.isEmpty()) {
              if (DEBUG_ORIENTATION) Slog.d(TAG,
                  "stopFreezingDisplayLocked: Returning mWaitingForConfig=" + mWaitingForConfig
+                 + ", mAppsFreezingScreen=" + mAppsFreezingScreen
+                 + ", mWindowsFreezingScreen=" + mWindowsFreezingScreen
+-                + ", mClientFreezingScreen=" + mClientFreezingScreen);
++                + ", mClientFreezingScreen=" + mClientFreezingScreen
++                + ", mOpeningApps.size()=" + mOpeningApps.size());
+             return;
+         }
+ 
+

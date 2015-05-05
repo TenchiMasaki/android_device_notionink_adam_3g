@@ -1,4 +1,4 @@
-Here's Adam 3G device tree for android Euphoria 5.1.
+Here's Adam 3G device tree for android Dirty Unicorns 5.1.
 
 Make sure you have adam_common tree downloaded
 
@@ -12,7 +12,7 @@ Shell Type: ". build/envsetup.sh"
 
 Let it finish.
 
-Shell Type: "lunch eos_adam_3g-userdebug"
+Shell Type: "lunch du_adam_3g-userdebug"
 
 Wait for it to get done.
 
