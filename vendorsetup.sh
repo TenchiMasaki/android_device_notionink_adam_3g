@@ -31,7 +31,7 @@ for p in $(find device/notionink/adam_3g/patches/ -name "*.diff")
                         echo "Patch "$tmp" already applied"
                 else
                         echo -n "Apply patch "$tmp
-                        patch -p1 < $p > /dev/null 2>&1
+                        patch -p1 < $p 2>&1
                         if [ $? == 0 ]; then
                                 echo "     [DONE]"
                                 touch $tmp".p"
@@ -41,7 +41,7 @@ for p in $(find device/notionink/adam_3g/patches/ -name "*.diff")
                 fi
                 echo ""
         done
-echo "Cleaning .orig and .rej files if any..."
+#echo "Cleaning .orig and .rej files if any..."
 #find . \( -name \*cpp.orig -o -name \*xml.orig -o -name \*.h.orig -o -name \*.java.orig -o -name \*.rej \) -delete
 echo ""
 
