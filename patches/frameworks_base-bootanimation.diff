@@ -1,12 +1,12 @@
 diff --git a/cmds/bootanimation/Android.mk b/cmds/bootanimation/Android.mk
 old mode 100644
 new mode 100755
-index f08a80b..0d82b4c
+index 81d1c22..209a742
 --- a/cmds/bootanimation/Android.mk
 +++ b/cmds/bootanimation/Android.mk
-@@ -25,6 +25,26 @@ LOCAL_SHARED_LIBRARIES := \
-     libtinyalsa \
-     libmedia
+@@ -33,6 +33,26 @@ ifeq ($(TARGET_BOOTANIMATION_USE_RGB565),true)
+     LOCAL_CFLAGS += -DUSE_565
+ endif
  
 +ifeq ($(TARGET_CONTINUOUS_SPLASH_ENABLED),true)
 +    LOCAL_CFLAGS += -DCONTINUOUS_SPLASH
@@ -34,7 +34,7 @@ index f08a80b..0d82b4c
 diff --git a/cmds/bootanimation/BootAnimation.cpp b/cmds/bootanimation/BootAnimation.cpp
 old mode 100644
 new mode 100755
-index 7116f95..01d7c3a
+index 1bb2b4a..e07497b
 --- a/cmds/bootanimation/BootAnimation.cpp
 +++ b/cmds/bootanimation/BootAnimation.cpp
 @@ -289,7 +289,11 @@ status_t BootAnimation::initTexture(void* buffer, size_t len)
@@ -87,7 +87,7 @@ index 7116f95..01d7c3a
      return NO_ERROR;
  }
  
-@@ -684,6 +719,7 @@ bool BootAnimation::movie()
+@@ -720,6 +720,7 @@ bool BootAnimation::movie()
  
      mZip->endIteration(cookie);
  
@@ -95,7 +95,7 @@ index 7116f95..01d7c3a
      // clear screen
      glShadeModel(GL_FLAT);
      glDisable(GL_DITHER);
-@@ -693,6 +729,7 @@ bool BootAnimation::movie()
+@@ -729,6 +730,7 @@ bool BootAnimation::movie()
      glClear(GL_COLOR_BUFFER_BIT);
  
      eglSwapBuffers(mDisplay, mSurface);
@@ -103,7 +103,7 @@ index 7116f95..01d7c3a
  
      glBindTexture(GL_TEXTURE_2D, 0);
      glEnable(GL_TEXTURE_2D);
-@@ -720,6 +757,15 @@ bool BootAnimation::movie()
+@@ -756,6 +758,15 @@ bool BootAnimation::movie()
      for (size_t i=0 ; i<pcount ; i++) {
          const Animation::Part& part(animation.parts[i]);
          const size_t fcount = part.frames.size();
@@ -119,7 +119,7 @@ index 7116f95..01d7c3a
          glBindTexture(GL_TEXTURE_2D, 0);
  
          /*calculate if we need to runtime save memory
-@@ -731,7 +777,7 @@ bool BootAnimation::movie()
+@@ -767,7 +778,7 @@ bool BootAnimation::movie()
          GLuint mTextureid;
          glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mMaxTextureSize);
          //ALOGD("freemem:%ld, %d", getFreeMemory(), mMaxTextureSize);

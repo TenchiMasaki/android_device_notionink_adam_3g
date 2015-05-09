@@ -186,7 +186,7 @@ index 9cae21c..cceaec6
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index f1be2df..cc2a395
+index 21b68d3..2ebb52e
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
 @@ -57,6 +57,22 @@ static int64_t getNowUs()
@@ -246,7 +246,7 @@ index f1be2df..cc2a395
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1732,6 +1775,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1733,6 +1776,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
@@ -257,10 +257,10 @@ index f1be2df..cc2a395
 diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
 old mode 100644
 new mode 100755
-index 7ee35d6..104dabe
+index 37d3a79..78b91b7
 --- a/media/libstagefright/ACodec.cpp
 +++ b/media/libstagefright/ACodec.cpp
-@@ -5263,6 +5263,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5287,6 +5287,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
          status_t err = omx->allocateNode(componentName.c_str(), observer, &node);
          androidSetThreadPriority(tid, prevPriority);
  
@@ -307,7 +307,7 @@ index 7ee35d6..104dabe
          if (err == OK) {
              break;
          } else {
-@@ -5286,7 +5326,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5310,7 +5350,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
  
      notify = new AMessage(kWhatOMXMessage, mCodec->id());
      observer->setNotificationMessage(notify);
@@ -316,7 +316,7 @@ index 7ee35d6..104dabe
      mCodec->mComponentName = componentName;
      mCodec->mFlags = 0;
  
-@@ -5299,7 +5339,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5323,7 +5363,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
      mCodec->mQuirks = quirks;
      mCodec->mOMX = omx;
      mCodec->mNode = node;
