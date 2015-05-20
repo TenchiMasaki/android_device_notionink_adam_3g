@@ -1344,7 +1344,7 @@ new file mode 100755
 index 0000000..efd454c
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/tegra2.mk
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,11 @@
 +libc_bionic_src_files_arm += \
 +    arch-arm/tegra2/bionic/memcpy.S \
 +    arch-arm/tegra2/bionic/memset.S \

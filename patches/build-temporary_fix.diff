@@ -1,26 +1,3 @@
-diff --git a/core/Makefile b/core/Makefile
-old mode 100644
-new mode 100755
-index 8e61f45..9ddd685
---- a/core/Makefile
-+++ b/core/Makefile
-@@ -671,6 +671,8 @@ INTERNAL_USERIMAGES_DEPS += $(MKEXTUSERIMG) $(MAKE_EXT4FS) $(E2FSCK)
- ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
- INTERNAL_USERIMAGES_DEPS += $(MKF2FSUSERIMG) $(MAKE_F2FS)
- endif
-+else
-+INTERNAL_USERIMAGES_DEPS := $(MKYAFFS2)
- endif
- 
- ifeq ($(BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE),squashfs)
-@@ -1230,6 +1232,7 @@ DISTTOOLS :=  $(HOST_OUT_EXECUTABLES)/minigzip \
- 	  $(HOST_OUT_EXECUTABLES)/mkbootfs \
- 	  $(HOST_OUT_EXECUTABLES)/mkbootimg \
- 	  $(HOST_OUT_EXECUTABLES)/fs_config \
-+	  $(HOST_OUT_EXECUTABLES)/mkyaffs2image \
- 	  $(HOST_OUT_EXECUTABLES)/zipalign \
- 	  $(HOST_OUT_EXECUTABLES)/bsdiff \
- 	  $(HOST_OUT_EXECUTABLES)/imgdiff \
 diff --git a/tools/releasetools/blockimgdiff.py b/tools/releasetools/blockimgdiff.py
 old mode 100644
 new mode 100755
@@ -51,6 +28,30 @@ index 8b179d5..a4938a2
          assert xf.src_ranges.size() == tgt_size
          if xf.src_ranges != xf.tgt_ranges:
            if self.version == 1:
+diff --git a/tools/releasetools/edify_generator.py b/tools/releasetools/edify_generator.py
+old mode 100644
+new mode 100755
+index 439811c..900fde7
+--- a/tools/releasetools/edify_generator.py
++++ b/tools/releasetools/edify_generator.py
+@@ -322,7 +322,7 @@ class EdifyGenerator(object):
+ 
+   def SetPermissions(self, fn, uid, gid, mode, selabel, capabilities):
+     """Set file ownership and permissions."""
+-    if not self.info.get("use_set_metadata", False):
++    if not self.info.get("use_set_metadata", True):
+       self.script.append('set_perm(%d, %d, 0%o, "%s");' % (uid, gid, mode, fn))
+     else:
+       if capabilities is None: capabilities = "0x0"
+@@ -335,7 +335,7 @@ class EdifyGenerator(object):
+ 
+   def SetPermissionsRecursive(self, fn, uid, gid, dmode, fmode, selabel, capabilities):
+     """Recursively set path ownership and permissions."""
+-    if not self.info.get("use_set_metadata", False):
++    if not self.info.get("use_set_metadata", True):
+       self.script.append('set_perm_recursive(%d, %d, 0%o, 0%o, "%s");'
+                          % (uid, gid, dmode, fmode, fn))
+     else:
 diff --git a/tools/releasetools/sparse_img.py b/tools/releasetools/sparse_img.py
 old mode 100644
 new mode 100755

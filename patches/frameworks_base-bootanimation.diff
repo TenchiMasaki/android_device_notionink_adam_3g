@@ -1,0 +1,83 @@
+diff --git a/cmds/bootanimation/Android.mk b/cmds/bootanimation/Android.mk
+old mode 100644
+new mode 100755
+index 479a44a..65b18b0
+--- a/cmds/bootanimation/Android.mk
++++ b/cmds/bootanimation/Android.mk
+@@ -23,6 +23,14 @@ LOCAL_SHARED_LIBRARIES := \
+     libgui \
+     libtinyalsa
+ 
++ifeq ($(TARGET_CONTINUOUS_SPLASH_ENABLED),true)
++    LOCAL_CFLAGS += -DCONTINUOUS_SPLASH
++endif
++
++ifeq ($(TARGET_BOOTANIMATION_PRELOAD),true)
++    LOCAL_CFLAGS += -DPRELOAD_BOOTANIMATION
++endif
++
+ ifneq ($(TARGET_BOOTANIMATION_TEXTURE_CACHE),)
+     LOCAL_CFLAGS += -DBOARD_USES_TEXTURE_CACHE
+     ifeq ($(TARGET_BOOTANIMATION_TEXTURE_CACHE),false)
+diff --git a/cmds/bootanimation/BootAnimation.cpp b/cmds/bootanimation/BootAnimation.cpp
+old mode 100644
+new mode 100755
+index 77ae78c..a2b21dc
+--- a/cmds/bootanimation/BootAnimation.cpp
++++ b/cmds/bootanimation/BootAnimation.cpp
+@@ -304,6 +304,36 @@ status_t BootAnimation::readyToRun() {
+             ((zipFile = ZipFileRO::open(SYSTEM_BOOTANIMATION_FILE)) != NULL))) {
+         mZip = zipFile;
+     }
++#ifdef PRELOAD_BOOTANIMATION
++    // Preload the bootanimation zip on memory, so we don't stutter
++    // when showing the animation
++    FILE* fd;
++    if (encryptedAnimation && access(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, R_OK) == 0)
++        fd = fopen(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, "r");
++    else if (access(OEM_BOOTANIMATION_FILE, R_OK) == 0)
++        fd = fopen(OEM_BOOTANIMATION_FILE, "r");
++    else if (access(SYSTEM_BOOTANIMATION_FILE, R_OK) == 0)
++        fd = fopen(SYSTEM_BOOTANIMATION_FILE, "r");
++    else
++        return NO_ERROR;
++
++    if (fd != NULL) {
++        // We could use readahead..
++        // ... if bionic supported it :(
++        //readahead(fd, 0, INT_MAX);
++        void *crappyBuffer = malloc(2*1024*1024);
++        if (crappyBuffer != NULL) {
++            // Read all the zip
++            while (!feof(fd))
++                fread(crappyBuffer, 1024, 2*1024, fd);
++
++            free(crappyBuffer);
++        } else {
++            ALOGW("Unable to allocate memory to preload the animation");
++        }
++        fclose(fd);
++    }
++#endif
+ 
+     return NO_ERROR;
+ }
+@@ -559,6 +589,7 @@ bool BootAnimation::movie()
+ 
+     mZip->endIteration(cookie);
+ 
++#ifndef CONTINUOUS_SPLASH
+     // clear screen
+     glShadeModel(GL_FLAT);
+     glDisable(GL_DITHER);
+@@ -568,6 +599,7 @@ bool BootAnimation::movie()
+     glClear(GL_COLOR_BUFFER_BIT);
+ 
+     eglSwapBuffers(mDisplay, mSurface);
++#endif
+ 
+     glBindTexture(GL_TEXTURE_2D, 0);
+     glEnable(GL_TEXTURE_2D);
++
+     return NO_ERROR;
+ }

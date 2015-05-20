@@ -25,7 +25,57 @@ index fd51b8f..fc14e02
      /* Terminates the AudioTrack and unregisters it from AudioFlinger.
       * Also destroys all resources associated with the AudioTrack.
       */
-@@ -471,7 +484,11 @@ public:
+@@ -273,28 +286,46 @@ public:
+      * an uninitialized AudioTrack produces undefined results.
+      * See set() method above for possible return codes.
+      */
++#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
++            status_t    initCheck() const;
++#else
+             status_t    initCheck() const   { return mStatus; }
++#endif
+ 
+     /* Returns this track's estimated latency in milliseconds.
+      * This includes the latency due to AudioTrack buffer size, AudioMixer (if any)
+      * and audio hardware driver.
+      */
+-            uint32_t    latency() const     { return mLatency; }
++#if defined(QCOM_DIRECTTRACK) || defined(BOARD_OMX_NEEDS_LEGACY_AUDIO)
++             uint32_t    latency() const;
++#else
++             uint32_t    latency() const     { return mLatency; }
++#endif
+ 
+     /* getters, see constructors and set() */
+ 
++#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
+             audio_stream_type_t streamType() const;
++            audio_format_t format() const;
++#else
++            audio_stream_type_t streamType() const { return mStreamType; }
+             audio_format_t format() const   { return mFormat; }
++#endif
+ 
+     /* Return frame size in bytes, which for linear PCM is
+      * channelCount * (bit depth per channel / 8).
+      * channelCount is determined from channelMask, and bit depth comes from format.
+      * For non-linear formats, the frame size is typically 1 byte.
+      */
++#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
++            size_t      frameSize() const;
++            uint32_t    channelCount() const;
++            uint32_t    frameCount() const;
++#else
+             size_t      frameSize() const   { return mFrameSize; }
+-
+             uint32_t    channelCount() const { return mChannelCount; }
+-            size_t      frameCount() const  { return mFrameCount; }
++            uint32_t    frameCount() const  { return mFrameCount; }
++#endif
+ 
+     /* Return the static buffer specified in constructor or set(), or 0 for streaming mode */
+             sp<IMemory> sharedBuffer() const { return mSharedBuffer; }
+@@ -478,7 +509,11 @@ public:
       * Returned value:
       *  AudioTrack session ID.
       */
@@ -143,6 +193,13 @@ index 389aacc..9bbba15
  
  // static
 +#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
++uint32_t AudioTrack::latency() const { return mLatency; }
++//audio_stream_type_t AudioTrack::streamType() const { return mStreamType; }
++audio_format_t AudioTrack::format() const  { return mFormat; }
++uint32_t AudioTrack::channelCount() const  { return mChannelCount; }
++uint32_t AudioTrack::frameCount() const  { return mFrameCount; }
++size_t AudioTrack::frameSize() const { return mFrameSize; }
++status_t AudioTrack::initCheck() const { return mStatus; }
 +int AudioTrack::getSessionId() const { return mSessionId; }
 +
 +extern "C" int _ZNK7android10AudioTrack12getSessionIdEv();
@@ -366,6 +423,24 @@ index ae3cb33..ae1f47c
      }
  
      mPlugins.clear();
+diff --git a/media/libstagefright/omx/OMXNodeInstance.cpp b/media/libstagefright/omx/OMXNodeInstance.cpp
+old mode 100644
+new mode 100755
+index d07ec14..f9c84e2
+--- a/media/libstagefright/omx/OMXNodeInstance.cpp
++++ b/media/libstagefright/omx/OMXNodeInstance.cpp
+@@ -149,6 +149,11 @@ static status_t StatusFromOMXError(OMX_ERRORTYPE err) {
+ status_t OMXNodeInstance::freeNode(OMXMaster *master) {
+     static int32_t kMaxNumIterations = 10;
+ 
++    // exit if we have already freed the node
++    if (mHandle == NULL) {
++        return OK;
++    }
++
+     // Transition the node from its current state all the way down
+     // to "Loaded".
+     // This ensures that all active buffers are properly freed even
 diff --git a/media/libstagefright/omx/SoftOMXComponent.cpp b/media/libstagefright/omx/SoftOMXComponent.cpp
 old mode 100644
 new mode 100755
