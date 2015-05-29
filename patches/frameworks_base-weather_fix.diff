@@ -1,0 +1,20 @@
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/StatusBarHeaderView.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/StatusBarHeaderView.java
+old mode 100644
+new mode 100755
+index 76bd2b0..b311b01
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/StatusBarHeaderView.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/StatusBarHeaderView.java
+@@ -409,11 +409,11 @@ public class StatusBarHeaderView extends RelativeLayout implements View.OnClickL
+             mSettingsObserver.observe();
+             mBatteryController.addStateChangedCallback(this);
+             mNextAlarmController.addStateChangedCallback(this);
+-            mWeatherController.addCallback(this);
++            if (mWeatherController != null) mWeatherController.addCallback(this);
+         } else {
+             mBatteryController.removeStateChangedCallback(this);
+             mNextAlarmController.removeStateChangedCallback(this);
+-            mWeatherController.removeCallback(this);
++            if (mWeatherController != null) mWeatherController.removeCallback(this);
+             mSettingsObserver.unobserve();
+         }
+     }
