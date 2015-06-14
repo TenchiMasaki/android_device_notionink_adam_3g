@@ -1,21 +1,21 @@
 diff --git a/cmds/bootanimation/Android.mk b/cmds/bootanimation/Android.mk
 old mode 100644
 new mode 100755
-index 81d1c22..209a742
+index 81d1c22..0d82b4c
 --- a/cmds/bootanimation/Android.mk
 +++ b/cmds/bootanimation/Android.mk
-@@ -33,6 +33,26 @@ ifeq ($(TARGET_BOOTANIMATION_USE_RGB565),true)
-     LOCAL_CFLAGS += -DUSE_565
- endif
+@@ -25,10 +25,22 @@ LOCAL_SHARED_LIBRARIES := \
+     libtinyalsa \
+     libmedia
  
 +ifeq ($(TARGET_CONTINUOUS_SPLASH_ENABLED),true)
 +    LOCAL_CFLAGS += -DCONTINUOUS_SPLASH
 +endif
 +
-+ifeq ($(TARGET_BOOTANIMATION_PRELOAD),true)
-+    LOCAL_CFLAGS += -DPRELOAD_BOOTANIMATION
-+endif
-+
+ ifeq ($(TARGET_BOOTANIMATION_PRELOAD),true)
+     LOCAL_CFLAGS += -DPRELOAD_BOOTANIMATION
+ endif
+ 
 +ifeq ($(TARGET_BOOTANIMATION_TEXTURE_CACHE),true)
 +    LOCAL_CFLAGS += -DNO_TEXTURE_CACHE=0
 +endif
@@ -24,69 +24,15 @@ index 81d1c22..209a742
 +    LOCAL_CFLAGS += -DNO_TEXTURE_CACHE=1
 +endif
 +
-+ifeq ($(TARGET_BOOTANIMATION_USE_RGB565),true)
-+    LOCAL_CFLAGS += -DUSE_565
-+endif
-+
- LOCAL_MODULE:= bootanimation
- 
- ifdef TARGET_32_BIT_SURFACEFLINGER
+ ifeq ($(TARGET_BOOTANIMATION_USE_RGB565),true)
+     LOCAL_CFLAGS += -DUSE_565
+ endif
 diff --git a/cmds/bootanimation/BootAnimation.cpp b/cmds/bootanimation/BootAnimation.cpp
 old mode 100644
 new mode 100755
 index 1bb2b4a..e07497b
 --- a/cmds/bootanimation/BootAnimation.cpp
 +++ b/cmds/bootanimation/BootAnimation.cpp
-@@ -289,7 +289,11 @@ status_t BootAnimation::initTexture(void* buffer, size_t len)
-     if (codec) {
-         codec->setDitherImage(false);
-         codec->decode(&stream, &bitmap,
-+                #ifdef USE_565
-+                kRGB_565_SkColorType,
-+                #else
-                 kN32_SkColorType,
-+                #endif
-                 SkImageDecoder::kDecodePixels_Mode);
-         delete codec;
-     }
-@@ -429,6 +433,37 @@ status_t BootAnimation::readyToRun() {
-         mZip = zipFile;
-     }
- 
-+#ifdef PRELOAD_BOOTANIMATION
-+    // Preload the bootanimation zip on memory, so we don't stutter
-+    // when showing the animation
-+    FILE* fd;
-+    if (encryptedAnimation && access(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, R_OK) == 0)
-+        fd = fopen(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, "r");
-+    else if (access(OEM_BOOTANIMATION_FILE, R_OK) == 0)
-+        fd = fopen(OEM_BOOTANIMATION_FILE, "r");
-+    else if (access(SYSTEM_BOOTANIMATION_FILE, R_OK) == 0)
-+        fd = fopen(SYSTEM_BOOTANIMATION_FILE, "r");
-+    else
-+        return NO_ERROR;
-+
-+    if (fd != NULL) {
-+        // We could use readahead..
-+        // ... if bionic supported it :(
-+        //readahead(fd, 0, INT_MAX);
-+        void *crappyBuffer = malloc(2*1024*1024);
-+        if (crappyBuffer != NULL) {
-+            // Read all the zip
-+            while (!feof(fd))
-+                fread(crappyBuffer, 1024, 2*1024, fd);
-+
-+            free(crappyBuffer);
-+        } else {
-+            ALOGW("Unable to allocate memory to preload the animation");
-+        }
-+        fclose(fd);
-+    }
-+#endif
-+
-     return NO_ERROR;
- }
- 
 @@ -720,6 +720,7 @@ bool BootAnimation::movie()
  
      mZip->endIteration(cookie);
