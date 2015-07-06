@@ -1,11 +1,10 @@
-project external/sepolicy/
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
-index 503b06d..c4493ea
+index 423be14..e5eea06
 --- a/app.te
 +++ b/app.te
-@@ -340,7 +340,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
+@@ -337,7 +337,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
  neverallow { appdomain -shell } efs_file:dir_file_class_set read;
  
  # Write to various pseudo file systems.
@@ -17,9 +16,36 @@ index 503b06d..c4493ea
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index f6b7659..392c4aa
+index bfb5f05..1382206
 --- a/domain.te
 +++ b/domain.te
+@@ -171,7 +171,7 @@ allow domain service_manager_type:service_manager find;
+ ###
+ 
+ # Do not allow any confined domain to create new unlabeled files.
+-neverallow { domain -unconfineddomain -recovery } unlabeled:dir_file_class_set create;
++neverallow { domain -unconfineddomain -recovery -ueventd -vold } unlabeled:dir_file_class_set create;
+ 
+ # Limit ability to ptrace or read sensitive /proc/pid files of processes
+ # with other UIDs to these whitelisted domains.
+@@ -191,7 +191,7 @@ neverallow domain self:memprotect mmap_zero;
+ neverallow domain self:capability2 mac_override;
+ 
+ # Only recovery needs mac_admin to set contexts not defined in current policy.
+-neverallow { domain -recovery } self:capability2 mac_admin;
++neverallow { domain -recovery -init -ueventd -vold } self:capability2 mac_admin;
+ 
+ # Only init should be able to load SELinux policies.
+ # The first load technically occurs while still in the kernel domain,
+@@ -220,7 +220,7 @@ neverallow { domain -system_server -recovery } security_file:lnk_file { create s
+ # init starts in kernel domain and switches to init domain via setcon in
+ # the init.rc, so the setenforce occurs while still in kernel. After
+ # switching domains, there is never any need to setenforce again by init.
+-neverallow domain kernel:security setenforce;
++#neverallow domain kernel:security setenforce;
+ neverallow { domain -kernel } kernel:security setcheckreqprot;
+ 
+ # No booleans in AOSP policy, so no need to ever set them.
 @@ -235,11 +235,11 @@ neverallow { domain -init } kernel:security setsecparam;
  neverallow { domain -init -system_server -ueventd -unconfineddomain } hw_random_device:chr_file *;
  
@@ -34,12 +60,18 @@ index f6b7659..392c4aa
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -260,12 +260,12 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
+@@ -255,17 +255,17 @@ neverallow domain init:binder call;
+ 
+ # Don't allow raw read/write/open access to block_device
+ # Rather force a relabel to a more specific type
+-neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } block_device:blk_file { open read write };
++neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery -sysinit } block_device:blk_file { open read write };
+ 
  # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
  # ueventd is exempt from this, as its managing these devices.
 -neverallow { domain -unconfineddomain -ueventd -recovery } device:chr_file { open read write };
-+neverallow { domain -unconfineddomain -ueventd -recovery -system_server -system_app -platform_app -untrusted_app -bootanim -wpa -mediaserver -radio -debuggerd } device:chr_file { open read write };
++neverallow { domain -unconfineddomain -ueventd -recovery -system_server -system_app -platform_app -untrusted_app -bootanim -wpa -mediaserver -radio -debuggerd -bluetooth } device:chr_file { open read write };
  
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
@@ -49,20 +81,21 @@ index f6b7659..392c4aa
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -279,6 +279,7 @@ neverallow {
+@@ -279,6 +279,8 @@ neverallow {
      userdebug_or_eng(`-su')
      -system_server
      -zygote
 +    -init
++    -init_shell
  } { file_type -system_file -exec_type }:file execute;
  neverallow {
      domain
-@@ -291,11 +292,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
+@@ -291,11 +293,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
  neverallow { domain -init -recovery } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
-+neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd } { system_file exec_type }:dir_file_class_set
++neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd -zygote } { system_file exec_type }:dir_file_class_set
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Nothing should be writing to files in the rootfs.
@@ -71,7 +104,7 @@ index f6b7659..392c4aa
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -312,6 +313,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -316,6 +318,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
