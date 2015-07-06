@@ -1,7 +1,7 @@
 diff --git a/include/media/AudioTrack.h b/include/media/AudioTrack.h
 old mode 100644
 new mode 100755
-index fd51b8f..fc14e02
+index fd51b8f..e6341bc
 --- a/include/media/AudioTrack.h
 +++ b/include/media/AudioTrack.h
 @@ -218,6 +218,19 @@ public:
@@ -24,7 +24,7 @@ index fd51b8f..fc14e02
      /* Terminates the AudioTrack and unregisters it from AudioFlinger.
       * Also destroys all resources associated with the AudioTrack.
       */
-@@ -273,28 +286,46 @@ public:
+@@ -266,28 +279,46 @@ public:
       * an uninitialized AudioTrack produces undefined results.
       * See set() method above for possible return codes.
       */
@@ -74,7 +74,7 @@ index fd51b8f..fc14e02
  
      /* Return the static buffer specified in constructor or set(), or 0 for streaming mode */
              sp<IMemory> sharedBuffer() const { return mSharedBuffer; }
-@@ -478,7 +509,11 @@ public:
+@@ -471,7 +502,11 @@ public:
       * Returned value:
       *  AudioTrack session ID.
       */
@@ -86,7 +86,7 @@ index fd51b8f..fc14e02
  
      /* Attach track auxiliary output to specified effect. Use effectId = 0
       * to detach track from effect.
-@@ -555,7 +572,8 @@ public:
+@@ -555,7 +590,8 @@ public:
       * false for the method to return immediately without waiting to try multiple times to write
       * the full content of the buffer.
       */
@@ -184,10 +184,10 @@ index 9cae21c..cceaec6
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index 735db5c..a54195f
+index 735db5c..01a3aee
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
-@@ -52,6 +52,15 @@ static int64_t getNowUs()
+@@ -52,6 +52,22 @@ static int64_t getNowUs()
  }
  
  // static
@@ -210,7 +210,7 @@ index 735db5c..a54195f
  status_t AudioTrack::getMinFrameCount(
          size_t* frameCount,
          audio_stream_type_t streamType,
-@@ -111,6 +120,33 @@ status_t AudioTrack::getMinFrameCount(
+@@ -111,6 +127,33 @@ status_t AudioTrack::getMinFrameCount(
  }
  
  // ---------------------------------------------------------------------------
@@ -244,7 +244,7 @@ index 735db5c..a54195f
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1393,6 +1429,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1393,6 +1436,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
@@ -347,9 +347,6 @@ index 024a292..0749342
  
  LOCAL_STATIC_LIBRARIES := \
          libstagefright_amrwbenc
-diff --git a/media/libstagefright/data/media_codecs_google_video.xml b/media/libstagefright/data/media_codecs_google_video.xml
-old mode 100644
-new mode 100755
 diff --git a/media/libstagefright/omx/Android.mk b/media/libstagefright/omx/Android.mk
 index aaa8334..e1fc285 100644
 --- a/media/libstagefright/omx/Android.mk
@@ -429,12 +426,10 @@ diff --git a/media/libstagefright/omx/SoftOMXComponent.cpp b/media/libstagefrigh
 old mode 100644
 new mode 100755
 diff --git a/media/libstagefright/omx/SoftOMXPlugin.cpp b/media/libstagefright/omx/SoftOMXPlugin.cpp
-old mode 100644
-new mode 100755
-index 9b6958a..ac87ebb
+index 0f9c00c..4251cce 100755
 --- a/media/libstagefright/omx/SoftOMXPlugin.cpp
 +++ b/media/libstagefright/omx/SoftOMXPlugin.cpp
-@@ -73,6 +73,7 @@ OMX_ERRORTYPE SoftOMXPlugin::makeComponentInstance(
+@@ -74,6 +74,7 @@ OMX_ERRORTYPE SoftOMXPlugin::makeComponentInstance(
          OMX_COMPONENTTYPE **component) {
      ALOGV("makeComponentInstance '%s'", name);
  
@@ -451,10 +446,10 @@ new mode 100755
 diff --git a/services/audioflinger/Android.mk b/services/audioflinger/Android.mk
 old mode 100644
 new mode 100755
-index 44d2553..06db6a9
+index 0ba3fb6..f613663
 --- a/services/audioflinger/Android.mk
 +++ b/services/audioflinger/Android.mk
-@@ -79,6 +79,7 @@ LOCAL_SRC_FILES += FastThread.cpp FastThreadState.cpp
+@@ -73,6 +73,7 @@ LOCAL_SRC_FILES += FastThread.cpp FastThreadState.cpp
  LOCAL_SRC_FILES += FastCapture.cpp FastCaptureState.cpp
  
  LOCAL_CFLAGS += -DSTATE_QUEUE_INSTANTIATIONS='"StateQueueInstantiations.cpp"'
