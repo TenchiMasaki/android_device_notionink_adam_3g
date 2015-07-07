@@ -16,10 +16,37 @@ index 40de074..5f8f648
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index e544281..368b1c5
+index ab31999..041aa4a
 --- a/domain.te
 +++ b/domain.te
-@@ -243,11 +243,11 @@ neverallow { domain -init } kernel:security setsecparam;
+@@ -172,7 +172,7 @@ allow domain { asec_public_file asec_apk_file }:dir r_dir_perms;
+ ###
+ 
+ # Do not allow any domain other than init or recovery to create unlabeled files.
+-neverallow { domain -init -recovery } unlabeled:dir_file_class_set create;
++neverallow { domain -init -recovery -ueventd -vold } unlabeled:dir_file_class_set create;
+ 
+ # Limit ability to ptrace or read sensitive /proc/pid files of processes
+ # with other UIDs to these whitelisted domains.
+@@ -206,7 +206,7 @@ neverallow domain self:memprotect mmap_zero;
+ neverallow domain self:capability2 mac_override;
+ 
+ # Only recovery needs mac_admin to set contexts not defined in current policy.
+-neverallow { domain -recovery } self:capability2 mac_admin;
++neverallow { domain -recovery -init -ueventd -vold } self:capability2 mac_admin;
+ 
+ # Only init should be able to load SELinux policies.
+ # The first load technically occurs while still in the kernel domain,
+@@ -235,7 +235,7 @@ neverallow { domain -system_server } security_file:lnk_file { create setattr unl
+ # init starts in kernel domain and switches to init domain via setcon in
+ # the init.rc, so the setenforce occurs while still in kernel. After
+ # switching domains, there is never any need to setenforce again by init.
+-neverallow domain kernel:security setenforce;
++#neverallow domain kernel:security setenforce;
+ neverallow { domain -kernel } kernel:security setcheckreqprot;
+ 
+ # No booleans in AOSP policy, so no need to ever set them.
+@@ -250,11 +250,11 @@ neverallow { domain -init } kernel:security setsecparam;
  neverallow { domain -init -system_server -ueventd } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
@@ -33,7 +60,7 @@ index e544281..368b1c5
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -259,22 +259,24 @@ neverallow domain init:process ptrace;
+@@ -266,22 +266,24 @@ neverallow domain init:process ptrace;
  
  # Init can't do anything with binder calls. If this neverallow rule is being
  # triggered, it's probably due to a service with no SELinux domain.
@@ -62,22 +89,23 @@ index e544281..368b1c5
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -288,6 +290,7 @@ neverallow {
+@@ -295,6 +297,8 @@ neverallow {
      userdebug_or_eng(`-su')
      -system_server
      -zygote
 +    -init
++    -init_shell
  } { file_type -system_file -exec_type }:file execute;
  neverallow {
      domain
-@@ -302,15 +305,14 @@ neverallow { domain -init } property_data_file:dir no_w_dir_perms;
+@@ -309,15 +313,14 @@ neverallow { domain -init } property_data_file:dir no_w_dir_perms;
  neverallow { domain -init } property_data_file:file no_w_file_perms;
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
 -    { create write setattr relabelfrom append unlink link rename };
 -neverallow { domain -recovery -kernel } { system_file exec_type }:dir_file_class_set relabelto;
-+neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd -kernel } { system_file exec_type }:dir_file_class_set
++neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd -kernel -zygote } { system_file exec_type }:dir_file_class_set
 +    { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Don't allow mounting on top of /system files or directories
@@ -90,7 +118,7 @@ index e544281..368b1c5
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -327,7 +329,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -334,7 +337,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -99,7 +127,7 @@ index e544281..368b1c5
  
  # Require that domains explicitly label unknown properties, and do not allow
  # anyone but init to modify unknown properties.
-@@ -352,6 +354,9 @@ neverallow {
+@@ -359,6 +362,9 @@ neverallow {
    -zygote
    -installd
    -dex2oat
@@ -108,8 +136,8 @@ index e544281..368b1c5
 +  -shell
  } dalvikcache_data_file:file no_w_file_perms;
  
- # Only system_server should be able to send commands via the zygote socket
-@@ -383,7 +388,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
+ neverallow {
+@@ -398,7 +404,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
  # Nobody should be able to execute su on user builds.
  # On userdebug/eng builds, only dumpstate, shell, and
  # su itself execute su.
@@ -118,7 +146,18 @@ index e544281..368b1c5
  
  # Do not allow the introduction of new execmod rules. Text relocations
  # and modification of executable pages are unsafe.
-@@ -427,6 +432,8 @@ neverallow {
+@@ -430,8 +436,8 @@ neverallow { domain -init } proc:{ file dir } mounton;
+ # written on domain are applied to all processes.
+ # This is achieved by ensuring that it is impossible to transition
+ # from a domain to a non-domain type and vice versa.
+-neverallow domain ~domain:process { transition dyntransition };
+-neverallow ~domain domain:process { transition dyntransition };
++neverallow { domain -sysinit } ~domain:process { transition dyntransition };
++neverallow { ~domain -sysinit } domain:process { transition dyntransition };
+ 
+ #
+ # Only system_app and system_server should be creating or writing
+@@ -447,6 +453,8 @@ neverallow {
    -system_app
    -init
    -installd # for relabelfrom and unlink, check for this in explicit neverallow
@@ -130,7 +169,7 @@ index e544281..368b1c5
 diff --git a/init.te b/init.te
 old mode 100644
 new mode 100755
-index 3af01fb..8589ac1
+index 34b010c..337f62b
 --- a/init.te
 +++ b/init.te
 @@ -71,6 +71,13 @@ allow init self:capability sys_time;
@@ -147,7 +186,7 @@ index 3af01fb..8589ac1
  # Mounting filesystems from block devices.
  allow init dev_type:blk_file r_file_perms;
  
-@@ -277,4 +284,4 @@ neverallow init shell_data_file:lnk_file read;
+@@ -281,4 +288,4 @@ neverallow init shell_data_file:lnk_file read;
  neverallow init app_data_file:lnk_file read;
  
  # init should never execute a program without changing to another domain.
@@ -156,10 +195,10 @@ index 3af01fb..8589ac1
 diff --git a/logd.te b/logd.te
 old mode 100644
 new mode 100755
-index 8c28b48..62cbb6a
+index b0d978f..0ba13b5
 --- a/logd.te
 +++ b/logd.te
-@@ -32,4 +32,4 @@ neverallow logd domain:process ptrace;
+@@ -41,4 +41,4 @@ neverallow logd domain:process ptrace;
  neverallow logd system_file:dir_file_class_set write;
  
  # Write to files in /data/data or system files on /data
