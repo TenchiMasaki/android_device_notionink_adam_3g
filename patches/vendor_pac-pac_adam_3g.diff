@@ -2,26 +2,15 @@
 --- b/products/pac_adam_3g.mk	2014-02-17 17:46:46.169169200 -0700
 ***************
 *** 0 ****
---- 1,29 ----
+--- 1,18 ----
 + # Check for target product
 + ifeq (pac_adam_3g,$(TARGET_PRODUCT))
 + 
 + # OVERLAY_TARGET adds overlay asset source
 + OVERLAY_TARGET := adam_3g
 + 
-+ # AOKP device overlay
-+ PRODUCT_PACKAGE_OVERLAYS += vendor/pac/overlay/aokp/common_tablet
-+ 
-+ # PAC device overlay
-+ PRODUCT_PACKAGE_OVERLAYS += vendor/pac/overlay/pac/hdpi
-+ 
-+ # PAC boot logo
-+ PRODUCT_COPY_FILES += \
-+     vendor/pac/prebuilt/common/bootlogo/pac_logo_1024x600.rle:root/logo.rle
-+ 
-+ # Copy bootanimation
-+ PRODUCT_COPY_FILES += \
-+     vendor/pac/prebuilt/600x1024/bootanimation.zip:system/media/bootanimation.zip
++ # Bootanimation
++ PAC_BOOTANIMATION_NAME := 480
 + 
 + # include PAC common configuration
 + include vendor/pac/config/pac_common.mk
