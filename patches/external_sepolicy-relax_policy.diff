@@ -16,7 +16,7 @@ index 40de074..5f8f648
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index ab31999..041aa4a
+index 19797c6..3783089
 --- a/domain.te
 +++ b/domain.te
 @@ -172,7 +172,7 @@ allow domain { asec_public_file asec_apk_file }:dir r_dir_perms;
@@ -46,7 +46,7 @@ index ab31999..041aa4a
  neverallow { domain -kernel } kernel:security setcheckreqprot;
  
  # No booleans in AOSP policy, so no need to ever set them.
-@@ -250,11 +250,11 @@ neverallow { domain -init } kernel:security setsecparam;
+@@ -250,38 +250,40 @@ neverallow { domain -init } kernel:security setsecparam;
  neverallow { domain -init -system_server -ueventd } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
@@ -60,7 +60,13 @@ index ab31999..041aa4a
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -266,22 +266,24 @@ neverallow domain init:process ptrace;
+-neverallow { domain -init } usermodehelper:file { append write };
+-neverallow { domain -init } proc_security:file { append write };
++neverallow { domain -init -kernel } usermodehelper:file { append write };
++neverallow { domain -init -kernel } proc_security:file { append write };
+ 
+ # No domain should be allowed to ptrace init.
+ neverallow domain init:process ptrace;
  
  # Init can't do anything with binder calls. If this neverallow rule is being
  # triggered, it's probably due to a service with no SELinux domain.
@@ -98,7 +104,15 @@ index ab31999..041aa4a
  } { file_type -system_file -exec_type }:file execute;
  neverallow {
      domain
-@@ -309,15 +313,14 @@ neverallow { domain -init } property_data_file:dir no_w_dir_perms;
+@@ -309,6 +313,7 @@ neverallow {
+   domain
+   -untrusted_app
+   -shell
++  -system_app
+ } {
+   data_file_type
+   -dalvikcache_data_file
+@@ -321,15 +326,14 @@ neverallow { domain -init } property_data_file:dir no_w_dir_perms;
  neverallow { domain -init } property_data_file:file no_w_file_perms;
  
  # Only recovery should be doing writes to /system
@@ -114,11 +128,11 @@ index ab31999..041aa4a
  
  # Nothing should be writing to files in the rootfs.
 -neverallow { domain -recovery } rootfs:file { create write setattr relabelto append unlink link rename };
-+neverallow { domain -recovery -init_shell } rootfs:file { create write setattr relabelto append unlink link rename };
++neverallow { domain -recovery -init_shell -kernel } rootfs:file { create write setattr relabelto append unlink link rename };
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -334,7 +337,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -346,7 +350,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -127,7 +141,7 @@ index ab31999..041aa4a
  
  # Require that domains explicitly label unknown properties, and do not allow
  # anyone but init to modify unknown properties.
-@@ -359,6 +362,9 @@ neverallow {
+@@ -371,6 +375,9 @@ neverallow {
    -zygote
    -installd
    -dex2oat
@@ -137,7 +151,7 @@ index ab31999..041aa4a
  } dalvikcache_data_file:file no_w_file_perms;
  
  neverallow {
-@@ -398,7 +404,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
+@@ -410,7 +417,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
  # Nobody should be able to execute su on user builds.
  # On userdebug/eng builds, only dumpstate, shell, and
  # su itself execute su.
@@ -146,18 +160,18 @@ index ab31999..041aa4a
  
  # Do not allow the introduction of new execmod rules. Text relocations
  # and modification of executable pages are unsafe.
-@@ -430,8 +436,8 @@ neverallow { domain -init } proc:{ file dir } mounton;
+@@ -442,8 +449,8 @@ neverallow { domain -init } proc:{ file dir } mounton;
  # written on domain are applied to all processes.
  # This is achieved by ensuring that it is impossible to transition
  # from a domain to a non-domain type and vice versa.
 -neverallow domain ~domain:process { transition dyntransition };
 -neverallow ~domain domain:process { transition dyntransition };
-+neverallow { domain -sysinit } ~domain:process { transition dyntransition };
-+neverallow { ~domain -sysinit } domain:process { transition dyntransition };
++#neverallow { domain -sysinit } ~domain:process { transition dyntransition };
++#neverallow { ~domain -sysinit } domain:process { transition dyntransition };
  
  #
  # Only system_app and system_server should be creating or writing
-@@ -447,6 +453,8 @@ neverallow {
+@@ -459,6 +466,8 @@ neverallow {
    -system_app
    -init
    -installd # for relabelfrom and unlink, check for this in explicit neverallow
