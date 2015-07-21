@@ -27,6 +27,9 @@
     <!-- This device does not allow sms service. -->
     <bool name="config_sms_capable">true</bool>
 
+    <!-- Is the device LTE capable -->
+    <bool name="config_lte_capable">false</bool>
+
     <string name="config_datause_iface">wwan0</string>
 
     <!-- This string array should be overridden by the device to present a list of network
