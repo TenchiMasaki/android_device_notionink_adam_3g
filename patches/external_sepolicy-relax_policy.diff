@@ -16,7 +16,7 @@ index 503b06d..c4493ea
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index f6b7659..029741b
+index f6b7659..b39d85c
 --- a/domain.te
 +++ b/domain.te
 @@ -171,7 +171,7 @@ allow domain service_manager_type:service_manager find;
@@ -60,7 +60,13 @@ index f6b7659..029741b
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -260,12 +260,12 @@ neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } b
+@@ -255,17 +255,17 @@ neverallow domain init:binder call;
+ 
+ # Don't allow raw read/write/open access to block_device
+ # Rather force a relabel to a more specific type
+-neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } block_device:blk_file { open read write };
++neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery -sysinit } block_device:blk_file { open read write };
+ 
  # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
  # ueventd is exempt from this, as its managing these devices.
