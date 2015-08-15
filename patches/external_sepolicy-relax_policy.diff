@@ -16,7 +16,7 @@ index 423be14..e5eea06
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index bfb5f05..1382206
+index 2d9b357..793d2b1
 --- a/domain.te
 +++ b/domain.te
 @@ -171,7 +171,7 @@ allow domain service_manager_type:service_manager find;
@@ -47,16 +47,16 @@ index bfb5f05..1382206
  
  # No booleans in AOSP policy, so no need to ever set them.
 @@ -235,11 +235,11 @@ neverallow { domain -init } kernel:security setsecparam;
- neverallow { domain -init -system_server -ueventd -unconfineddomain } hw_random_device:chr_file *;
+ neverallow { domain -init -lvm_placeholder -system_server -ueventd -unconfineddomain } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
 -neverallow domain { file_type -exec_type }:file entrypoint;
 +neverallow { domain -logd } { file_type -exec_type }:file entrypoint;
  
  # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
- neverallow { domain -rmt_placeholder -kernel -ueventd -init } kmem_device:chr_file *;
--neverallow { domain -rmt_placeholder } kmem_device:chr_file ~{ create relabelto unlink setattr };
-+neverallow { domain -rmt_placeholder -init } kmem_device:chr_file ~{ create relabelto unlink setattr };
+ neverallow { domain -rmt_placeholder -kernel -ueventd -init -lvm_placeholder } kmem_device:chr_file *;
+-neverallow { domain -rmt_placeholder -lvm_placeholder } kmem_device:chr_file ~{ create relabelto unlink setattr };
++neverallow { domain -rmt_placeholder -init -lvm_placeholder } kmem_device:chr_file ~{ create relabelto unlink setattr };
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
@@ -64,24 +64,24 @@ index bfb5f05..1382206
  
  # Don't allow raw read/write/open access to block_device
  # Rather force a relabel to a more specific type
--neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } block_device:blk_file { open read write };
-+neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery -sysinit } block_device:blk_file { open read write };
+-neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery -lvm_placeholder } block_device:blk_file { open read write };
++neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery -sysinit -lvm_placeholder } block_device:blk_file { open read write };
  
  # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
  # ueventd is exempt from this, as its managing these devices.
--neverallow { domain -unconfineddomain -ueventd -recovery } device:chr_file { open read write };
-+neverallow { domain -unconfineddomain -ueventd -recovery -system_server -system_app -platform_app -untrusted_app -bootanim -wpa -mediaserver -radio -debuggerd -bluetooth } device:chr_file { open read write };
+-neverallow { domain -unconfineddomain -ueventd -recovery -lvm_placeholder } device:chr_file { open read write };
++neverallow { domain -unconfineddomain -ueventd -recovery -system_server -system_app -platform_app -untrusted_app -bootanim -wpa -mediaserver -radio -debuggerd -bluetooth -lvm_placeholder } device:chr_file { open read write };
  
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
  # this capability, including device-specific domains.
--neverallow { domain -kernel -init -recovery -vold -zygote } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
-+neverallow { domain -kernel -init -recovery -vold -zygote -sysinit } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
+-neverallow { domain -kernel -init -recovery -vold -zygote -lvm_placeholder } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
++neverallow { domain -kernel -init -recovery -vold -zygote -sysinit -lvm_placeholder } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -279,6 +279,8 @@ neverallow {
+@@ -280,6 +280,8 @@ neverallow {
      userdebug_or_eng(`-su')
      -system_server
      -zygote
@@ -90,7 +90,7 @@ index bfb5f05..1382206
  } { file_type -system_file -exec_type }:file execute;
  neverallow {
      domain
-@@ -291,11 +293,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
+@@ -292,11 +294,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
  neverallow { domain -init -recovery } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
@@ -99,12 +99,12 @@ index bfb5f05..1382206
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Nothing should be writing to files in the rootfs.
--neverallow { domain -recovery } rootfs:file { create write setattr relabelto append unlink link rename };
-+neverallow { domain -recovery -init_shell } rootfs:file { create write setattr relabelto append unlink link rename };
+-neverallow { domain -init -recovery -lvm_placeholder } rootfs:file { create write setattr relabelto append unlink link rename };
++neverallow { domain -init -recovery -init_shell -lvm_placeholder } rootfs:file { create write setattr relabelto append unlink link rename };
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -316,6 +318,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -317,6 +319,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -115,15 +115,15 @@ index bfb5f05..1382206
 diff --git a/init.te b/init.te
 old mode 100644
 new mode 100755
-index 5275f4f..9159ee2
+index 80ca022..b1fc54a
 --- a/init.te
 +++ b/init.te
 @@ -118,6 +118,6 @@ allow init app_data_file:{ lnk_file dir } { getattr relabelfrom };
  
  # The init domain is only entered via setcon from the kernel domain,
  # never via an exec-based transition.
--neverallow { domain -kernel} init:process dyntransition;
-+neverallow { domain -kernel -sysinit } init:process dyntransition;
+-neverallow { domain -kernel -lvm_placeholder} init:process dyntransition;
++neverallow { domain -kernel -sysinit -lvm_placeholder} init:process dyntransition;
  neverallow domain init:process transition;
  neverallow init { file_type fs_type }:file entrypoint;
 diff --git a/logd.te b/logd.te
