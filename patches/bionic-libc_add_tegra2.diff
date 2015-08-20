@@ -1355,6 +1355,6 @@ index 0000000..a621eb1
 +    arch-arm/tegra2/bionic/strlen.S \
 +    bionic/__strcat_chk.cpp \
 +    bionic/__strcpy_chk.cpp \
-+    bionic/memmove.c
-+    
++    bionic/memmove.c \
++    upstream-openbsd/lib/libc/string/stpcpy.c
 

@@ -12,18 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# This file is the build configuration for a full Android
-# build for maguro hardware. This cleanly combines a set of
-# device-specific aspects (drivers) with a device-agnostic
-# product configuration (apps). Except for a few implementation
-# details, it only fundamentally contains two inherit-product
-# lines, full and maguro, hence its name.
-#
+# Camera
+PRODUCT_PACKAGES := \
+    Camera \
+    SpareParts \
+    PQiToggle \
+    Development
 
+DEVICE_PACKAGE_OVERLAYS += device/notionink/adam_3g/overlay
 
-# Inherit from those products. Most specific first.
-$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 
-# Inherit from bacon device
+# Inherit from ADAM common device tree
 $(call inherit-product, device/notionink/adam_common/device-common.mk)
+
+# The gps config appropriate for this device
+$(call inherit-product, device/common/gps/gps_us_supl.mk)
+
+$(call inherit-product-if-exists, vendor/notionink/adam/device-vendor.mk)
+
+PRODUCT_NAME := pa_adam_3g
+PRODUCT_DEVICE := adam_3g
+PRODUCT_BRAND := NotionInk
+PRODUCT_MODEL := Notion Ink ADAM
+# Release name
+PRODUCT_RELEASE_NAME := NIAdam-3G
+PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=aosp.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
+
+# Inherit some common CM stuff.
+#$(call inherit-product, vendor/cm/config/common_full_tablet_wifionly.mk)
+
+# Inherit telephony common stuff
+#$(call inherit-product, vendor/cm/config/telephony.mk)
+
+# Inherit from the common Open Source product configuration
+#$(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
+
+# Include ParanoidAndroid common configuration
+include vendor/pa/main.mk

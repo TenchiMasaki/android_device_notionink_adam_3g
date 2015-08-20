@@ -1,10 +1,10 @@
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
-index 503b06d..c4493ea
+index 423be14..e5eea06
 --- a/app.te
 +++ b/app.te
-@@ -340,7 +340,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
+@@ -337,7 +337,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
  neverallow { appdomain -shell } efs_file:dir_file_class_set read;
  
  # Write to various pseudo file systems.
@@ -16,10 +16,16 @@ index 503b06d..c4493ea
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index f6b7659..b39d85c
+index c978ffa..e5f18ba
 --- a/domain.te
 +++ b/domain.te
-@@ -171,7 +171,7 @@ allow domain service_manager_type:service_manager find;
+@@ -1,4 +1,5 @@
+ # Rules for all domains.
++type sysinit;
+ 
+ # Allow reaping by init.
+ allow domain init:process sigchld;
+@@ -171,7 +172,7 @@ allow domain service_manager_type:service_manager find;
  ###
  
  # Do not allow any confined domain to create new unlabeled files.
@@ -28,7 +34,7 @@ index f6b7659..b39d85c
  
  # Limit ability to ptrace or read sensitive /proc/pid files of processes
  # with other UIDs to these whitelisted domains.
-@@ -191,7 +191,7 @@ neverallow domain self:memprotect mmap_zero;
+@@ -190,7 +191,7 @@ neverallow domain self:memprotect mmap_zero;
  neverallow domain self:capability2 mac_override;
  
  # Only recovery needs mac_admin to set contexts not defined in current policy.
@@ -37,7 +43,7 @@ index f6b7659..b39d85c
  
  # Only init should be able to load SELinux policies.
  # The first load technically occurs while still in the kernel domain,
-@@ -220,7 +220,7 @@ neverallow { domain -system_server -recovery } security_file:lnk_file { create s
+@@ -219,7 +220,7 @@ neverallow { domain -system_server } security_file:lnk_file { create setattr unl
  # init starts in kernel domain and switches to init domain via setcon in
  # the init.rc, so the setenforce occurs while still in kernel. After
  # switching domains, there is never any need to setenforce again by init.
@@ -46,7 +52,7 @@ index f6b7659..b39d85c
  neverallow { domain -kernel } kernel:security setcheckreqprot;
  
  # No booleans in AOSP policy, so no need to ever set them.
-@@ -235,11 +235,11 @@ neverallow { domain -init } kernel:security setsecparam;
+@@ -234,11 +235,11 @@ neverallow { domain -init } kernel:security setsecparam;
  neverallow { domain -init -system_server -ueventd -unconfineddomain } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
@@ -54,13 +60,13 @@ index f6b7659..b39d85c
 +neverallow { domain -logd } { file_type -exec_type }:file entrypoint;
  
  # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
- neverallow { domain -rmt_placeholder -kernel -ueventd -init } kmem_device:chr_file *;
--neverallow { domain -rmt_placeholder } kmem_device:chr_file ~{ create relabelto unlink setattr };
-+neverallow { domain -rmt_placeholder -init } kmem_device:chr_file ~{ create relabelto unlink setattr };
+ neverallow { domain -kernel -ueventd -init } kmem_device:chr_file *;
+-neverallow domain kmem_device:chr_file ~{ create relabelto unlink setattr };
++neverallow { domain -init } kmem_device:chr_file ~{ create relabelto unlink setattr };
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
-@@ -255,17 +255,17 @@ neverallow domain init:binder call;
+@@ -254,17 +255,17 @@ neverallow domain init:binder call;
  
  # Don't allow raw read/write/open access to block_device
  # Rather force a relabel to a more specific type
@@ -81,7 +87,7 @@ index f6b7659..b39d85c
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -279,6 +279,8 @@ neverallow {
+@@ -278,6 +279,8 @@ neverallow {
      userdebug_or_eng(`-su')
      -system_server
      -zygote
@@ -90,8 +96,8 @@ index f6b7659..b39d85c
  } { file_type -system_file -exec_type }:file execute;
  neverallow {
      domain
-@@ -291,11 +293,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
- neverallow { domain -init -recovery } property_data_file:file { create setattr relabelfrom write append unlink link rename };
+@@ -290,11 +293,11 @@ neverallow { domain -init } property_data_file:dir { create setattr relabelfrom
+ neverallow { domain -init } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
@@ -104,7 +110,7 @@ index f6b7659..b39d85c
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -312,6 +314,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -311,6 +314,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -115,10 +121,10 @@ index f6b7659..b39d85c
 diff --git a/init.te b/init.te
 old mode 100644
 new mode 100755
-index 5275f4f..9159ee2
+index b5b7993..adfc00d
 --- a/init.te
 +++ b/init.te
-@@ -118,6 +118,6 @@ allow init app_data_file:{ lnk_file dir } { getattr relabelfrom };
+@@ -114,6 +114,6 @@ allow init kernel:process setsched;
  
  # The init domain is only entered via setcon from the kernel domain,
  # never via an exec-based transition.

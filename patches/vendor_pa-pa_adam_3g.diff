@@ -1,0 +1,20 @@
+*** /dev/null	2014-03-04 11:01:47.868460615 -0700
+--- b/products/pa_adam_3g.mk	2014-02-17 17:46:46.169169200 -0700
+***************
+*** 0 ****
+--- 1,15 ----
++ # Check for target product
++ ifeq (pa_adam_3g,$(TARGET_PRODUCT))
++ 
++ # OVERLAY_TARGET adds overlay asset source
++ OVERLAY_TARGET := adam_3g
++
++ # Include ParanoidAndroid common configuration
++ include vendor/pa/main.mk
++
++ # Inherit CM device configuration
++ $(call inherit-product, device/notionink/adam_3g/full_adam_3g.mk)
++ 
++ PRODUCT_NAME := pa_adam_3g
++ 
++ endif
