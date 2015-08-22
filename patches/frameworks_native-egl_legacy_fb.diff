@@ -18,17 +18,23 @@ index aa415d5..e314762
 diff --git a/include/gui/SurfaceComposerClient.h b/include/gui/SurfaceComposerClient.h
 old mode 100644
 new mode 100755
-index 3cb1ee4..51030f7
+index 3cb1ee4..9890f62
 --- a/include/gui/SurfaceComposerClient.h
 +++ b/include/gui/SurfaceComposerClient.h
-@@ -95,6 +95,7 @@ public:
-     static ssize_t getDisplayOrientation(int32_t displayId);
- #endif
- 
-+    static status_t getDisplayInfo(int32_t displayId, DisplayInfo* info);
+@@ -98,6 +98,13 @@ public:
      // ------------------------------------------------------------------------
      // surface creation / destruction
  
++	sp<SurfaceControl> createSurface(
++        uint32_t display,
++        uint32_t w,
++        uint32_t h,
++        PixelFormat format,
++        uint32_t flags);
++
+     //! Create a surface
+     sp<SurfaceControl> createSurface(
+             const String8& name,// name of the surface
 diff --git a/include/ui/DisplayInfo.h b/include/ui/DisplayInfo.h
 old mode 100644
 new mode 100755
@@ -56,21 +62,10 @@ index 878f287..dcb7196
 diff --git a/libs/gui/Android.mk b/libs/gui/Android.mk
 old mode 100644
 new mode 100755
-index 9770da2..b6306df
+index 9770da2..fcf3f4d
 --- a/libs/gui/Android.mk
 +++ b/libs/gui/Android.mk
-@@ -59,6 +59,10 @@ ifeq ($(BOARD_EGL_SKIP_FIRST_DEQUEUE),true)
-     LOCAL_CFLAGS += -DSURFACE_SKIP_FIRST_DEQUEUE
- endif
- 
-+ifeq ($(BOARD_USE_MHEAP_SCREENSHOT),true)
-+    LOCAL_CFLAGS += -DUSE_MHEAP_SCREENSHOT
-+endif
-+
- LOCAL_MODULE:= libgui
- 
- ifeq ($(TARGET_BOARD_PLATFORM), tegra)
-@@ -72,6 +76,10 @@ ifeq ($(TARGET_SAMSUNG_GRALLOC_EXTERNAL_USECASES),true)
+@@ -72,6 +72,10 @@ ifeq ($(TARGET_SAMSUNG_GRALLOC_EXTERNAL_USECASES),true)
  	LOCAL_CFLAGS += -DSAMSUNG_GRALLOC_EXTERNAL_USECASES
  endif
  
@@ -106,41 +101,10 @@ index 1305e9f..a78e2a7
 diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
 old mode 100644
 new mode 100755
-index b6025f2..15c641a
+index b6025f2..48322ac
 --- a/libs/gui/SurfaceComposerClient.cpp
 +++ b/libs/gui/SurfaceComposerClient.cpp
-@@ -575,6 +575,30 @@ extern "C" sp<SurfaceControl> _ZN7android21SurfaceComposerClient13createSurfaceE
- }
- #endif
- 
-+/* Create ICS/MR0-compatible constructors */
-+extern "C" sp<SurfaceControl> _ZN7android21SurfaceComposerClient13createSurfaceERKNS_7String8Ejjij(
-+        const String8& name,
-+        uint32_t w,
-+        uint32_t h,
-+        PixelFormat format,
-+        uint32_t flags);
-+extern "C" sp<SurfaceControl> _ZN7android21SurfaceComposerClient13createSurfaceEijjij(
-+        uint32_t display,
-+        uint32_t w,
-+        uint32_t h,
-+        PixelFormat format,
-+        uint32_t flags)
-+{
-+    String8 name;
-+    const size_t SIZE = 128;
-+    char buffer[SIZE];
-+    snprintf(buffer, SIZE, "<pid_%d>", getpid());
-+    name.append(buffer);
-+
-+    return _ZN7android21SurfaceComposerClient13createSurfaceERKNS_7String8Ejjij(name,
-+            w, h, format, flags);
-+}
-+
- sp<SurfaceControl> SurfaceComposerClient::createSurface(
-         const String8& name,
-         uint32_t w,
-@@ -766,6 +790,7 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
+@@ -766,6 +766,7 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
          return result;
      }
  
@@ -148,15 +112,10 @@ index b6025f2..15c641a
      int activeId = getActiveConfig(display);
      if (activeId < 0) {
          ALOGE("No active configuration found");
-@@ -776,6 +801,13 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
+@@ -776,6 +777,8 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
      return NO_ERROR;
  }
  
-+status_t SurfaceComposerClient::getDisplayInfo( int32_t displayId, DisplayInfo* info)
-+{
-+    return getDisplayInfo(getBuiltInDisplay(displayId), info);
-+}
-+
 +// ----------------------------------------------------------------------------
 +
  int SurfaceComposerClient::getActiveConfig(const sp<IBinder>& display) {
@@ -282,10 +241,10 @@ index d3ee76d..31e8c42 100644
 diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
 old mode 100644
 new mode 100755
-index cfa6cee..c8f51b0
+index da6e7ea..184b1e0
 --- a/services/sensorservice/SensorService.cpp
 +++ b/services/sensorservice/SensorService.cpp
-@@ -808,13 +808,18 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+@@ -804,13 +804,18 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
                  connection->setFirstFlushPending(handle, false);
              }
          }
@@ -308,20 +267,6 @@ index cfa6cee..c8f51b0
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
 old mode 100644
 new mode 100755
-index e8b0ad1..0e4882a
---- a/services/surfaceflinger/Android.mk
-+++ b/services/surfaceflinger/Android.mk
-@@ -67,6 +67,10 @@ ifeq ($(BOARD_USE_MHEAP_SCREENSHOT),true)
-     LOCAL_CFLAGS += -DUSE_MHEAP_SCREENSHOT
- endif
- 
-+ifeq ($(BOARD_USE_MHEAP_SCREENSHOT),true)
-+    LOCAL_CFLAGS += -DUSE_MHEAP_SCREENSHOT
-+endif
-+
- # See build/target/board/generic/BoardConfig.mk for a description of this setting.
- ifneq ($(VSYNC_EVENT_PHASE_OFFSET_NS),)
-     LOCAL_CFLAGS += -DVSYNC_EVENT_PHASE_OFFSET_NS=$(VSYNC_EVENT_PHASE_OFFSET_NS)
 diff --git a/services/surfaceflinger/DisplayDevice.cpp b/services/surfaceflinger/DisplayDevice.cpp
 old mode 100644
 new mode 100755

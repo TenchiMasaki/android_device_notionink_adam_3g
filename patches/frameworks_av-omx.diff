@@ -1,7 +1,7 @@
 diff --git a/include/media/AudioTrack.h b/include/media/AudioTrack.h
 old mode 100644
 new mode 100755
-index a6cab53..d4c824e
+index 4677fae..81eee37
 --- a/include/media/AudioTrack.h
 +++ b/include/media/AudioTrack.h
 @@ -226,6 +226,19 @@ public:
@@ -186,7 +186,7 @@ index 9cae21c..cceaec6
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index 21b68d3..2ebb52e
+index a980ad7..4c6388d
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
 @@ -57,6 +57,22 @@ static int64_t getNowUs()
@@ -246,7 +246,7 @@ index 21b68d3..2ebb52e
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1733,6 +1776,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1781,6 +1824,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
@@ -257,10 +257,10 @@ index 21b68d3..2ebb52e
 diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
 old mode 100644
 new mode 100755
-index 37d3a79..78b91b7
+index 0150eb3..941f928
 --- a/media/libstagefright/ACodec.cpp
 +++ b/media/libstagefright/ACodec.cpp
-@@ -5287,6 +5287,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5310,6 +5310,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
          status_t err = omx->allocateNode(componentName.c_str(), observer, &node);
          androidSetThreadPriority(tid, prevPriority);
  
@@ -307,7 +307,7 @@ index 37d3a79..78b91b7
          if (err == OK) {
              break;
          } else {
-@@ -5310,7 +5350,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5333,7 +5373,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
  
      notify = new AMessage(kWhatOMXMessage, mCodec->id());
      observer->setNotificationMessage(notify);
@@ -316,7 +316,7 @@ index 37d3a79..78b91b7
      mCodec->mComponentName = componentName;
      mCodec->mFlags = 0;
  
-@@ -5323,7 +5363,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5346,7 +5386,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
      mCodec->mQuirks = quirks;
      mCodec->mOMX = omx;
      mCodec->mNode = node;
@@ -328,10 +328,10 @@ index 37d3a79..78b91b7
 diff --git a/media/libstagefright/AudioPlayer.cpp b/media/libstagefright/AudioPlayer.cpp
 old mode 100644
 new mode 100755
-index ab75991..cd8bad8
+index e5f9a00..a08e50c
 --- a/media/libstagefright/AudioPlayer.cpp
 +++ b/media/libstagefright/AudioPlayer.cpp
-@@ -317,7 +317,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
+@@ -330,7 +330,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
          mAudioTrack = new AudioTrack(
                  AUDIO_STREAM_MUSIC, mSampleRate, AUDIO_FORMAT_PCM_16_BIT, audioMask,
                  0 /*frameCount*/, AUDIO_OUTPUT_FLAG_NONE, &AudioCallback, this,
@@ -374,45 +374,37 @@ index 4408050..d05cee2
 diff --git a/media/libstagefright/omx/OMXMaster.cpp b/media/libstagefright/omx/OMXMaster.cpp
 old mode 100644
 new mode 100755
-index a74a1c8..ae1f47c
+index 54aecff..d485c16
 --- a/media/libstagefright/omx/OMXMaster.cpp
 +++ b/media/libstagefright/omx/OMXMaster.cpp
-@@ -45,6 +45,13 @@ OMXMaster::~OMXMaster() {
+@@ -40,7 +40,12 @@ OMXMaster::~OMXMaster() {
+ }
  
  void OMXMaster::addVendorPlugin() {
-     addPlugin("libstagefrighthw.so");
-+#ifdef SAMSUNG_OMX
-+    addPlugin("libsomxcore.so");
-+#endif
-+
 +#ifdef TF101_OMX
 +    addPlugin("libnvomx.so");
 +#endif
++
+     addPlugin("libstagefrighthw.so");
++
  }
  
- void OMXMaster::addPlugin(const char *libname) {
-@@ -109,13 +116,22 @@ void OMXMaster::clearPlugins() {
- 
-     mPluginByComponentName.clear();
- 
-+    int plugin = 1;
-     for (List<OMXPluginBase *>::iterator it = mPlugins.begin();
-             it != mPlugins.end(); ++it) {
-         if (destroyOMXPlugin)
-             destroyOMXPlugin(*it);
--        else
--            delete *it;
-+        else {
-+           ALOGV("plugin %d", *it);
+ void OMXMaster::addUserPlugin() {
+@@ -123,10 +128,16 @@ void OMXMaster::clearPlugins() {
+                 if (destroyOMXPlugin)
+                     destroyOMXPlugin(plugin);
+                 else
+-                    delete plugin;
 +#ifdef TF101_OMX
-+           if( *it != NULL && plugin != 1) // 1st plugin is NV, crashes on delete => skip, better than crash for the moment
++				if (plugin != NULL && i != 0)
 +#endif
-+	      delete *it;
-+        }
-+
-+
-         *it = NULL;
-+	plugin++;
-     }
++				    delete plugin;
  
-     mPlugins.clear();
+                 dlclose(handle);
+             } else {
++#ifdef TF101_OMX
++				if (plugin != NULL && i != 0)
++#endif
+                 delete plugin;
+             }
+ 
