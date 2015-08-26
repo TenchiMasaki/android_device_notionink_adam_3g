@@ -1,0 +1,54 @@
+project packages/apps/Camera2/
+diff --git a/src/com/android/camera/ui/BottomBar.java b/src/com/android/camera/ui/BottomBar.java
+old mode 100644
+new mode 100755
+index d5fdbf6..2b0a732
+--- a/src/com/android/camera/ui/BottomBar.java
++++ b/src/com/android/camera/ui/BottomBar.java
+@@ -472,11 +472,13 @@ public class BottomBar extends FrameLayout {
+      * drawable which is guaranteed to not share states with other drawables.
+      */
+     public void setShutterButtonIcon(int resId) {
+-        Drawable iconDrawable = getResources().getDrawable(resId);
+-        if (iconDrawable != null) {
+-            iconDrawable = iconDrawable.mutate();
+-        }
+-        mShutterButton.setImageDrawable(iconDrawable);
++        try {
++	        Drawable iconDrawable = getResources().getDrawable(resId);
++	        if (iconDrawable != null) {
++	            iconDrawable = iconDrawable.mutate();
++	        }
++	        mShutterButton.setImageDrawable(iconDrawable);
++	    } catch (Exception e) {}
+     }
+ 
+     /**
+@@ -499,15 +501,17 @@ public class BottomBar extends FrameLayout {
+      * Animates bar to full width / length with video capture icon
+      */
+     public void animateToFullSize(int resId) {
+-        if (mDrawCircle && mAnimatedCircleDrawable != null) {
+-            mAnimatedCircleDrawable.animateToFullSize();
+-            mDrawCircle = false;
+-        }
+-
+-        TransitionDrawable transitionDrawable = crossfadeDrawable(
+-                mShutterButton.getDrawable(),
+-                getResources().getDrawable(resId));
+-        mShutterButton.setImageDrawable(transitionDrawable);
+-        transitionDrawable.startTransition(CIRCLE_ANIM_DURATION_MS);
++		try {
++	        if (mDrawCircle && mAnimatedCircleDrawable != null) {
++	            mAnimatedCircleDrawable.animateToFullSize();
++	            mDrawCircle = false;
++	        }
++	
++	        TransitionDrawable transitionDrawable = crossfadeDrawable(
++	                mShutterButton.getDrawable(),
++	                getResources().getDrawable(resId));
++	        mShutterButton.setImageDrawable(transitionDrawable);
++	        transitionDrawable.startTransition(CIRCLE_ANIM_DURATION_MS);
++	    } catch (Exception e) {}
+     }
+ }

@@ -47,7 +47,7 @@ PRODUCT_RELEASE_NAME := NIAdam-3G
 PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=liquid.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
 
 # Inherit some common LiquidSmooth stuff.
-$(call inherit-product, vendor/liquid/config/common_full_tablet_lte.mk)
+$(call inherit-product, vendor/liquid/config/common_tablet_lte.mk)
 
 # OTA ID
 PRODUCT_PROPERTY_OVERRIDES += \

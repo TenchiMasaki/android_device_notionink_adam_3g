@@ -2,7 +2,7 @@ project frameworks/av/
 diff --git a/include/media/AudioTrack.h b/include/media/AudioTrack.h
 old mode 100644
 new mode 100755
-index 9d15caf..38911ff
+index a6cab53..d4c824e
 --- a/include/media/AudioTrack.h
 +++ b/include/media/AudioTrack.h
 @@ -226,6 +226,19 @@ public:
@@ -25,7 +25,7 @@ index 9d15caf..38911ff
      /* Terminates the AudioTrack and unregisters it from AudioFlinger.
       * Also destroys all resources associated with the AudioTrack.
       */
-@@ -270,28 +283,46 @@ public:
+@@ -273,28 +286,46 @@ public:
       * an uninitialized AudioTrack produces undefined results.
       * See set() method above for possible return codes.
       */
@@ -49,10 +49,10 @@ index 9d15caf..38911ff
      /* getters, see constructors and set() */
  
 +#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
-+            audio_stream_type_t streamType() const;
+             audio_stream_type_t streamType() const;
 +            audio_format_t format() const;
 +#else
-             audio_stream_type_t streamType() const { return mStreamType; }
++            audio_stream_type_t streamType() const { return mStreamType; }
              audio_format_t format() const   { return mFormat; }
 +#endif
  
@@ -75,7 +75,7 @@ index 9d15caf..38911ff
  
      /* Return the static buffer specified in constructor or set(), or 0 for streaming mode */
              sp<IMemory> sharedBuffer() const { return mSharedBuffer; }
-@@ -475,7 +506,11 @@ public:
+@@ -478,7 +509,11 @@ public:
       * Returned value:
       *  AudioTrack session ID.
       */
@@ -87,7 +87,7 @@ index 9d15caf..38911ff
  
      /* Attach track auxiliary output to specified effect. Use effectId = 0
       * to detach track from effect.
-@@ -559,7 +594,8 @@ public:
+@@ -568,7 +603,8 @@ public:
       * false for the method to return immediately without waiting to try multiple times to write
       * the full content of the buffer.
       */
@@ -121,10 +121,10 @@ index a006f7f..2c0bf40
 diff --git a/media/libmedia/Android.mk b/media/libmedia/Android.mk
 old mode 100644
 new mode 100755
-index bb81272..542234b
+index 139d6f8..cdc30f7
 --- a/media/libmedia/Android.mk
 +++ b/media/libmedia/Android.mk
-@@ -74,6 +74,10 @@ LOCAL_SRC_FILES:= \
+@@ -75,6 +75,10 @@ LOCAL_SRC_FILES:= \
  
  LOCAL_SRC_FILES += ../libnbaio/roundup.c
  
@@ -138,10 +138,10 @@ index bb81272..542234b
 diff --git a/media/libmedia/AudioSystem.cpp b/media/libmedia/AudioSystem.cpp
 old mode 100644
 new mode 100755
-index dda3657..0fcd95f
+index 9cae21c..cceaec6
 --- a/media/libmedia/AudioSystem.cpp
 +++ b/media/libmedia/AudioSystem.cpp
-@@ -229,6 +229,13 @@ int AudioSystem::logToLinear(float volume)
+@@ -239,6 +239,13 @@ int AudioSystem::logToLinear(float volume)
      return volume ? 100 - int(dBConvertInverse * log(volume) + 0.5) : 0;
  }
  
@@ -155,7 +155,7 @@ index dda3657..0fcd95f
  status_t AudioSystem::getOutputSamplingRate(uint32_t* samplingRate, audio_stream_type_t streamType)
  {
      audio_io_handle_t output;
-@@ -286,6 +293,13 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t output,
+@@ -283,6 +290,13 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t output,
      return NO_ERROR;
  }
  
@@ -169,7 +169,7 @@ index dda3657..0fcd95f
  status_t AudioSystem::getOutputFrameCount(size_t* frameCount, audio_stream_type_t streamType)
  {
      audio_io_handle_t output;
-@@ -645,6 +659,14 @@ audio_policy_forced_cfg_t AudioSystem::getForceUse(audio_policy_force_use_t usag
+@@ -637,6 +651,14 @@ audio_policy_forced_cfg_t AudioSystem::getForceUse(audio_policy_force_use_t usag
  }
  
  
@@ -187,16 +187,16 @@ index dda3657..0fcd95f
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index 50f7352..4e5137d
+index 7c4f635..e977f54
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
-@@ -56,6 +56,22 @@ static int64_t getNowUs()
+@@ -57,6 +57,22 @@ static int64_t getNowUs()
  }
  
  // static
 +#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
 +uint32_t AudioTrack::latency() const { return mLatency; }
-+audio_stream_type_t AudioTrack::streamType() const { return mStreamType; }
++//audio_stream_type_t AudioTrack::streamType() const { return mStreamType; }
 +audio_format_t AudioTrack::format() const  { return mFormat; }
 +uint32_t AudioTrack::channelCount() const  { return mChannelCount; }
 +uint32_t AudioTrack::frameCount() const  { return mFrameCount; }
@@ -213,7 +213,7 @@ index 50f7352..4e5137d
  status_t AudioTrack::getMinFrameCount(
          size_t* frameCount,
          audio_stream_type_t streamType,
-@@ -115,6 +131,33 @@ status_t AudioTrack::getMinFrameCount(
+@@ -116,6 +132,33 @@ status_t AudioTrack::getMinFrameCount(
  }
  
  // ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ index 50f7352..4e5137d
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1548,6 +1591,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1739,6 +1782,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
@@ -258,10 +258,10 @@ index 50f7352..4e5137d
 diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
 old mode 100644
 new mode 100755
-index 4971d7e..56adddc
+index 37d3a79..78b91b7
 --- a/media/libstagefright/ACodec.cpp
 +++ b/media/libstagefright/ACodec.cpp
-@@ -4814,6 +4814,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5287,6 +5287,46 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
          status_t err = omx->allocateNode(componentName.c_str(), observer, &node);
          androidSetThreadPriority(tid, prevPriority);
  
@@ -308,7 +308,7 @@ index 4971d7e..56adddc
          if (err == OK) {
              break;
          } else {
-@@ -4837,7 +4877,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5310,7 +5350,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
  
      notify = new AMessage(kWhatOMXMessage, mCodec->id());
      observer->setNotificationMessage(notify);
@@ -317,7 +317,7 @@ index 4971d7e..56adddc
      mCodec->mComponentName = componentName;
      mCodec->mFlags = 0;
  
-@@ -4849,7 +4889,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
+@@ -5323,7 +5363,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
      mCodec->mQuirks = quirks;
      mCodec->mOMX = omx;
      mCodec->mNode = node;
@@ -329,10 +329,10 @@ index 4971d7e..56adddc
 diff --git a/media/libstagefright/AudioPlayer.cpp b/media/libstagefright/AudioPlayer.cpp
 old mode 100644
 new mode 100755
-index 279efee..2aec8cd
+index 37e1b07..ea3b858
 --- a/media/libstagefright/AudioPlayer.cpp
 +++ b/media/libstagefright/AudioPlayer.cpp
-@@ -284,7 +284,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
+@@ -317,7 +317,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
          mAudioTrack = new AudioTrack(
                  AUDIO_STREAM_MUSIC, mSampleRate, AUDIO_FORMAT_PCM_16_BIT, audioMask,
                  0 /*frameCount*/, AUDIO_OUTPUT_FLAG_NONE, &AudioCallback, this,
@@ -359,7 +359,7 @@ index 9e8c953..b67b0a1
 diff --git a/media/libstagefright/omx/Android.mk b/media/libstagefright/omx/Android.mk
 old mode 100644
 new mode 100755
-index aaa8334..e1fc285
+index 4408050..d05cee2
 --- a/media/libstagefright/omx/Android.mk
 +++ b/media/libstagefright/omx/Android.mk
 @@ -4,6 +4,9 @@ include $(CLEAR_VARS)
@@ -417,4 +417,3 @@ index a74a1c8..ae1f47c
      }
  
      mPlugins.clear();
- 
