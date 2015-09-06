@@ -47,3 +47,5 @@ PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=aosp.adam_3g.$(shell date +%m%d%y).$
 
 # Inherit from the common Open Source product configuration
 #$(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
+
+#$(call inherit-product, vendor/aosp/common.mk)

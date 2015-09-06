@@ -1,10 +1,10 @@
 diff --git a/include/media/AudioTrack.h b/include/media/AudioTrack.h
 old mode 100644
 new mode 100755
-index fd51b8f..e6341bc
+index 2add896..46f73de
 --- a/include/media/AudioTrack.h
 +++ b/include/media/AudioTrack.h
-@@ -218,6 +218,19 @@ public:
+@@ -226,6 +226,19 @@ public:
                                      pid_t pid = -1,
                                      const audio_attributes_t* pAttributes = NULL);
  
@@ -24,7 +24,7 @@ index fd51b8f..e6341bc
      /* Terminates the AudioTrack and unregisters it from AudioFlinger.
       * Also destroys all resources associated with the AudioTrack.
       */
-@@ -266,28 +279,46 @@ public:
+@@ -273,28 +286,46 @@ public:
       * an uninitialized AudioTrack produces undefined results.
       * See set() method above for possible return codes.
       */
@@ -74,7 +74,7 @@ index fd51b8f..e6341bc
  
      /* Return the static buffer specified in constructor or set(), or 0 for streaming mode */
              sp<IMemory> sharedBuffer() const { return mSharedBuffer; }
-@@ -471,7 +502,11 @@ public:
+@@ -478,7 +509,11 @@ public:
       * Returned value:
       *  AudioTrack session ID.
       */
@@ -86,7 +86,7 @@ index fd51b8f..e6341bc
  
      /* Attach track auxiliary output to specified effect. Use effectId = 0
       * to detach track from effect.
-@@ -555,7 +590,8 @@ public:
+@@ -568,7 +603,8 @@ public:
       * false for the method to return immediately without waiting to try multiple times to write
       * the full content of the buffer.
       */
@@ -118,12 +118,12 @@ index a006f7f..2c0bf40
  protected:
      virtual void signalBufferReturned(MediaBuffer *buffer);
 diff --git a/media/libmedia/Android.mk b/media/libmedia/Android.mk
-index 6c585fb..f64a80c 100644
+index 139d6f8..035045a 100644
 --- a/media/libmedia/Android.mk
 +++ b/media/libmedia/Android.mk
-@@ -63,6 +63,10 @@ LOCAL_SRC_FILES:= \
- 
- LOCAL_SRC_FILES += ../libnbaio/roundup.c
+@@ -99,6 +99,10 @@ ifeq ($(TARGET_ENABLE_QC_AV_ENHANCEMENTS),true)
+     LOCAL_C_INCLUDES += $(TOP)/$(call project-path-for,qcom-media)/mm-core/inc
+ endif
  
 +ifeq ($(BOARD_OMX_NEEDS_LEGACY_AUDIO),true)
 +	LOCAL_CFLAGS += -DBOARD_OMX_NEEDS_LEGACY_AUDIO
@@ -184,10 +184,10 @@ index 9cae21c..cceaec6
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index 735db5c..01a3aee
+index dcaaf9d..1919118
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
-@@ -52,6 +52,22 @@ static int64_t getNowUs()
+@@ -57,6 +57,22 @@ static int64_t getNowUs()
  }
  
  // static
@@ -210,7 +210,7 @@ index 735db5c..01a3aee
  status_t AudioTrack::getMinFrameCount(
          size_t* frameCount,
          audio_stream_type_t streamType,
-@@ -111,6 +127,33 @@ status_t AudioTrack::getMinFrameCount(
+@@ -116,6 +132,33 @@ status_t AudioTrack::getMinFrameCount(
  }
  
  // ---------------------------------------------------------------------------
@@ -244,21 +244,21 @@ index 735db5c..01a3aee
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1393,6 +1436,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1752,6 +1795,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
 +ssize_t AudioTrack::write(const void* buffer, size_t userSize) { return this->write(buffer, userSize, true); }
  ssize_t AudioTrack::write(const void* buffer, size_t userSize, bool blocking)
  {
-     if (mTransfer != TRANSFER_SYNC || mIsTimed) {
+ #ifdef QCOM_DIRECTTRACK
 diff --git a/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h b/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h
 old mode 100644
 new mode 100755
-index 003d1d0..1d15c48
+index 728ec8d..99653bd
 --- a/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h
 +++ b/media/libmediaplayerservice/nuplayer/NuPlayerRenderer.h
-@@ -204,6 +204,7 @@ private:
+@@ -208,6 +208,7 @@ private:
      status_t getCurrentPositionFromAnchor(
              int64_t *mediaUs, int64_t nowUs, bool allowPastQueuedVideo = false);
  
@@ -269,24 +269,24 @@ index 003d1d0..1d15c48
 diff --git a/media/libstagefright/Android.mk b/media/libstagefright/Android.mk
 old mode 100644
 new mode 100755
-index 2629afc..4b6f303
+index 4b4a8e9..84231b0
 --- a/media/libstagefright/Android.mk
 +++ b/media/libstagefright/Android.mk
-@@ -117,6 +117,7 @@ LOCAL_SHARED_LIBRARIES += \
+@@ -225,6 +225,7 @@ LOCAL_SHARED_LIBRARIES += \
          libdl
  
  LOCAL_CFLAGS += -Wno-multichar
 +LOCAL_CFLAGS += -fno-wrapv
  
- LOCAL_MODULE:= libstagefright
- 
+ ifeq ($(DTS_CODEC_M_), true)
+   LOCAL_SRC_FILES+= DTSUtils.cpp
 diff --git a/media/libstagefright/AudioPlayer.cpp b/media/libstagefright/AudioPlayer.cpp
 old mode 100644
 new mode 100755
-index e24824b..c56ffe8
+index e5f9a00..a08e50c
 --- a/media/libstagefright/AudioPlayer.cpp
 +++ b/media/libstagefright/AudioPlayer.cpp
-@@ -231,7 +231,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
+@@ -330,7 +330,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
          mAudioTrack = new AudioTrack(
                  AUDIO_STREAM_MUSIC, mSampleRate, AUDIO_FORMAT_PCM_16_BIT, audioMask,
                  0 /*frameCount*/, AUDIO_OUTPUT_FLAG_NONE, &AudioCallback, this,
@@ -301,12 +301,12 @@ new mode 100755
 diff --git a/media/libstagefright/MediaBufferGroup.cpp b/media/libstagefright/MediaBufferGroup.cpp
 old mode 100644
 new mode 100755
-index 6ac6d4a..fc94611
+index 9e8c953..62c9c5e
 --- a/media/libstagefright/MediaBufferGroup.cpp
 +++ b/media/libstagefright/MediaBufferGroup.cpp
-@@ -55,6 +55,11 @@ void MediaBufferGroup::add_buffer(MediaBuffer *buffer) {
-     mLastBuffer = buffer;
+@@ -62,6 +62,11 @@ extern "C" status_t _ZN7android16MediaBufferGroup14acquire_bufferEPPNS_11MediaBu
  }
+ #endif
  
 +
 +//extern "C" status_t _ZN7android16MediaBufferGroup14acquire_bufferEPPNS_11MediaBufferE(MediaBuffer **out)
@@ -325,10 +325,10 @@ new mode 100755
 diff --git a/media/libstagefright/codecs/amrwbenc/Android.mk b/media/libstagefright/codecs/amrwbenc/Android.mk
 old mode 100644
 new mode 100755
-index 024a292..0749342
+index 64fe8d1..0a54264
 --- a/media/libstagefright/codecs/amrwbenc/Android.mk
 +++ b/media/libstagefright/codecs/amrwbenc/Android.mk
-@@ -115,7 +115,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/src/asm/ARMV5E
+@@ -112,7 +112,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/src/asm/ARMV5E
  LOCAL_C_INCLUDES += $(LOCAL_PATH)/src/asm/ARMV7
  endif
  
@@ -337,7 +337,7 @@ index 024a292..0749342
  
  include $(BUILD_STATIC_LIBRARY)
  
-@@ -131,7 +131,8 @@ LOCAL_C_INCLUDES := \
+@@ -128,7 +128,8 @@ LOCAL_C_INCLUDES := \
  	frameworks/av/media/libstagefright/codecs/common/include \
  	frameworks/native/include/media/openmax
  
@@ -348,7 +348,7 @@ index 024a292..0749342
  LOCAL_STATIC_LIBRARIES := \
          libstagefright_amrwbenc
 diff --git a/media/libstagefright/omx/Android.mk b/media/libstagefright/omx/Android.mk
-index aaa8334..e1fc285 100644
+index 4408050..d05cee2 100644
 --- a/media/libstagefright/omx/Android.mk
 +++ b/media/libstagefright/omx/Android.mk
 @@ -4,6 +4,9 @@ include $(CLEAR_VARS)
@@ -370,73 +370,43 @@ new mode 100755
 diff --git a/media/libstagefright/omx/OMXMaster.cpp b/media/libstagefright/omx/OMXMaster.cpp
 old mode 100644
 new mode 100755
-index ae3cb33..ae1f47c
+index 54aecff..d485c16
 --- a/media/libstagefright/omx/OMXMaster.cpp
 +++ b/media/libstagefright/omx/OMXMaster.cpp
-@@ -45,6 +45,13 @@ OMXMaster::~OMXMaster() {
+@@ -40,7 +40,12 @@ OMXMaster::~OMXMaster() {
+ }
  
  void OMXMaster::addVendorPlugin() {
-     addPlugin("libstagefrighthw.so");
-+#ifdef SAMSUNG_OMX
-+    addPlugin("libsomxcore.so");
-+#endif
-+
 +#ifdef TF101_OMX
 +    addPlugin("libnvomx.so");
 +#endif
++
+     addPlugin("libstagefrighthw.so");
++
  }
  
- void OMXMaster::addPlugin(const char *libname) {
-@@ -68,6 +75,9 @@ void OMXMaster::addPlugin(const char *libname) {
- }
- 
- void OMXMaster::addPlugin(OMXPluginBase *plugin) {
-+    if (plugin == 0) {
-+       return;
-+    }
-     Mutex::Autolock autoLock(mLock);
- 
-     mPlugins.push_back(plugin);
-@@ -106,13 +116,22 @@ void OMXMaster::clearPlugins() {
- 
-     mPluginByComponentName.clear();
- 
-+    int plugin = 1;
-     for (List<OMXPluginBase *>::iterator it = mPlugins.begin();
-             it != mPlugins.end(); ++it) {
-         if (destroyOMXPlugin)
-             destroyOMXPlugin(*it);
--        else
--            delete *it;
-+        else {
-+           ALOGV("plugin %d", *it);
+ void OMXMaster::addUserPlugin() {
+@@ -123,10 +128,16 @@ void OMXMaster::clearPlugins() {
+                 if (destroyOMXPlugin)
+                     destroyOMXPlugin(plugin);
+                 else
+-                    delete plugin;
 +#ifdef TF101_OMX
-+           if( *it != NULL && plugin != 1) // 1st plugin is NV, crashes on delete => skip, better than crash for the moment
++				if (plugin != NULL && i != 0)
 +#endif
-+	      delete *it;
-+        }
-+
-+
-         *it = NULL;
-+	plugin++;
-     }
++				    delete plugin;
  
-     mPlugins.clear();
+                 dlclose(handle);
+             } else {
++#ifdef TF101_OMX
++				if (plugin != NULL && i != 0)
++#endif
+                 delete plugin;
+             }
+ 
 diff --git a/media/libstagefright/omx/SoftOMXComponent.cpp b/media/libstagefright/omx/SoftOMXComponent.cpp
 old mode 100644
 new mode 100755
-diff --git a/media/libstagefright/omx/SoftOMXPlugin.cpp b/media/libstagefright/omx/SoftOMXPlugin.cpp
-index 0f9c00c..4251cce 100755
---- a/media/libstagefright/omx/SoftOMXPlugin.cpp
-+++ b/media/libstagefright/omx/SoftOMXPlugin.cpp
-@@ -74,6 +74,7 @@ OMX_ERRORTYPE SoftOMXPlugin::makeComponentInstance(
-         OMX_COMPONENTTYPE **component) {
-     ALOGV("makeComponentInstance '%s'", name);
- 
-+    dlerror(); // clear any existing error
-     for (size_t i = 0; i < kNumComponents; ++i) {
-         if (strcmp(name, kComponents[i].mName)) {
-             continue;
 diff --git a/media/libstagefright/omx/SoftVideoDecoderOMXComponent.cpp b/media/libstagefright/omx/SoftVideoDecoderOMXComponent.cpp
 old mode 100644
 new mode 100755
@@ -446,14 +416,14 @@ new mode 100755
 diff --git a/services/audioflinger/Android.mk b/services/audioflinger/Android.mk
 old mode 100644
 new mode 100755
-index 0ba3fb6..f613663
+index 4eb13a3..0b01dd0
 --- a/services/audioflinger/Android.mk
 +++ b/services/audioflinger/Android.mk
-@@ -73,6 +73,7 @@ LOCAL_SRC_FILES += FastThread.cpp FastThreadState.cpp
+@@ -101,6 +101,7 @@ LOCAL_SRC_FILES += FastThread.cpp FastThreadState.cpp
  LOCAL_SRC_FILES += FastCapture.cpp FastCaptureState.cpp
  
  LOCAL_CFLAGS += -DSTATE_QUEUE_INSTANTIATIONS='"StateQueueInstantiations.cpp"'
 +LOCAL_CFLAGS += -fno-wrapv
  
- LOCAL_CFLAGS += -fvisibility=hidden
- 
+ # Define ANDROID_SMP appropriately. Used to get inline tracing fast-path.
+ ifeq ($(TARGET_CPU_SMP),true)

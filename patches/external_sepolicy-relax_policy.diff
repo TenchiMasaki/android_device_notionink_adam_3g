@@ -1,10 +1,19 @@
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
-index 40de074..5f8f648
+index 423be14..eafe36e
 --- a/app.te
 +++ b/app.te
-@@ -349,7 +349,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
+@@ -275,7 +275,7 @@ neverallow { appdomain -shell } { domain -appdomain }:process
+     { transition dyntransition };
+ 
+ # Write to rootfs.
+-neverallow appdomain rootfs:dir_file_class_set
++neverallow { appdomain -shell } rootfs:dir_file_class_set
+     { create write setattr relabelfrom relabelto append unlink link rename };
+ 
+ # Write to /system.
+@@ -337,7 +337,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
  neverallow { appdomain -shell } efs_file:dir_file_class_set read;
  
  # Write to various pseudo file systems.
@@ -16,19 +25,19 @@ index 40de074..5f8f648
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index 19797c6..3783089
+index bfb5f05..492bfd8
 --- a/domain.te
 +++ b/domain.te
-@@ -172,7 +172,7 @@ allow domain { asec_public_file asec_apk_file }:dir r_dir_perms;
+@@ -171,7 +171,7 @@ allow domain service_manager_type:service_manager find;
  ###
  
- # Do not allow any domain other than init or recovery to create unlabeled files.
--neverallow { domain -init -recovery } unlabeled:dir_file_class_set create;
-+neverallow { domain -init -recovery -ueventd -vold } unlabeled:dir_file_class_set create;
+ # Do not allow any confined domain to create new unlabeled files.
+-neverallow { domain -unconfineddomain -recovery } unlabeled:dir_file_class_set create;
++neverallow { domain -unconfineddomain -recovery -ueventd -vold } unlabeled:dir_file_class_set create;
  
  # Limit ability to ptrace or read sensitive /proc/pid files of processes
  # with other UIDs to these whitelisted domains.
-@@ -206,7 +206,7 @@ neverallow domain self:memprotect mmap_zero;
+@@ -191,7 +191,7 @@ neverallow domain self:memprotect mmap_zero;
  neverallow domain self:capability2 mac_override;
  
  # Only recovery needs mac_admin to set contexts not defined in current policy.
@@ -37,7 +46,7 @@ index 19797c6..3783089
  
  # Only init should be able to load SELinux policies.
  # The first load technically occurs while still in the kernel domain,
-@@ -235,7 +235,7 @@ neverallow { domain -system_server } security_file:lnk_file { create setattr unl
+@@ -220,7 +220,7 @@ neverallow { domain -system_server -recovery } security_file:lnk_file { create s
  # init starts in kernel domain and switches to init domain via setcon in
  # the init.rc, so the setenforce occurs while still in kernel. After
  # switching domains, there is never any need to setenforce again by init.
@@ -46,17 +55,17 @@ index 19797c6..3783089
  neverallow { domain -kernel } kernel:security setcheckreqprot;
  
  # No booleans in AOSP policy, so no need to ever set them.
-@@ -250,38 +250,40 @@ neverallow { domain -init } kernel:security setsecparam;
- neverallow { domain -init -system_server -ueventd } hw_random_device:chr_file *;
+@@ -235,16 +235,16 @@ neverallow { domain -init } kernel:security setsecparam;
+ neverallow { domain -init -system_server -ueventd -unconfineddomain } hw_random_device:chr_file *;
  
  # Ensure that all entrypoint executables are in exec_type.
 -neverallow domain { file_type -exec_type }:file entrypoint;
 +neverallow { domain -logd } { file_type -exec_type }:file entrypoint;
  
  # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
- neverallow { domain -kernel -ueventd -init } kmem_device:chr_file *;
--neverallow domain kmem_device:chr_file ~{ create relabelto unlink setattr };
-+neverallow { domain -init } kmem_device:chr_file ~{ create relabelto unlink setattr };
+ neverallow { domain -rmt_placeholder -kernel -ueventd -init } kmem_device:chr_file *;
+-neverallow { domain -rmt_placeholder } kmem_device:chr_file ~{ create relabelto unlink setattr };
++neverallow { domain -rmt_placeholder -init } kmem_device:chr_file ~{ create relabelto unlink setattr };
  
  # Only init should be able to configure kernel usermodehelpers or
  # security-sensitive proc settings.
@@ -67,25 +76,18 @@ index 19797c6..3783089
  
  # No domain should be allowed to ptrace init.
  neverallow domain init:process ptrace;
- 
- # Init can't do anything with binder calls. If this neverallow rule is being
- # triggered, it's probably due to a service with no SELinux domain.
--neverallow domain init:binder *;
-+neverallow { domain -platform_app } init:binder *;
+@@ -255,17 +255,17 @@ neverallow domain init:binder call;
  
  # Don't allow raw read/write/open access to block_device
  # Rather force a relabel to a more specific type
--neverallow { domain -kernel -init -recovery -vold -uncrypt } block_device:blk_file { open read write };
-+neverallow { domain -kernel -init -recovery -vold -uncrypt -fsck } block_device:blk_file { open read write };
+-neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery } block_device:blk_file { open read write };
++neverallow { domain -kernel -init -recovery -vold -uncrypt -install_recovery -sysinit } block_device:blk_file { open read write };
  
  # Don't allow raw read/write/open access to generic devices.
  # Rather force a relabel to a more specific type.
- # init is exempt from this as there are character devices that only it uses.
- # ueventd is exempt from this, as it is managing these devices.
--neverallow { domain -init -ueventd -recovery } device:chr_file { open read write };
-+type unconfineddomain;
-+allow domain device:chr_file { open read write };
-+allow { platform_app untrusted_app } device:chr_file { open read write };
+ # ueventd is exempt from this, as its managing these devices.
+-neverallow { domain -unconfineddomain -ueventd -recovery } device:chr_file { open read write };
++neverallow { domain -unconfineddomain -ueventd -recovery -system_server -system_app -platform_app -untrusted_app -bootanim -wpa -mediaserver -radio -debuggerd -bluetooth } device:chr_file { open read write };
  
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
@@ -95,7 +97,7 @@ index 19797c6..3783089
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -295,6 +297,8 @@ neverallow {
+@@ -279,6 +279,8 @@ neverallow {
      userdebug_or_eng(`-su')
      -system_server
      -zygote
@@ -104,115 +106,64 @@ index 19797c6..3783089
  } { file_type -system_file -exec_type }:file execute;
  neverallow {
      domain
-@@ -309,6 +313,7 @@ neverallow {
-   domain
-   -untrusted_app
-   -shell
-+  -system_app
- } {
-   data_file_type
-   -dalvikcache_data_file
-@@ -321,15 +326,14 @@ neverallow { domain -init } property_data_file:dir no_w_dir_perms;
- neverallow { domain -init } property_data_file:file no_w_file_perms;
+@@ -291,11 +293,11 @@ neverallow { domain -init -recovery } property_data_file:dir { create setattr re
+ neverallow { domain -init -recovery } property_data_file:file { create setattr relabelfrom write append unlink link rename };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
--    { create write setattr relabelfrom append unlink link rename };
--neverallow { domain -recovery -kernel } { system_file exec_type }:dir_file_class_set relabelto;
-+neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd -kernel -zygote } { system_file exec_type }:dir_file_class_set
-+    { create write setattr relabelfrom relabelto append unlink link rename };
- 
- # Don't allow mounting on top of /system files or directories
--neverallow domain { system_file exec_type }:dir_file_class_set mounton;
-+neverallow domain { system_file exec_type -init }:dir_file_class_set mounton;
++neverallow { domain -recovery -init -vold -installd -sysinit -init_shell -debuggerd -zygote -kernel } { system_file exec_type }:dir_file_class_set
+     { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Nothing should be writing to files in the rootfs.
 -neverallow { domain -recovery } rootfs:file { create write setattr relabelto append unlink link rename };
-+neverallow { domain -recovery -init_shell -kernel } rootfs:file { create write setattr relabelto append unlink link rename };
++neverallow { domain -recovery -init_shell -kernel -netd -debuggerd -drmserver -keystore -installd -healthd -sysinit -mediaserver -logd -surfaceflinger -shell -lmkd -servicemanager -zygote -dex2oat -adbd -vold -sdcardd -bootanim } rootfs:file { create write setattr relabelto append unlink link rename };
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -346,7 +350,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -316,6 +318,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
 -neverallow domain default_android_service:service_manager add;
 +neverallow { domain -system_server } default_android_service:service_manager add;
  
- # Require that domains explicitly label unknown properties, and do not allow
- # anyone but init to modify unknown properties.
-@@ -371,6 +375,9 @@ neverallow {
-   -zygote
-   -installd
-   -dex2oat
-+  -system_server
-+  -system_app
-+  -shell
- } dalvikcache_data_file:file no_w_file_perms;
- 
- neverallow {
-@@ -410,7 +417,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
- # Nobody should be able to execute su on user builds.
- # On userdebug/eng builds, only dumpstate, shell, and
- # su itself execute su.
--neverallow { domain userdebug_or_eng(`-dumpstate -shell -su') } su_exec:file no_x_file_perms;
-+neverallow { domain userdebug_or_eng(`-dumpstate -shell -su -init -untrusted_app') } su_exec:file no_x_file_perms;
- 
- # Do not allow the introduction of new execmod rules. Text relocations
- # and modification of executable pages are unsafe.
-@@ -442,8 +449,8 @@ neverallow { domain -init } proc:{ file dir } mounton;
- # written on domain are applied to all processes.
- # This is achieved by ensuring that it is impossible to transition
- # from a domain to a non-domain type and vice versa.
--neverallow domain ~domain:process { transition dyntransition };
--neverallow ~domain domain:process { transition dyntransition };
-+#neverallow { domain -sysinit } ~domain:process { transition dyntransition };
-+#neverallow { ~domain -sysinit } domain:process { transition dyntransition };
- 
- #
- # Only system_app and system_server should be creating or writing
-@@ -459,6 +466,8 @@ neverallow {
-   -system_app
-   -init
-   -installd # for relabelfrom and unlink, check for this in explicit neverallow
-+  -logd
-+  -surfaceflinger
- } system_data_file:file no_w_file_perms;
- # do not grant anything greater than r_file_perms and relabelfrom unlink
- # to installd
+ neverallow { domain -init -recovery -system_server } frp_block_device:blk_file rw_file_perms;
 diff --git a/init.te b/init.te
 old mode 100644
 new mode 100755
-index 34b010c..337f62b
+index 5275f4f..9159ee2
 --- a/init.te
 +++ b/init.te
-@@ -71,6 +71,13 @@ allow init self:capability sys_time;
+@@ -118,6 +118,6 @@ allow init app_data_file:{ lnk_file dir } { getattr relabelfrom };
  
- allow init self:capability { sys_rawio mknod };
+ # The init domain is only entered via setcon from the kernel domain,
+ # never via an exec-based transition.
+-neverallow { domain -kernel} init:process dyntransition;
++neverallow { domain -kernel -sysinit } init:process dyntransition;
+ neverallow domain init:process transition;
+ neverallow init { file_type fs_type }:file entrypoint;
+diff --git a/keystore.te b/keystore.te
+old mode 100644
+new mode 100755
+index e824772..56a0dd1
+--- a/keystore.te
++++ b/keystore.te
+@@ -18,7 +18,7 @@ allow keystore tee:unix_stream_socket connectto;
+ ### Protect ourself from others
+ ###
  
-+# Run helpers from / or /system without changing domain.
-+# We do not include exec_type here since generally those
-+# should always involve a domain transition.
-+allow init rootfs:file execute_no_trans;
-+allow init system_file:file execute_no_trans;
-+
-+
- # Mounting filesystems from block devices.
- allow init dev_type:blk_file r_file_perms;
+-neverallow { domain -keystore -recovery } keystore_data_file:dir ~{ open create read getattr setattr search relabelto };
++neverallow { domain -keystore -recovery -kernel } keystore_data_file:dir ~{ open create read getattr setattr search relabelto };
+ neverallow { domain -keystore -recovery } keystore_data_file:notdevfile_class_set ~{ relabelto getattr };
  
-@@ -281,4 +288,4 @@ neverallow init shell_data_file:lnk_file read;
- neverallow init app_data_file:lnk_file read;
- 
- # init should never execute a program without changing to another domain.
--neverallow init { file_type fs_type }:file execute_no_trans;
-+neverallow init { file_type fs_type -rootfs -su_exec -system_file -shell_exec -unlabeled }:file execute_no_trans;
+ neverallow { domain -keystore -init -kernel -recovery } keystore_data_file:dir *;
 diff --git a/logd.te b/logd.te
 old mode 100644
 new mode 100755
-index b0d978f..0ba13b5
+index cde721a..69529bf
 --- a/logd.te
 +++ b/logd.te
-@@ -41,4 +41,4 @@ neverallow logd domain:process ptrace;
+@@ -34,4 +34,4 @@ neverallow logd domain:process ptrace;
  neverallow logd system_file:dir_file_class_set write;
  
  # Write to files in /data/data or system files on /data
