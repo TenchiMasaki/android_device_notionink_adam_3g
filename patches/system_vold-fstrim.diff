@@ -1,0 +1,19 @@
+diff --git a/fstrim.c b/fstrim.c
+old mode 100644
+new mode 100755
+index 895d44f..fde3701
+--- a/fstrim.c
++++ b/fstrim.c
+@@ -83,6 +83,12 @@ static void *do_fstrim_filesystems(void *thread_arg)
+         if (fs_mgr_is_voldmanaged(&fstab->recs[i])) {
+             continue; /* Should we trim fat32 filesystems? */
+         }
++        
++        /* Skip /system and /data due to freezing */
++        if (!strcmp(fstab->recs[i].mount_point, "/system") ||
++            !strcmp(fstab->recs[i].mount_point, "/data")) {
++            continue;
++        }
+ 
+         if (stat(fstab->recs[i].mount_point, &sb) == -1) {
+             SLOGE("Cannot stat mount point %s\n", fstab->recs[i].mount_point);
