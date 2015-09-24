@@ -38,23 +38,24 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 $(call inherit-product-if-exists, vendor/notionink/adam/device-vendor.mk)
 
-PRODUCT_NAME := du_adam_3g
+PRODUCT_NAME := sokp_adam_3g
 PRODUCT_DEVICE := adam_3g
 PRODUCT_BRAND := NotionInk
 PRODUCT_MODEL := Notion Ink ADAM
 # Release name
 PRODUCT_RELEASE_NAME := NIAdam-3G
-PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=du.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
+PRODUCT_PROPERTY_OVERRIDES += ro.buildzipid=sokp.adam_3g.$(shell date +%m%d%y).$(shell date +%H%M%S)
 
 # Inherit common product files.
-$(call inherit-product, vendor/du/config/common.mk)
+$(call inherit-product, vendor/sokp/config/common.mk)
 
 # Inherit some common du stuff.
-$(call inherit-product, vendor/du/config/common_full_tablet_wifionly.mk)
+$(call inherit-product, vendor/sokp/config/common_full_tablet_wifionly.mk)
 
 # Inherit telephony common stuff
-$(call inherit-product, vendor/du/config/gsm.mk)
+$(call inherit-product, vendor/sokp/config/gsm.mk)
 
+TARGET_BOOTANIMATION_HALF_RES := true
 
 # Copy device specific prebuilt files.
 #PRODUCT_COPY_FILES += \
