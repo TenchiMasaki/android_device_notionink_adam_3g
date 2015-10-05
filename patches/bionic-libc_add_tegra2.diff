@@ -1356,3 +1356,6 @@ index 0000000..efd454c
 +    bionic/__strcat_chk.cpp \
 +    bionic/__strcpy_chk.cpp \
 +    upstream-openbsd/lib/libc/string/strcat.c \
++
++
+

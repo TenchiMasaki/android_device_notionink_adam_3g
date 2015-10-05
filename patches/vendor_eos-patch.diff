@@ -1,7 +1,7 @@
 diff --git a/config/common.mk b/config/common.mk
 old mode 100644
 new mode 100755
-index 9ea4a56..23c388f
+index e9a3d4c..7633ca5
 --- a/config/common.mk
 +++ b/config/common.mk
 @@ -46,8 +46,8 @@ PRODUCT_COPY_FILES += \
@@ -15,30 +15,3 @@ index 9ea4a56..23c388f
  
  # Enable SIP+VoIP on all targets
  PRODUCT_COPY_FILES += \
-diff --git a/sepolicy/su.te b/sepolicy/su.te
-old mode 100644
-new mode 100755
-index c2c68fd..9b7d098
---- a/sepolicy/su.te
-+++ b/sepolicy/su.te
-@@ -2,8 +2,6 @@ type superuser_device, file_type;
- 
- ## Perms for the daemon
- 
--type sudaemon, domain;
--
- userdebug_or_eng(`
-   domain_trans(init, su_exec, sudaemon)
- 
-diff --git a/sepolicy/sysinit.te b/sepolicy/sysinit.te
-old mode 100644
-new mode 100755
-index 2db890e..d51089e
---- a/sepolicy/sysinit.te
-+++ b/sepolicy/sysinit.te
-@@ -1,4 +1,4 @@
--type sysinit, domain;
-+# type sysinit, domain;
- type sysinit_exec, exec_type, file_type;
- 
- init_daemon_domain(sysinit)
