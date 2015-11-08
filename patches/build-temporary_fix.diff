@@ -24,10 +24,10 @@ index 8e61f45..9ddd685
 diff --git a/tools/releasetools/blockimgdiff.py b/tools/releasetools/blockimgdiff.py
 old mode 100644
 new mode 100755
-index 8b179d5..a4938a2
+index 216486c..8f99cbf
 --- a/tools/releasetools/blockimgdiff.py
 +++ b/tools/releasetools/blockimgdiff.py
-@@ -205,7 +205,7 @@ class BlockImageDiff(object):
+@@ -194,7 +194,7 @@ class BlockImageDiff(object):
      self.src = src
  
      # The updater code that installs the patch always uses 4k blocks.
@@ -36,7 +36,7 @@ index 8b179d5..a4938a2
      assert src.blocksize == 4096
  
      # The range sets in each filemap should comprise a partition of
-@@ -332,12 +332,12 @@ class BlockImageDiff(object):
+@@ -247,12 +247,12 @@ class BlockImageDiff(object):
        tgt_size = xf.tgt_ranges.size()
  
        if xf.style == "new":
@@ -50,7 +50,7 @@ index 8b179d5..a4938a2
 +#        assert xf.tgt_ranges
          assert xf.src_ranges.size() == tgt_size
          if xf.src_ranges != xf.tgt_ranges:
-           if self.version == 1:
+           out.append("%s %s %s\n" % (
 diff --git a/tools/releasetools/sparse_img.py b/tools/releasetools/sparse_img.py
 old mode 100644
 new mode 100755

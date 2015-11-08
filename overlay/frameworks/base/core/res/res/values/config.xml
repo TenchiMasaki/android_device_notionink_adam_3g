@@ -28,7 +28,7 @@
     <bool name="config_sms_capable">true</bool>
 
     <!-- Is the device LTE capable -->
-    <bool name="config_lte_capable">false</bool>
+    <!-- <bool name="config_lte_capable">false</bool> -->
 
     <string name="config_datause_iface">wwan0</string>
 
