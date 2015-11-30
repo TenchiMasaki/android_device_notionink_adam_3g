@@ -25,7 +25,7 @@ index 423be14..eafe36e
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index bfb5f05..492bfd8
+index bfb5f05..924393a
 --- a/domain.te
 +++ b/domain.te
 @@ -171,7 +171,7 @@ allow domain service_manager_type:service_manager find;
@@ -116,7 +116,7 @@ index bfb5f05..492bfd8
  
  # Nothing should be writing to files in the rootfs.
 -neverallow { domain -recovery } rootfs:file { create write setattr relabelto append unlink link rename };
-+neverallow { domain -recovery -init_shell -kernel -netd -debuggerd -drmserver -keystore -installd -healthd -sysinit -mediaserver -logd -surfaceflinger -shell -lmkd -servicemanager -zygote -dex2oat -adbd -vold -sdcardd -bootanim } rootfs:file { create write setattr relabelto append unlink link rename };
++neverallow { domain -recovery -init_shell -kernel -netd -debuggerd -drmserver -keystore -installd -healthd -sysinit -mediaserver -logd -surfaceflinger -shell -lmkd -servicemanager -zygote -dex2oat -adbd -vold -sdcardd -bootanim -ueventd } rootfs:file { create write setattr relabelto append unlink link rename };
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.

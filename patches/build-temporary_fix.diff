@@ -1,33 +1,33 @@
 diff --git a/core/Makefile b/core/Makefile
 old mode 100644
 new mode 100755
-index 8e61f45..9ddd685
+index c958194..a7cc873
 --- a/core/Makefile
 +++ b/core/Makefile
-@@ -671,6 +671,8 @@ INTERNAL_USERIMAGES_DEPS += $(MKEXTUSERIMG) $(MAKE_EXT4FS) $(E2FSCK)
- ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
- INTERNAL_USERIMAGES_DEPS += $(MKF2FSUSERIMG) $(MAKE_F2FS)
- endif
+@@ -702,6 +702,8 @@ else
+ ifeq ($(TARGET_USERIMAGES_USE_EXT4),true)
+ INTERNAL_USERIMAGES_USE_EXT := true
+ INTERNAL_USERIMAGES_EXT_VARIANT := ext4
 +else
 +INTERNAL_USERIMAGES_DEPS := $(MKYAFFS2)
  endif
- 
- ifeq ($(BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE),squashfs)
-@@ -1230,6 +1232,7 @@ DISTTOOLS :=  $(HOST_OUT_EXECUTABLES)/minigzip \
+ endif
+ endif
+@@ -1348,6 +1350,7 @@ DISTTOOLS :=  $(HOST_OUT_EXECUTABLES)/minigzip \
+ 	  $(HOST_OUT_EXECUTABLES)/adb \
  	  $(HOST_OUT_EXECUTABLES)/mkbootfs \
  	  $(HOST_OUT_EXECUTABLES)/mkbootimg \
- 	  $(HOST_OUT_EXECUTABLES)/fs_config \
 +	  $(HOST_OUT_EXECUTABLES)/mkyaffs2image \
- 	  $(HOST_OUT_EXECUTABLES)/zipalign \
- 	  $(HOST_OUT_EXECUTABLES)/bsdiff \
- 	  $(HOST_OUT_EXECUTABLES)/imgdiff \
+ 	  $(HOST_OUT_EXECUTABLES)/unpackbootimg \
+ 	  $(HOST_OUT_EXECUTABLES)/fs_config \
+ 	  $(HOST_OUT_EXECUTABLES)/mkyaffs2image \
 diff --git a/tools/releasetools/blockimgdiff.py b/tools/releasetools/blockimgdiff.py
 old mode 100644
 new mode 100755
-index 216486c..8f99cbf
+index e484238..143bace
 --- a/tools/releasetools/blockimgdiff.py
 +++ b/tools/releasetools/blockimgdiff.py
-@@ -194,7 +194,7 @@ class BlockImageDiff(object):
+@@ -212,7 +212,7 @@ class BlockImageDiff(object):
      self.src = src
  
      # The updater code that installs the patch always uses 4k blocks.
@@ -36,7 +36,7 @@ index 216486c..8f99cbf
      assert src.blocksize == 4096
  
      # The range sets in each filemap should comprise a partition of
-@@ -247,12 +247,12 @@ class BlockImageDiff(object):
+@@ -339,12 +339,12 @@ class BlockImageDiff(object):
        tgt_size = xf.tgt_ranges.size()
  
        if xf.style == "new":
@@ -50,7 +50,7 @@ index 216486c..8f99cbf
 +#        assert xf.tgt_ranges
          assert xf.src_ranges.size() == tgt_size
          if xf.src_ranges != xf.tgt_ranges:
-           out.append("%s %s %s\n" % (
+           if self.version == 1:
 diff --git a/tools/releasetools/sparse_img.py b/tools/releasetools/sparse_img.py
 old mode 100644
 new mode 100755
