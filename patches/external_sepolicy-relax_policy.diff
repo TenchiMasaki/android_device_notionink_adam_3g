@@ -1,10 +1,10 @@
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
-index 503b06d..06d6dd6
+index 423be14..eafe36e
 --- a/app.te
 +++ b/app.te
-@@ -278,7 +278,7 @@ neverallow { appdomain -shell } { domain -appdomain }:process
+@@ -275,7 +275,7 @@ neverallow { appdomain -shell } { domain -appdomain }:process
      { transition dyntransition };
  
  # Write to rootfs.
@@ -13,7 +13,7 @@ index 503b06d..06d6dd6
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Write to /system.
-@@ -340,7 +340,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
+@@ -337,7 +337,7 @@ neverallow appdomain efs_file:dir_file_class_set write;
  neverallow { appdomain -shell } efs_file:dir_file_class_set read;
  
  # Write to various pseudo file systems.
@@ -25,7 +25,7 @@ index 503b06d..06d6dd6
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index e426419..fe284af
+index e292623..feb541c
 --- a/domain.te
 +++ b/domain.te
 @@ -171,7 +171,7 @@ allow domain service_manager_type:service_manager find;
@@ -113,7 +113,7 @@ index e426419..fe284af
  
  # Restrict context mounts to specific types marked with
  # the contextmount_type attribute.
-@@ -313,6 +315,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -317,6 +319,6 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.

@@ -18,20 +18,20 @@ PRODUCT_PACKAGES := \
     SpareParts \
     PQiToggle \
     Development \
-    libmbm-ril \
-    Stk \
-    Mms
+#    libmbm-ril \
+#    Stk \
+#    Mms
 
 DEVICE_PACKAGE_OVERLAYS += device/notionink/adam_3g/overlay
 
-$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+#$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 
 # Inherit from ADAM common device tree
 $(call inherit-product, device/notionink/adam_common/device-common.mk)
 
 # Some files for 3G
-PRODUCT_COPY_FILES += \
-    device/notionink/adam_3g/files/rild:/system/bin/rild
+#PRODUCT_COPY_FILES += \
+#    device/notionink/adam_3g/files/rild:/system/bin/rild
 
 # The gps config appropriate for this device
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
@@ -53,7 +53,7 @@ $(call inherit-product, vendor/du/config/common.mk)
 $(call inherit-product, vendor/du/config/common_full_tablet_wifionly.mk)
 
 # Inherit telephony common stuff
-$(call inherit-product, vendor/du/config/gsm.mk)
+#$(call inherit-product, vendor/du/config/gsm.mk)
 
 
 # Copy device specific prebuilt files.
