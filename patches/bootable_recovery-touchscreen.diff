@@ -1,10 +1,10 @@
 diff --git a/gui/gui.cpp b/gui/gui.cpp
 old mode 100644
 new mode 100755
-index ebd7053..285b5c7
+index ebd7053..ca114d9
 --- a/gui/gui.cpp
 +++ b/gui/gui.cpp
-@@ -326,13 +328,16 @@ void InputHandler::processHoldAndRepeat()
+@@ -326,13 +326,16 @@ void InputHandler::processHoldAndRepeat()
  
  void InputHandler::doTouchStart()
  {
@@ -15,8 +15,8 @@ index ebd7053..285b5c7
 -		state = AS_IN_ACTION_AREA;
 -	touch_status = TS_TOUCH_AND_HOLD;
 -	gettimeofday(&touchStart, NULL);
-+	if ((x < 470 && y < 280) || (x > 505 && y > 305) ||
-+		(x < 470 && y > 305) || (x > 505 && y < 280)) {
++	if ((x < 460 && y < 280) || (x > 505 && y > 315) ||
++		(x < 460 && y > 315) || (x > 505 && y < 280)) {
 +		LOGEVENT("TOUCH_START: %d,%d\n", x, y);
 +		if (PageManager::NotifyTouch(TOUCH_START, x, y) > 0)
 +			state = AS_NO_ACTION;
@@ -28,7 +28,60 @@ index ebd7053..285b5c7
  }
  
  void InputHandler::process_EV_ABS(input_event& ev)
-
+@@ -340,30 +343,34 @@ void InputHandler::process_EV_ABS(input_event& ev)
+ 	x = ev.value >> 16;
+ 	y = ev.value & 0xFFFF;
+ 
+-	if (ev.code == 0)
+-	{
+-#ifndef TW_USE_KEY_CODE_TOUCH_SYNC
+-		if (state == AS_IN_ACTION_AREA)
+-		{
+-			LOGEVENT("TOUCH_RELEASE: %d,%d\n", x, y);
+-			PageManager::NotifyTouch(TOUCH_RELEASE, x, y);
+-		}
+-		touch_status = TS_NONE;
+-#endif
+-	}
+-	else
+-	{
+-		if (!touch_status)
++	if ((x < 460 && y < 280) || (x > 505 && y > 315) ||
++		(x < 460 && y > 315) || (x > 505 && y < 280)) {
++
++		if (ev.code == 0)
+ 		{
+-#ifndef TW_USE_KEY_CODE_TOUCH_SYNC
+-			doTouchStart();
+-#endif
++	#ifndef TW_USE_KEY_CODE_TOUCH_SYNC
++			if (state == AS_IN_ACTION_AREA)
++			{
++				LOGEVENT("TOUCH_RELEASE: %d,%d\n", x, y);
++				PageManager::NotifyTouch(TOUCH_RELEASE, x, y);
++			}
++			touch_status = TS_NONE;
++	#endif
+ 		}
+ 		else
+ 		{
+-			if (state == AS_IN_ACTION_AREA)
++			if (!touch_status)
++			{
++	#ifndef TW_USE_KEY_CODE_TOUCH_SYNC
++				doTouchStart();
++	#endif
++			}
++			else
+ 			{
+-				LOGEVENT("TOUCH_DRAG: %d,%d\n", x, y);
++				if (state == AS_IN_ACTION_AREA)
++				{
++					LOGEVENT("TOUCH_DRAG: %d,%d\n", x, y);
++				}
+ 			}
+ 		}
+ 	}
 diff --git a/updater/Android.mk b/updater/Android.mk
 old mode 100644
 new mode 100755
