@@ -1,0 +1,46 @@
+diff --git a/gui/gui.cpp b/gui/gui.cpp
+old mode 100644
+new mode 100755
+index ebd7053..285b5c7
+--- a/gui/gui.cpp
++++ b/gui/gui.cpp
+@@ -326,13 +328,16 @@ void InputHandler::processHoldAndRepeat()
+ 
+ void InputHandler::doTouchStart()
+ {
+-	LOGEVENT("TOUCH_START: %d,%d\n", x, y);
+-	if (PageManager::NotifyTouch(TOUCH_START, x, y) > 0)
+-		state = AS_NO_ACTION;
+-	else
+-		state = AS_IN_ACTION_AREA;
+-	touch_status = TS_TOUCH_AND_HOLD;
+-	gettimeofday(&touchStart, NULL);
++	if ((x < 470 && y < 280) || (x > 505 && y > 305) ||
++		(x < 470 && y > 305) || (x > 505 && y < 280)) {
++		LOGEVENT("TOUCH_START: %d,%d\n", x, y);
++		if (PageManager::NotifyTouch(TOUCH_START, x, y) > 0)
++			state = AS_NO_ACTION;
++		else
++			state = AS_IN_ACTION_AREA;
++		touch_status = TS_TOUCH_AND_HOLD;
++		gettimeofday(&touchStart, NULL);
++	}
+ }
+ 
+ void InputHandler::process_EV_ABS(input_event& ev)
+
+diff --git a/updater/Android.mk b/updater/Android.mk
+old mode 100644
+new mode 100755
+index 2ad56ba..4057d33
+--- a/updater/Android.mk
++++ b/updater/Android.mk
+@@ -19,7 +19,7 @@ LOCAL_MODULE_TAGS := eng
+ 
+ LOCAL_SRC_FILES := $(updater_src_files)
+ 
+-ifeq ($(TARGET_USERIMAGES_USE_EXT4), true)
++ifeq ($(TARGET_USERIMAGES_USE_EXT4),)
+ LOCAL_CFLAGS += -DUSE_EXT4
+ LOCAL_CFLAGS += -Wno-unused-parameter
+ LOCAL_C_INCLUDES += system/extras/ext4_utils
