@@ -1,0 +1,105 @@
+diff --git a/bta/dm/bta_dm_act.c b/bta/dm/bta_dm_act.c
+old mode 100644
+new mode 100755
+index 9084233..1fcdda4
+--- a/bta/dm/bta_dm_act.c
++++ b/bta/dm/bta_dm_act.c
+@@ -547,9 +547,17 @@ void bta_dm_set_visibility(tBTA_DM_MSG *p_data)
+ {
+ #if BTA_GATT_INCLUDED == TRUE
+     UINT16 window, interval;
++#if (BLE_INCLUDED == TRUE)
+     UINT16 le_disc_mode = BTM_BleReadDiscoverability();
++#else
++	UINT16 le_disc_mode = 0;
++#endif
+     UINT16 disc_mode = BTM_ReadDiscoverability(&window, &interval);
++#if (BLE_INCLUDED == TRUE)
+     UINT16 le_conn_mode = BTM_BleReadConnectability();
++#else
++	UINT16 le_conn_mode = 0;
++#endif
+     UINT16 conn_mode = BTM_ReadConnectability(&window, &interval);
+ 
+     /* set modes for Discoverability and connectability if not ignore */
+@@ -710,9 +710,9 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
+                 if(bta_dm_cb.device_list.peer_device[i].transport == BT_TRANSPORT_LE)
+                    other_transport = BT_TRANSPORT_BR_EDR;
+                 else
++#endif
+                    other_transport = BT_TRANSPORT_LE;
+                 break;
+-#endif
+             }
+         }
+     }
+@@ -735,9 +735,7 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
+             if (!bdcmp(bta_dm_cb.device_list.peer_device[i].peer_bdaddr, other_address))
+             {
+                 bta_dm_cb.device_list.peer_device[i].conn_state = BTA_DM_UNPAIRING;
+-#if BTA_GATT_INCLUDED == TRUE
+                 btm_remove_acl(other_address,bta_dm_cb.device_list.peer_device[i].transport);
+-#endif
+                 break;
+             }
+         }
+diff --git a/bta/dm/bta_dm_api.c b/bta/dm/bta_dm_api.c
+old mode 100644
+new mode 100755
+diff --git a/bta/dm/bta_dm_main.c b/bta/dm/bta_dm_main.c
+old mode 100644
+new mode 100755
+diff --git a/btif/include/btif_common.h b/btif/include/btif_common.h
+old mode 100644
+new mode 100755
+index 7e8c506..8f7892c
+--- a/btif/include/btif_common.h
++++ b/btif/include/btif_common.h
+@@ -27,6 +27,8 @@
+ #include "bta_api.h"
+ #include "osi.h"
+ 
++#undef TEST_APP_INTERFACE
++
+ #ifndef LOG_TAG
+ #error "LOG_TAG not defined, please add in .c file prior to including bt_common.h"
+ #endif
+diff --git a/btif/include/btif_gatt_multi_adv_util.h b/btif/include/btif_gatt_multi_adv_util.h
+old mode 100644
+new mode 100755
+diff --git a/btif/src/bluetooth.c b/btif/src/bluetooth.c
+old mode 100644
+new mode 100755
+diff --git a/btif/src/btif_core.c b/btif/src/btif_core.c
+old mode 100644
+new mode 100755
+diff --git a/btif/src/btif_dm.c b/btif/src/btif_dm.c
+old mode 100644
+new mode 100755
+diff --git a/hci/src/vendor.c b/hci/src/vendor.c
+old mode 100644
+new mode 100755
+diff --git a/main/bte_logmsg.c b/main/bte_logmsg.c
+old mode 100644
+new mode 100755
+diff --git a/stack/btm/btm_acl.c b/stack/btm/btm_acl.c
+old mode 100644
+new mode 100755
+index 9471b56..20392eb
+--- a/stack/btm/btm_acl.c
++++ b/stack/btm/btm_acl.c
+@@ -1029,9 +1029,11 @@ void btm_read_remote_version_complete (UINT8 *p)
+                 btm_read_remote_features (p_acl_cb->hci_handle);
+             }
+ 
++#if (defined BLE_INCLUDED && BLE_INCLUDED == TRUE)
+             if (p_acl_cb->transport == BT_TRANSPORT_LE)
+                 l2cble_notify_le_connection (p_acl_cb->remote_addr);
+             break;
++#endif
+         }
+     }
+ }
+diff --git a/stack/btm/btm_int.h b/stack/btm/btm_int.h
+old mode 100644
+new mode 100755

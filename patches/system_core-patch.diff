@@ -1,0 +1,198 @@
+diff --git a/healthd/healthd_mode_charger.cpp b/healthd/healthd_mode_charger.cpp
+old mode 100644
+new mode 100755
+index 1b6e216..90ebeee
+--- a/healthd/healthd_mode_charger.cpp
++++ b/healthd/healthd_mode_charger.cpp
+@@ -397,7 +397,7 @@ static void draw_battery(struct charger *charger)
+              batt_anim->cur_frame, frame->min_capacity,
+              frame->disp_time);
+     }
+-    healthd_board_mode_charger_draw_battery(batt_prop);
++    //healthd_board_mode_charger_draw_battery(batt_prop);
+ }
+ 
+ static void redraw_screen(struct charger *charger)
+@@ -451,7 +451,7 @@ static void update_screen_state(struct charger *charger, int64_t now)
+         gr_font_size(&char_width, &char_height);
+ 
+ #ifndef CHARGER_DISABLE_INIT_BLANK
+-        healthd_board_mode_charger_set_backlight(false);
++        //healthd_board_mode_charger_set_backlight(false);
+         gr_fb_blank(true);
+ #endif
+         minui_inited = true;
+@@ -461,7 +461,7 @@ static void update_screen_state(struct charger *charger, int64_t now)
+     if (batt_anim->cur_cycle == batt_anim->num_cycles) {
+         reset_animation(batt_anim);
+         charger->next_screen_transition = -1;
+-        healthd_board_mode_charger_set_backlight(false);
++        //healthd_board_mode_charger_set_backlight(false);
+         gr_fb_blank(true);
+         LOGV("[%" PRId64 "] animation done\n", now);
+         if (charger->charger_connected)
+@@ -495,7 +495,7 @@ static void update_screen_state(struct charger *charger, int64_t now)
+     /* unblank the screen on first cycle */
+     if (batt_anim->cur_cycle == 0) {
+         gr_fb_blank(false);
+-        healthd_board_mode_charger_set_backlight(true);
++        //healthd_board_mode_charger_set_backlight(true);
+     }
+ 
+     /* draw the new frame (@ cur_frame) */
+@@ -608,7 +608,7 @@ static void process_key(struct charger *charger, int code, int64_t now)
+                    accordingly. */
+                 if (property_get_bool("ro.enable_boot_charger_mode", false)) {
+                     LOGW("[%" PRId64 "] booting from charger mode\n", now);
+-                    healthd_board_mode_charger_set_backlight(false);
++                    //healthd_board_mode_charger_set_backlight(false);
+                     gr_fb_blank(true);
+                     property_set("sys.boot_from_charger_mode", "1");
+                 } else {
+@@ -639,7 +639,7 @@ static void process_key(struct charger *charger, int code, int64_t now)
+                 } else {
+                     reset_animation(batt_anim);
+                     charger->next_screen_transition = -1;
+-                    healthd_board_mode_charger_set_backlight(false);
++                    //healthd_board_mode_charger_set_backlight(false);
+                     gr_fb_blank(true);
+                     if (charger->charger_connected)
+                         request_suspend(true);
+@@ -673,7 +673,7 @@ static void handle_power_supply_state(struct charger *charger, int64_t now)
+     if (!charger->have_battery_state)
+         return;
+ 
+-    healthd_board_mode_charger_battery_update(batt_prop);
++    //healthd_board_mode_charger_battery_update(batt_prop);
+ 
+     if (batt_prop && batt_prop->batteryLevel >= 0) {
+         soc = batt_prop->batteryLevel;
+@@ -802,7 +802,7 @@ void healthd_mode_charger_init(struct healthd_config* config)
+ 
+     LOGW("--------------- STARTING CHARGER MODE ---------------\n");
+ 
+-    healthd_board_mode_charger_init();
++    //healthd_board_mode_charger_init();
+ 
+     ret = ev_init(input_callback, charger);
+     if (!ret) {
+diff --git a/include/utils/VectorImpl.h b/include/utils/VectorImpl.h
+old mode 100644
+new mode 100755
+index 21ad71c..88c3a05
+--- a/include/utils/VectorImpl.h
++++ b/include/utils/VectorImpl.h
+@@ -105,7 +105,19 @@ protected:
+     virtual void            do_splat(void* dest, const void* item, size_t num) const = 0;
+     virtual void            do_move_forward(void* dest, const void* from, size_t num) const = 0;
+     virtual void            do_move_backward(void* dest, const void* from, size_t num) const = 0;
+-    
++
++#ifdef NEEDS_VECTORIMPL_SYMBOLS
++    // take care of FBC...
++    virtual void            reservedVectorImpl1();
++    virtual void            reservedVectorImpl2();
++    virtual void            reservedVectorImpl3();
++    virtual void            reservedVectorImpl4();
++    virtual void            reservedVectorImpl5();
++    virtual void            reservedVectorImpl6();
++    virtual void            reservedVectorImpl7();
++    virtual void            reservedVectorImpl8();
++#endif
++
+ private:
+         void* _grow(size_t where, size_t amount);
+         void  _shrink(size_t where, size_t amount);
+@@ -156,6 +168,18 @@ public:
+ protected:
+     virtual int             do_compare(const void* lhs, const void* rhs) const = 0;
+ 
++#ifdef NEEDS_VECTORIMPL_SYMBOLS
++    // take care of FBC...
++    virtual void            reservedSortedVectorImpl1();
++    virtual void            reservedSortedVectorImpl2();
++    virtual void            reservedSortedVectorImpl3();
++    virtual void            reservedSortedVectorImpl4();
++    virtual void            reservedSortedVectorImpl5();
++    virtual void            reservedSortedVectorImpl6();
++    virtual void            reservedSortedVectorImpl7();
++    virtual void            reservedSortedVectorImpl8();
++#endif
++
+ private:
+             ssize_t         _indexOrderOf(const void* item, size_t* order = 0) const;
+ 
+diff --git a/libutils/String8.cpp b/libutils/String8.cpp
+old mode 100644
+new mode 100755
+index ad65fdb..3d95a87
+--- a/libutils/String8.cpp
++++ b/libutils/String8.cpp
+@@ -164,7 +164,9 @@ String8::String8(StaticLinkage)
+ String8::String8(const String8& o)
+     : mString(o.mString)
+ {
+-    SharedBuffer::bufferFromData(mString)->acquire();
++    if (mString == NULL)
++		mString = getEmptyString();
++	SharedBuffer::bufferFromData(mString)->acquire();
+ }
+ 
+ String8::String8(const char* o)
+diff --git a/libutils/VectorImpl.cpp b/libutils/VectorImpl.cpp
+old mode 100644
+new mode 100755
+index de65a6c..ffd552b
+--- a/libutils/VectorImpl.cpp
++++ b/libutils/VectorImpl.cpp
+@@ -552,6 +552,17 @@ void VectorImpl::_do_move_backward(void* dest, const void* from, size_t num) con
+     do_move_backward(dest, from, num);
+ }
+ 
++#ifdef NEEDS_VECTORIMPL_SYMBOLS
++void VectorImpl::reservedVectorImpl1() { }
++void VectorImpl::reservedVectorImpl2() { }
++void VectorImpl::reservedVectorImpl3() { }
++void VectorImpl::reservedVectorImpl4() { }
++void VectorImpl::reservedVectorImpl5() { }
++void VectorImpl::reservedVectorImpl6() { }
++void VectorImpl::reservedVectorImpl7() { }
++void VectorImpl::reservedVectorImpl8() { }
++#endif
++
+ /*****************************************************************************/
+ 
+ SortedVectorImpl::SortedVectorImpl(size_t itemSize, uint32_t flags)
+@@ -667,6 +678,17 @@ ssize_t SortedVectorImpl::remove(const void* item)
+     return i;
+ }
+ 
++#ifdef NEEDS_VECTORIMPL_SYMBOLS
++void SortedVectorImpl::reservedSortedVectorImpl1() { };
++void SortedVectorImpl::reservedSortedVectorImpl2() { };
++void SortedVectorImpl::reservedSortedVectorImpl3() { };
++void SortedVectorImpl::reservedSortedVectorImpl4() { };
++void SortedVectorImpl::reservedSortedVectorImpl5() { };
++void SortedVectorImpl::reservedSortedVectorImpl6() { };
++void SortedVectorImpl::reservedSortedVectorImpl7() { };
++void SortedVectorImpl::reservedSortedVectorImpl8() { };
++#endif
++
+ /*****************************************************************************/
+ 
+ }; // namespace android
+diff --git a/sdcard/sdcard.c b/sdcard/sdcard.c
+old mode 100644
+new mode 100755
+index 13009aa..ad28be9
+--- a/sdcard/sdcard.c
++++ b/sdcard/sdcard.c
+@@ -1773,7 +1773,7 @@ static int fuse_setup(struct fuse* fuse, gid_t gid, mode_t mask) {
+             fuse->fd, fuse->global->uid, fuse->global->gid);
+     if (mount("/dev/fuse", fuse->dest_path, "fuse", MS_NOSUID | MS_NODEV | MS_NOEXEC |
+             MS_NOATIME, opts) != 0) {
+-        ERROR("failed to mount fuse filesystem: %s\n", strerror(errno));
++        ERROR("failed to mount fuse filesystem: %s: %s\n", fuse->dest_path, strerror(errno));
+         return -1;
+     }
+ 
