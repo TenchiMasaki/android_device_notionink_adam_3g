@@ -271,10 +271,10 @@ index e24824b..c56ffe8
 diff --git a/media/libstagefright/MediaBufferGroup.cpp b/media/libstagefright/MediaBufferGroup.cpp
 old mode 100644
 new mode 100755
-index f2ad949..bdc9d67
+index f2ad949..21fe9bf
 --- a/media/libstagefright/MediaBufferGroup.cpp
 +++ b/media/libstagefright/MediaBufferGroup.cpp
-@@ -55,12 +55,14 @@ void MediaBufferGroup::add_buffer(MediaBuffer *buffer) {
+@@ -55,12 +55,7 @@ void MediaBufferGroup::add_buffer(MediaBuffer *buffer) {
      mLastBuffer = buffer;
  }
  
@@ -283,13 +283,7 @@ index f2ad949..bdc9d67
 -    MediaBuffer **out) {
 -        return this->acquire_buffer(out, false);
 -    }
-+#ifdef ADD_LEGACY_ACQUIRE_BUFFER_SYMBOL
-+extern "C" status_t _ZN7android16MediaBufferGroup14acquire_bufferEPPNS_11MediaBufferE(
-+    MediaBufferGroup* group, MediaBuffer **out) {
-+    return group->acquire_buffer(out, false);
-+}
- #endif
-+
+-#endif
 +status_t MediaBufferGroup::acquire_buffer( MediaBuffer **out) { return this->acquire_buffer(out, false); }
  status_t MediaBufferGroup::acquire_buffer(
      MediaBuffer **out, bool nonBlocking) {
