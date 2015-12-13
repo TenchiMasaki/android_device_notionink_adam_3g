@@ -1,18 +1,3 @@
-diff --git a/Android.mk b/Android.mk
-old mode 100644
-new mode 100755
-index 1b903bd..cb62cfe
---- a/Android.mk
-+++ b/Android.mk
-@@ -5,7 +5,7 @@ include $(CLEAR_VARS)
- # SELinux policy version.
- # Must be <= /sys/fs/selinux/policyvers reported by the Android kernel.
- # Must be within the compatibility range reported by checkpolicy -V.
--POLICYVERS ?= 30
-+POLICYVERS ?= 26
- 
- MLS_SENS=1
- MLS_CATS=1024
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
@@ -40,7 +25,7 @@ index 40de074..8a02669
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index 0f6c6da..1f36872
+index 0f6c6da..01ae153
 --- a/domain.te
 +++ b/domain.te
 @@ -173,7 +173,7 @@ allow domain { asec_public_file asec_apk_file }:dir r_dir_perms;
@@ -75,7 +60,7 @@ index 0f6c6da..1f36872
  
  # Ensure that all entrypoint executables are in exec_type.
 -neverallow domain { file_type -exec_type }:file entrypoint;
-+neverallow { domain -logd } { file_type -exec_type }:file entrypoint;
++neverallow { domain -logd -fsck_untrusted } { file_type -exec_type }:file entrypoint;
  
  # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
  neverallow { domain -kernel -ueventd -init } kmem_device:chr_file *;
@@ -180,6 +165,30 @@ index 0f6c6da..1f36872
    -installd # for relabelfrom and unlink, check for this in explicit neverallow
  } system_data_file:file no_w_file_perms;
  # do not grant anything greater than r_file_perms and relabelfrom unlink
+diff --git a/fsck_untrusted.te b/fsck_untrusted.te
+old mode 100644
+new mode 100755
+index 67c67b7..9a2af93
+--- a/fsck_untrusted.te
++++ b/fsck_untrusted.te
+@@ -33,4 +33,4 @@ neverallow fsck_untrusted {
+ # Only allow entry from vold via fsck binaries
+ neverallow { domain -vold } fsck_untrusted:process transition;
+ neverallow domain fsck_untrusted:process dyntransition;
+-neverallow fsck_untrusted { file_type fs_type -fsck_exec }:file entrypoint;
++neverallow fsck_untrusted { file_type fs_type -fsck_exec -system_file }:file entrypoint;
+diff --git a/gatekeeperd.te b/gatekeeperd.te
+old mode 100644
+new mode 100755
+index ca540c6..c4baed3
+--- a/gatekeeperd.te
++++ b/gatekeeperd.te
+@@ -24,4 +24,4 @@ allow gatekeeperd user_service:service_manager find;
+ allow gatekeeperd gatekeeper_data_file:dir rw_dir_perms;
+ allow gatekeeperd gatekeeper_data_file:file create_file_perms;
+ 
+-neverallow { domain -gatekeeperd } gatekeeper_service:service_manager add;
++neverallow { domain -gatekeeperd -init } gatekeeper_service:service_manager add;
 diff --git a/gpsd.te b/gpsd.te
 old mode 100644
 new mode 100755
@@ -205,28 +214,6 @@ index 41eafe2..039ec3a
  # init should never execute a program without changing to another domain.
 -neverallow init { file_type fs_type }:file execute_no_trans;
 +#neverallow init { file_type fs_type }:file execute_no_trans;
-diff --git a/ioctl_macros b/ioctl_macros
-old mode 100644
-new mode 100755
-index e71e0ce..1e5c5f3
---- a/ioctl_macros
-+++ b/ioctl_macros
-@@ -1,11 +1,12 @@
- # socket ioctls allowed to unprivileged apps
- define(`unpriv_sock_ioctls', `
- {
-+  ioctl
- # all socket ioctls except the Mac address SIOCGIFHWADDR 0x8927
--0x8900-0x8926 0x8928-0x89ff
-+# 0x8900-0x8926 0x8928-0x89ff
- # all wireless extensions ioctls except get/set essid
- # IOCSIWESSID 0x8B1A SIOCGIWESSID 0x8B1B
--0x8B00-0x8B09 0x8B1C-0x8BFF
-+# 0x8B00-0x8B09 0x8B1C-0x8BFF
- # commonly used TTY ioctls
--0x5411 0x5451
-+# 0x5411 0x5451
- }')
 diff --git a/keystore.te b/keystore.te
 old mode 100644
 new mode 100755
@@ -261,10 +248,10 @@ index b0d978f..2c79744
 diff --git a/system_server.te b/system_server.te
 old mode 100644
 new mode 100755
-index 0b18eb4..ff005bc
+index c9d8f3b..e2a3c5d
 --- a/system_server.te
 +++ b/system_server.te
-@@ -381,7 +381,7 @@ allow system_server fingerprintd_service:service_manager find;
+@@ -385,7 +385,7 @@ allow system_server fingerprintd_service:service_manager find;
  allow system_server mediaserver_service:service_manager find;
  allow system_server nfc_service:service_manager find;
  allow system_server radio_service:service_manager find;
