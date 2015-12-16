@@ -1,10 +1,10 @@
 diff --git a/linker/linker.cpp b/linker/linker.cpp
 old mode 100644
 new mode 100755
-index b860f70..1a14e97
+index d3ac1d0..9faf1e1
 --- a/linker/linker.cpp
 +++ b/linker/linker.cpp
-@@ -2760,13 +2760,8 @@ bool soinfo::prelink_image() {
+@@ -2769,13 +2769,8 @@ bool soinfo::prelink_image() {
          break;
  
        case DT_TEXTREL:
@@ -18,7 +18,7 @@ index b860f70..1a14e97
  
        case DT_SYMBOLIC:
          has_DT_SYMBOLIC = true;
-@@ -2932,13 +2927,6 @@ bool soinfo::link_image(const soinfo_list_t& global_group, const soinfo_list_t&
+@@ -2941,14 +2936,6 @@ bool soinfo::link_image(const soinfo_list_t& global_group, const soinfo_list_t&
  
  #if !defined(__LP64__)
    if (has_text_relocations) {
@@ -26,6 +26,7 @@ index b860f70..1a14e97
 -    // TODO (dimitry): remove != __ANDROID_API__ check once http://b/20020312 is fixed
 -    if (get_application_target_sdk_version() != __ANDROID_API__
 -        && get_application_target_sdk_version() > 22) {
+-      PRINT("%s: has text relocations", get_realpath());
 -      DL_ERR("%s: has text relocations", get_realpath());
 -      return false;
 -    }
