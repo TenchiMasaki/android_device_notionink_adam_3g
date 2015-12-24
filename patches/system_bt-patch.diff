@@ -114,7 +114,7 @@ new mode 100755
 diff --git a/btif/include/btif_common.h b/btif/include/btif_common.h
 old mode 100644
 new mode 100755
-index 2c4276d..35841b3
+index 7e8c506..8f7892c
 --- a/btif/include/btif_common.h
 +++ b/btif/include/btif_common.h
 @@ -27,6 +27,8 @@
@@ -162,6 +162,21 @@ new mode 100755
 diff --git a/stack/btm/btm_acl.c b/stack/btm/btm_acl.c
 old mode 100644
 new mode 100755
+index b09f91b..b99a2c4
+--- a/stack/btm/btm_acl.c
++++ b/stack/btm/btm_acl.c
+@@ -927,9 +927,11 @@ void btm_read_remote_version_complete (UINT8 *p)
+                 STREAM_TO_UINT16 (p_acl_cb->lmp_subversion, p);
+             }
+ 
++#if (defined BLE_INCLUDED && BLE_INCLUDED == TRUE)
+             if (p_acl_cb->transport == BT_TRANSPORT_LE)
+                 l2cble_notify_le_connection (p_acl_cb->remote_addr);
+             break;
++#endif
+         }
+     }
+ }
 diff --git a/stack/btm/btm_int.h b/stack/btm/btm_int.h
 old mode 100644
 new mode 100755

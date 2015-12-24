@@ -724,46 +724,67 @@ index 918faa8..f0a7f1d 100644
 diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
 old mode 100644
 new mode 100755
-index 40b21a9..308662d
+index fd72b23..36e27ec
 --- a/services/sensorservice/SensorService.cpp
 +++ b/services/sensorservice/SensorService.cpp
-@@ -911,12 +911,15 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+@@ -146,9 +146,10 @@ void SensorService::onFirstRef()
  
-     status_t err = sensor->batch(connection.get(), handle, 0, samplingPeriodNs,
-                                  maxBatchReportLatencyNs);
--
-     // Call flush() before calling activate() on the sensor. Wait for a first flush complete
-     // event before sending events on this connection. Ignore one-shot sensors which don't
-     // support flush(). Also if this sensor isn't already active, don't call flush().
-+    SensorDevice& device(SensorDevice::getInstance());
-+
-     if (err == NO_ERROR && sensor->getSensor().getReportingMode() != AREPORTING_MODE_ONE_SHOT &&
+                 aSensor = registerVirtualSensor( new OrientationSensor() );
+                 if (virtualSensorsNeeds & (1<<SENSOR_TYPE_ROTATION_VECTOR)) {
+-                    // if we are doing our own rotation-vector, also add
+-                    // the orientation sensor and remove the HAL provided one.
+-                    mUserSensorList.replaceAt(aSensor, orientationIndex);
++                    if (orientationIndex == -1) {
++                        // some sensor HALs don't provide an orientation sensor.
++                        mUserSensorList.add(aSensor);
++                    }
+                 }
+ 
+                 // virtual debugging sensors are not added to mUserSensorList
+@@ -918,20 +919,24 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+     // to maintain the on-change logic (any on-change events except the initial
+     // one should be trigger by a change in value). Also if this sensor isn't
+     // already active, don't call flush().
++    const SensorDevice& device(SensorDevice::getInstance());
+     if (err == NO_ERROR &&
+             sensor->getSensor().getReportingMode() != AREPORTING_MODE_ONE_SHOT &&
+             sensor->getSensor().getReportingMode() != AREPORTING_MODE_ON_CHANGE &&
              rec->getNumConnections() > 1) {
-+      if (device.getHalDeviceVersion() >= SENSORS_DEVICE_API_VERSION_1_1) {
-+
-         connection->setFirstFlushPending(handle, true);
-         status_t err_flush = sensor->flush(connection.get(), handle);
-         // Flush may return error if the underlying h/w sensor uses an older HAL.
-@@ -925,13 +928,19 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
-         } else {
-             connection->setFirstFlushPending(handle, false);
+-        connection->setFirstFlushPending(handle, true);
+-        status_t err_flush = sensor->flush(connection.get(), handle);
+-        // Flush may return error if the underlying h/w sensor uses an older HAL.
+-        if (err_flush == NO_ERROR) {
+-            rec->addPendingFlushConnection(connection.get());
+-        } else {
+-            connection->setFirstFlushPending(handle, false);
++        if (device.getHalDeviceVersion() >= SENSORS_DEVICE_API_VERSION_1_1) {
++            connection->setFirstFlushPending(handle, true);
++            status_t err_flush = sensor->flush(connection.get(), handle);
++            // Flush may return error if the underlying h/w sensor uses an older HAL.
++            if (err_flush == NO_ERROR) {
++                rec->addPendingFlushConnection(connection.get());
++            } else {
++                connection->setFirstFlushPending(handle, false);
++            }
          }
-+      }
      }
  
 +
      if (err == NO_ERROR) {
          ALOGD_IF(DEBUG_CONNECTIONS, "Calling activate on %d", handle);
          err = sensor->activate(connection.get(), true);
+@@ -954,6 +959,11 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+         mNextSensorRegIndex = (mNextSensorRegIndex + 1) % SENSOR_REGISTRATIONS_BUF_SIZE;
      }
  
++    if (device.getHalDeviceVersion() < SENSORS_DEVICE_API_VERSION_1_1) {
 +        // Pre-1.1 sensor HALs had no flush method, and relied on setDelay at init
-+    if (device.getHalDeviceVersion() < SENSORS_DEVICE_API_VERSION_1_1)
 +        sensor->setDelay(connection.get(), handle, samplingPeriodNs);
++    }
 +
-     if (err == NO_ERROR) {
-         connection->updateLooperRegistration(mLooper);
-         SensorRegistrationInfo &reg_info =
+     if (err != NO_ERROR) {
+         // batch/activate has failed, reset our state.
+         cleanupWithoutDisableLocked(connection, handle);
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
 old mode 100644
 new mode 100755
