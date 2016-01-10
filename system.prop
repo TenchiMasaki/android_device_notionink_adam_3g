@@ -60,6 +60,8 @@ dalvik.gc.type=precise
 # Interpret only
 dalvik.vm.dex2oat-filter=interpret-only
 dalvik.vm.image-dex2oat-filter=speed
+dalvik.vm.dex2oat-flags=--no-watch-dog
+dalvik.vm.dex2oat-swap=false
 
 # AMR Wideband provides improved speech quality compared to Narrowband speech coders
 ro.ril.enable.amr.wideband=1
