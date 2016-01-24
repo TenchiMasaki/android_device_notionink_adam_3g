@@ -1,29 +1,10 @@
-project frameworks/native/
-diff --git a/include/binder/MemoryDealer.h b/include/binder/MemoryDealer.h
-old mode 100644
-new mode 100755
-index aa415d5..e314762
---- a/include/binder/MemoryDealer.h
-+++ b/include/binder/MemoryDealer.h
-@@ -34,8 +34,8 @@ class SimpleBestFitAllocator;
- class MemoryDealer : public RefBase
- {
- public:
--    MemoryDealer(size_t size, const char* name = 0,
--            uint32_t flags = 0 /* or bits such as MemoryHeapBase::READ_ONLY */ );
-+    MemoryDealer(size_t size, const char* name = 0);
-+    MemoryDealer(size_t size, const char* name , uint32_t flags  /* or bits such as MemoryHeapBase::READ_ONLY */ );
- 
-     virtual sp<IMemory> allocate(size_t size);
-     virtual void        deallocate(size_t offset);
-project frameworks/native/
 diff --git a/include/gui/ISurfaceComposer.h b/include/gui/ISurfaceComposer.h
 old mode 100644
 new mode 100755
-index 44aba7e..a8b6000
+index 30c4077..63a61fd
 --- a/include/gui/ISurfaceComposer.h
 +++ b/include/gui/ISurfaceComposer.h
-@@ -154,6 +154,18 @@ public:
+@@ -153,6 +153,18 @@ public:
              Rotation rotation = eRotateNone,
              bool isCpuConsumer = SS_CPU_CONSUMER) = 0;
  
@@ -42,7 +23,7 @@ index 44aba7e..a8b6000
      /* Clears the frame statistics for animations.
       *
       * Requires the ACCESS_SURFACE_FLINGER permission.
-@@ -183,6 +195,9 @@ public:
+@@ -182,6 +194,9 @@ public:
          GET_BUILT_IN_DISPLAY,
          SET_TRANSACTION_STATE,
          AUTHENTICATE_SURFACE,
@@ -55,7 +36,7 @@ index 44aba7e..a8b6000
 diff --git a/include/gui/SurfaceComposerClient.h b/include/gui/SurfaceComposerClient.h
 old mode 100644
 new mode 100755
-index 4cbfc09..c79f6d2
+index 37d953e..6824354
 --- a/include/gui/SurfaceComposerClient.h
 +++ b/include/gui/SurfaceComposerClient.h
 @@ -40,6 +40,9 @@ namespace android {
@@ -103,6 +84,37 @@ new mode 100755
 diff --git a/include/ui/DisplayInfo.h b/include/ui/DisplayInfo.h
 old mode 100644
 new mode 100755
+diff --git a/include/ui/FramebufferNativeWindow.h b/include/ui/FramebufferNativeWindow.h
+old mode 100644
+new mode 100755
+index 6b66d5f..2eb1cc1
+--- a/include/ui/FramebufferNativeWindow.h
++++ b/include/ui/FramebufferNativeWindow.h
+@@ -15,7 +15,7 @@
+  */
+ 
+ #ifndef INCLUDED_FROM_FRAMEBUFFER_NATIVE_WINDOW_CPP
+-#warning "FramebufferNativeWindow is deprecated"
++//#warning "FramebufferNativeWindow is deprecated"
+ #endif
+ 
+ #ifndef ANDROID_FRAMEBUFFER_NATIVE_WINDOW_H
+diff --git a/include/ui/PixelFormat.h b/include/ui/PixelFormat.h
+old mode 100644
+new mode 100755
+index ae3ffc0..f6844e4
+--- a/include/ui/PixelFormat.h
++++ b/include/ui/PixelFormat.h
+@@ -25,6 +25,9 @@
+ #ifndef UI_PIXELFORMAT_H
+ #define UI_PIXELFORMAT_H
+ 
++#include <stdint.h>
++#include <sys/types.h>
++#include <utils/Errors.h>
+ #include <hardware/hardware.h>
+ #ifdef HAVE_PIXEL_FORMAT_INFO
+ #include <utils/Errors.h>
 diff --git a/libs/binder/MemoryDealer.cpp b/libs/binder/MemoryDealer.cpp
 old mode 100644
 new mode 100755
@@ -121,12 +133,12 @@ index aa6fe08..071ab2f
 diff --git a/libs/gui/Android.mk b/libs/gui/Android.mk
 old mode 100644
 new mode 100755
-index e5a5eb3..4e1efd3
+index ef78abc..4a5fe0f
 --- a/libs/gui/Android.mk
 +++ b/libs/gui/Android.mk
-@@ -49,6 +49,10 @@ LOCAL_SHARED_LIBRARIES := \
+@@ -83,6 +83,10 @@ LOCAL_SHARED_LIBRARIES := \
  
- LOCAL_MODULE:= libgui
+ LOCAL_MODULE := libgui
  
 +ifeq ($(BOARD_USE_MHEAP_SCREENSHOT),true)
 +    LOCAL_CFLAGS += -DUSE_MHEAP_SCREENSHOT
@@ -135,7 +147,7 @@ index e5a5eb3..4e1efd3
  ifeq ($(TARGET_BOARD_PLATFORM), tegra)
  	LOCAL_CFLAGS += -DDONT_USE_FENCE_SYNC
  endif
-@@ -59,6 +63,10 @@ ifeq ($(BOARD_USES_LEGACY_SET_POSITION),true)
+@@ -93,6 +97,10 @@ ifeq ($(BOARD_USES_LEGACY_SET_POSITION),true)
  	LOCAL_CFLAGS += -DUSES_LEGACY_SET_POSITION
  endif
  
@@ -149,10 +161,10 @@ index e5a5eb3..4e1efd3
 diff --git a/libs/gui/ISurfaceComposer.cpp b/libs/gui/ISurfaceComposer.cpp
 old mode 100644
 new mode 100755
-index 9313b9c..7e5def5
+index 0ad6339..2d74464
 --- a/libs/gui/ISurfaceComposer.cpp
 +++ b/libs/gui/ISurfaceComposer.cpp
-@@ -103,6 +103,33 @@ public:
+@@ -98,6 +98,33 @@ public:
          remote()->transact(BnSurfaceComposer::BOOT_FINISHED, data, &reply);
      }
  
@@ -186,7 +198,7 @@ index 9313b9c..7e5def5
      virtual status_t captureScreen(const sp<IBinder>& display,
              const sp<IGraphicBufferProducer>& producer,
              Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
-@@ -348,6 +375,32 @@ status_t BnSurfaceComposer::onTransact(
+@@ -350,6 +377,32 @@ status_t BnSurfaceComposer::onTransact(
              bootFinished();
              return NO_ERROR;
          }
@@ -209,7 +221,7 @@ index 9313b9c..7e5def5
 +                    sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
 +                    useIdentityTransform,
 +                    static_cast<ISurfaceComposer::Rotation>(rotation));
-+            reply->writeStrongBinder(heap->asBinder());
++            reply->writeStrongBinder(IInterface::asBinder(heap));
 +            reply->writeInt32(static_cast<int32_t>(w));
 +            reply->writeInt32(static_cast<int32_t>(h));
 +            reply->writeInt32(static_cast<int32_t>(res));
@@ -222,10 +234,10 @@ index 9313b9c..7e5def5
 diff --git a/libs/gui/SensorEventQueue.cpp b/libs/gui/SensorEventQueue.cpp
 old mode 100644
 new mode 100755
-index 1305e9f..a78e2a7
+index 4b7986e..6bfe6f3
 --- a/libs/gui/SensorEventQueue.cpp
 +++ b/libs/gui/SensorEventQueue.cpp
-@@ -130,8 +130,14 @@ status_t SensorEventQueue::disableSensor(Sensor const* sensor) const {
+@@ -134,8 +134,14 @@ status_t SensorEventQueue::disableSensor(Sensor const* sensor) const {
  
  status_t SensorEventQueue::enableSensor(int32_t handle, int32_t samplingPeriodUs,
                                          int maxBatchReportLatencyUs, int reservedFlags) const {
@@ -244,10 +256,10 @@ index 1305e9f..a78e2a7
 diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
 old mode 100644
 new mode 100755
-index 6446926..8aa9f4e
+index 6ad47d8..6c607f4
 --- a/libs/gui/SurfaceComposerClient.cpp
 +++ b/libs/gui/SurfaceComposerClient.cpp
-@@ -483,6 +483,25 @@ void SurfaceComposerClient::dispose() {
+@@ -482,6 +482,25 @@ void SurfaceComposerClient::dispose() {
      mStatus = NO_INIT;
  }
  
@@ -273,7 +285,7 @@ index 6446926..8aa9f4e
  sp<SurfaceControl> SurfaceComposerClient::createSurface(
          const String8& name,
          uint32_t w,
-@@ -651,6 +670,7 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
+@@ -650,6 +669,7 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
          return result;
      }
  
@@ -281,7 +293,7 @@ index 6446926..8aa9f4e
      int activeId = getActiveConfig(display);
      if (activeId < 0) {
          ALOGE("No active configuration found");
-@@ -661,6 +681,13 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
+@@ -660,6 +680,13 @@ status_t SurfaceComposerClient::getDisplayInfo(const sp<IBinder>& display,
      return NO_ERROR;
  }
  
@@ -295,7 +307,7 @@ index 6446926..8aa9f4e
  int SurfaceComposerClient::getActiveConfig(const sp<IBinder>& display) {
      return ComposerService::getComposerService()->getActiveConfig(display);
  }
-@@ -691,8 +718,17 @@ status_t ScreenshotClient::capture(
+@@ -690,8 +717,17 @@ status_t ScreenshotClient::capture(
          uint32_t minLayerZ, uint32_t maxLayerZ, bool useIdentityTransform) {
      sp<ISurfaceComposer> s(ComposerService::getComposerService());
      if (s == NULL) return NO_INIT;
@@ -314,7 +326,7 @@ index 6446926..8aa9f4e
  }
  
  ScreenshotClient::ScreenshotClient()
-@@ -720,6 +756,19 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+@@ -719,6 +755,19 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
          bool useIdentityTransform, uint32_t rotation) {
      sp<ISurfaceComposer> s(ComposerService::getComposerService());
      if (s == NULL) return NO_INIT;
@@ -334,7 +346,7 @@ index 6446926..8aa9f4e
      sp<CpuConsumer> cpuConsumer = getCpuConsumer();
  
      if (mHaveBuffer) {
-@@ -730,7 +779,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+@@ -729,7 +778,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
  
      status_t err = s->captureScreen(display, mProducer, sourceCrop,
              reqWidth, reqHeight, minLayerZ, maxLayerZ, useIdentityTransform,
@@ -343,7 +355,7 @@ index 6446926..8aa9f4e
  
      if (err == NO_ERROR) {
          err = mCpuConsumer->lockNextBuffer(&mBuffer);
-@@ -739,6 +788,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+@@ -738,6 +787,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
          }
      }
      return err;
@@ -351,7 +363,7 @@ index 6446926..8aa9f4e
  }
  
  status_t ScreenshotClient::update(const sp<IBinder>& display,
-@@ -763,12 +813,16 @@ status_t ScreenshotClient::update(const sp<IBinder>& display, Rect sourceCrop,
+@@ -762,12 +812,16 @@ status_t ScreenshotClient::update(const sp<IBinder>& display, Rect sourceCrop,
  }
  
  void ScreenshotClient::release() {
@@ -371,76 +383,26 @@ index 6446926..8aa9f4e
 diff --git a/libs/gui/SurfaceControl.cpp b/libs/gui/SurfaceControl.cpp
 old mode 100644
 new mode 100755
-diff --git a/libs/gui/tests/Android.mk b/libs/gui/tests/Android.mk
-deleted file mode 100644
-index e460290..0000000
---- a/libs/gui/tests/Android.mk
-+++ /dev/null
-@@ -1,56 +0,0 @@
--# Build the unit tests,
--LOCAL_PATH:= $(call my-dir)
--include $(CLEAR_VARS)
--
--LOCAL_MODULE := libgui_test
--
--LOCAL_MODULE_TAGS := tests
--
--LOCAL_SRC_FILES := \
--    BufferQueue_test.cpp \
--    CpuConsumer_test.cpp \
--    FillBuffer.cpp \
--    GLTest.cpp \
--    IGraphicBufferProducer_test.cpp \
--    MultiTextureConsumer_test.cpp \
--    SRGB_test.cpp \
--    StreamSplitter_test.cpp \
--    SurfaceTextureClient_test.cpp \
--    SurfaceTextureFBO_test.cpp \
--    SurfaceTextureGLThreadToGL_test.cpp \
--    SurfaceTextureGLToGL_test.cpp \
--    SurfaceTextureGL_test.cpp \
--    SurfaceTextureMultiContextGL_test.cpp \
--    Surface_test.cpp \
--    TextureRenderer.cpp \
--
--LOCAL_SHARED_LIBRARIES := \
--	libEGL \
--	libGLESv1_CM \
--	libGLESv2 \
--	libbinder \
--	libcutils \
--	libgui \
--	libstlport \
--	libsync \
--	libui \
--	libutils \
--
--LOCAL_C_INCLUDES := \
--    bionic \
--    bionic/libstdc++/include \
--    external/gtest/include \
--    external/stlport/stlport \
--
--# Build the binary to $(TARGET_OUT_DATA_NATIVE_TESTS)/$(LOCAL_MODULE)
--# to integrate with auto-test framework.
--include $(BUILD_NATIVE_TEST)
--
--# Include subdirectory makefiles
--# ============================================================
--
--# If we're building with ONE_SHOT_MAKEFILE (mm, mmm), then what the framework
--# team really wants is to build the stuff defined by this makefile.
--ifeq (,$(ONE_SHOT_MAKEFILE))
--include $(call first-makefiles-under,$(LOCAL_PATH))
--endif
+index 8bb4bc6..4d91965
+--- a/libs/gui/SurfaceControl.cpp
++++ b/libs/gui/SurfaceControl.cpp
+@@ -106,7 +106,7 @@ status_t SurfaceControl::setPosition(float x, float y) {
+ }
+ #ifdef USES_LEGACY_SET_POSITION
+ status_t SurfaceControl::setPosition(int32_t x, int32_t y) {
+-    return setPosition((float)x, (float)y);
++    return SurfaceControl::setPosition(static_cast<float>(x), static_cast<float>(y));
+ }
+ #endif
+ status_t SurfaceControl::setSize(uint32_t w, uint32_t h) {
 diff --git a/libs/ui/PixelFormat.cpp b/libs/ui/PixelFormat.cpp
 old mode 100644
 new mode 100755
 diff --git a/opengl/libs/EGL/egl_object.cpp b/opengl/libs/EGL/egl_object.cpp
-index d3ee76d..31e8c42 100644
+index 918faa8..f0a7f1d 100644
 --- a/opengl/libs/EGL/egl_object.cpp
 +++ b/opengl/libs/EGL/egl_object.cpp
-@@ -107,7 +107,9 @@ void egl_context_t::onMakeCurrent(EGLSurface draw, EGLSurface read) {
+@@ -110,7 +110,9 @@ void egl_context_t::onMakeCurrent(EGLSurface draw, EGLSurface read) {
      if (gl_extensions.isEmpty()) {
          // call the implementation's glGetString(GL_EXTENSIONS)
          const char* exts = (const char *)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
@@ -454,54 +416,75 @@ index d3ee76d..31e8c42 100644
 diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
 old mode 100644
 new mode 100755
-index c316ef6..7014288
+index fd72b23..36e27ec
 --- a/services/sensorservice/SensorService.cpp
 +++ b/services/sensorservice/SensorService.cpp
-@@ -778,12 +778,15 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+@@ -146,9 +146,10 @@ void SensorService::onFirstRef()
  
-     status_t err = sensor->batch(connection.get(), handle, reservedFlags, samplingPeriodNs,
-                                  maxBatchReportLatencyNs);
--
-     // Call flush() before calling activate() on the sensor. Wait for a first flush complete
-     // event before sending events on this connection. Ignore one-shot sensors which don't
-     // support flush(). Also if this sensor isn't already active, don't call flush().
-+    SensorDevice& device(SensorDevice::getInstance());
-+
-     if (err == NO_ERROR && sensor->getSensor().getReportingMode() != AREPORTING_MODE_ONE_SHOT &&
+                 aSensor = registerVirtualSensor( new OrientationSensor() );
+                 if (virtualSensorsNeeds & (1<<SENSOR_TYPE_ROTATION_VECTOR)) {
+-                    // if we are doing our own rotation-vector, also add
+-                    // the orientation sensor and remove the HAL provided one.
+-                    mUserSensorList.replaceAt(aSensor, orientationIndex);
++                    if (orientationIndex == -1) {
++                        // some sensor HALs don't provide an orientation sensor.
++                        mUserSensorList.add(aSensor);
++                    }
+                 }
+ 
+                 // virtual debugging sensors are not added to mUserSensorList
+@@ -918,20 +919,24 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+     // to maintain the on-change logic (any on-change events except the initial
+     // one should be trigger by a change in value). Also if this sensor isn't
+     // already active, don't call flush().
++    const SensorDevice& device(SensorDevice::getInstance());
+     if (err == NO_ERROR &&
+             sensor->getSensor().getReportingMode() != AREPORTING_MODE_ONE_SHOT &&
+             sensor->getSensor().getReportingMode() != AREPORTING_MODE_ON_CHANGE &&
              rec->getNumConnections() > 1) {
-+      if (device.getHalDeviceVersion() >= SENSORS_DEVICE_API_VERSION_1_1) {
-+
-         connection->setFirstFlushPending(handle, true);
-         status_t err_flush = sensor->flush(connection.get(), handle);
-         // Flush may return error if the underlying h/w sensor uses an older HAL.
-@@ -792,13 +795,19 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
-         } else {
-             connection->setFirstFlushPending(handle, false);
+-        connection->setFirstFlushPending(handle, true);
+-        status_t err_flush = sensor->flush(connection.get(), handle);
+-        // Flush may return error if the underlying h/w sensor uses an older HAL.
+-        if (err_flush == NO_ERROR) {
+-            rec->addPendingFlushConnection(connection.get());
+-        } else {
+-            connection->setFirstFlushPending(handle, false);
++        if (device.getHalDeviceVersion() >= SENSORS_DEVICE_API_VERSION_1_1) {
++            connection->setFirstFlushPending(handle, true);
++            status_t err_flush = sensor->flush(connection.get(), handle);
++            // Flush may return error if the underlying h/w sensor uses an older HAL.
++            if (err_flush == NO_ERROR) {
++                rec->addPendingFlushConnection(connection.get());
++            } else {
++                connection->setFirstFlushPending(handle, false);
++            }
          }
-+      }
      }
  
 +
      if (err == NO_ERROR) {
          ALOGD_IF(DEBUG_CONNECTIONS, "Calling activate on %d", handle);
          err = sensor->activate(connection.get(), true);
+@@ -954,6 +959,11 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+         mNextSensorRegIndex = (mNextSensorRegIndex + 1) % SENSOR_REGISTRATIONS_BUF_SIZE;
      }
  
++    if (device.getHalDeviceVersion() < SENSORS_DEVICE_API_VERSION_1_1) {
 +        // Pre-1.1 sensor HALs had no flush method, and relied on setDelay at init
-+    if (device.getHalDeviceVersion() < SENSORS_DEVICE_API_VERSION_1_1)
 +        sensor->setDelay(connection.get(), handle, samplingPeriodNs);
++    }
 +
-     if (err == NO_ERROR) {
-         connection->updateLooperRegistration(mLooper);
-     }
+     if (err != NO_ERROR) {
+         // batch/activate has failed, reset our state.
+         cleanupWithoutDisableLocked(connection, handle);
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
 old mode 100644
 new mode 100755
-index b2ff310..0dc8053
+index 9a7fcc5..45d1c30
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
 @@ -51,6 +51,10 @@ ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
- 	LOCAL_CFLAGS += -DTARGET_DISABLE_TRIPLE_BUFFERING
+     LOCAL_CFLAGS += -DTARGET_DISABLE_TRIPLE_BUFFERING
  endif
  
 +ifeq ($(BOARD_EGL_NEEDS_LEGACY_FB),true)
@@ -529,12 +512,10 @@ diff --git a/services/surfaceflinger/DisplayDevice.h b/services/surfaceflinger/D
 old mode 100644
 new mode 100755
 diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
-old mode 100644
-new mode 100755
-index 5e3dfab..6d60ac5
+index 5ff79a9..603058c 100755
 --- a/services/surfaceflinger/Layer.cpp
 +++ b/services/surfaceflinger/Layer.cpp
-@@ -129,7 +129,7 @@ void Layer::onFirstRef() {
+@@ -134,7 +134,7 @@ void Layer::onFirstRef() {
      mSurfaceFlingerConsumer->setName(mName);
  
  #ifdef TARGET_DISABLE_TRIPLE_BUFFERING
@@ -552,7 +533,7 @@ new mode 100755
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
 old mode 100644
 new mode 100755
-index 9981029..9bef6e7
+index 11f1894..ae2e72e
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
 @@ -25,6 +25,9 @@
@@ -565,7 +546,7 @@ index 9981029..9bef6e7
  
  #include <cutils/log.h>
  #include <cutils/properties.h>
-@@ -2768,12 +2771,18 @@ status_t SurfaceFlinger::onTransact(
+@@ -2907,12 +2910,18 @@ status_t SurfaceFlinger::onTransact(
              break;
          }
          case CAPTURE_SCREEN:
@@ -584,7 +565,7 @@ index 9981029..9bef6e7
                      !PermissionCache::checkPermission(sReadFramebuffer, pid, uid)) {
                  ALOGE("Permission Denial: "
                          "can't read framebuffer pid=%d, uid=%d", pid, uid);
-@@ -3094,9 +3103,18 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3248,9 +3257,18 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
              Mutex::Autolock _l(flinger->mStateLock);
              sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
              bool useReadPixels = this->useReadPixels && !flinger->mGpuToCpuSupported;
@@ -603,13 +584,13 @@ index 9981029..9bef6e7
 +                return BAD_VALUE;
 +            }
 +#endif
-             static_cast<GraphicProducerWrapper*>(producer->asBinder().get())->exit(result);
+             static_cast<GraphicProducerWrapper*>(IInterface::asBinder(producer).get())->exit(result);
              return true;
          }
-@@ -3227,8 +3245,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3386,8 +3404,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
  
-     status_t result = NO_ERROR;
-     if (native_window_api_connect(window, NATIVE_WINDOW_API_EGL) == NO_ERROR) {
+     status_t result = native_window_api_connect(window, NATIVE_WINDOW_API_EGL);
+     if (result == NO_ERROR) {
 -        uint32_t usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN |
 -                        GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_TEXTURE;
 +        uint32_t usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN;
@@ -619,7 +600,7 @@ index 9981029..9bef6e7
  
          int err = 0;
          err = native_window_set_buffers_dimensions(window, reqWidth, reqHeight);
-@@ -3365,6 +3385,139 @@ void SurfaceFlinger::checkScreenshot(size_t w, size_t s, size_t h, void const* v
+@@ -3524,6 +3544,139 @@ void SurfaceFlinger::checkScreenshot(size_t w, size_t s, size_t h, void const* v
      }
  }
  
@@ -759,7 +740,7 @@ index 9981029..9bef6e7
  // ---------------------------------------------------------------------------
  
  SurfaceFlinger::LayerVector::LayerVector() {
-@@ -3411,6 +3564,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
+@@ -3570,6 +3723,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
  }; // namespace android
  
  
@@ -767,7 +748,7 @@ index 9981029..9bef6e7
  #if defined(__gl_h_)
  #error "don't include gl/gl.h in this file"
  #endif
-@@ -3418,3 +3572,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
+@@ -3577,3 +3731,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
  #if defined(__gl2_h_)
  #error "don't include gl2/gl2.h in this file"
  #endif
@@ -775,10 +756,10 @@ index 9981029..9bef6e7
 diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
 old mode 100644
 new mode 100755
-index c0abff8..d198d4b
+index ba5b634..7e399f2
 --- a/services/surfaceflinger/SurfaceFlinger.h
 +++ b/services/surfaceflinger/SurfaceFlinger.h
-@@ -207,6 +207,13 @@ private:
+@@ -209,6 +209,13 @@ private:
              uint32_t minLayerZ, uint32_t maxLayerZ,
              bool useIdentityTransform, ISurfaceComposer::Rotation rotation,
              bool useReadPixels);
@@ -792,7 +773,7 @@ index c0abff8..d198d4b
      virtual status_t getDisplayStats(const sp<IBinder>& display,
              DisplayStatInfo* stats);
      virtual status_t getDisplayConfigs(const sp<IBinder>& display,
-@@ -331,6 +338,15 @@ private:
+@@ -333,6 +340,15 @@ private:
              bool useIdentityTransform, Transform::orientation_flags rotation,
              bool useReadPixels);
  

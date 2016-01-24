@@ -1,13 +1,12 @@
-project frameworks/av/
 diff --git a/include/media/AudioTrack.h b/include/media/AudioTrack.h
 old mode 100644
 new mode 100755
-index fd51b8f..e6341bc
+index e02f1b7..6387ae7
 --- a/include/media/AudioTrack.h
 +++ b/include/media/AudioTrack.h
-@@ -218,6 +218,19 @@ public:
-                                     pid_t pid = -1,
-                                     const audio_attributes_t* pAttributes = NULL);
+@@ -246,6 +246,19 @@ public:
+                                     const audio_attributes_t* pAttributes = NULL,
+                                     bool doNotReconnect = false);
  
 +#ifdef BOARD_OMX_NEEDS_LEGACY_AUDIO
 +                        explicit AudioTrack( int streamType,
@@ -25,7 +24,7 @@ index fd51b8f..e6341bc
      /* Terminates the AudioTrack and unregisters it from AudioFlinger.
       * Also destroys all resources associated with the AudioTrack.
       */
-@@ -266,28 +279,46 @@ public:
+@@ -296,28 +309,46 @@ public:
       * an uninitialized AudioTrack produces undefined results.
       * See set() method above for possible return codes.
       */
@@ -75,7 +74,7 @@ index fd51b8f..e6341bc
  
      /* Return the static buffer specified in constructor or set(), or 0 for streaming mode */
              sp<IMemory> sharedBuffer() const { return mSharedBuffer; }
-@@ -471,7 +502,11 @@ public:
+@@ -552,7 +583,11 @@ public:
       * Returned value:
       *  AudioTrack session ID.
       */
@@ -87,7 +86,7 @@ index fd51b8f..e6341bc
  
      /* Attach track auxiliary output to specified effect. Use effectId = 0
       * to detach track from effect.
-@@ -555,7 +590,8 @@ public:
+@@ -655,7 +690,8 @@ public:
       * false for the method to return immediately without waiting to try multiple times to write
       * the full content of the buffer.
       */
@@ -97,34 +96,13 @@ index fd51b8f..e6341bc
  
      /*
       * Dumps the state of an audio track.
-diff --git a/include/media/stagefright/MediaBufferGroup.h b/include/media/stagefright/MediaBufferGroup.h
-old mode 100644
-new mode 100755
-index a006f7f..2c0bf40
---- a/include/media/stagefright/MediaBufferGroup.h
-+++ b/include/media/stagefright/MediaBufferGroup.h
-@@ -34,12 +34,13 @@ public:
- 
-     void add_buffer(MediaBuffer *buffer);
- 
-+    status_t acquire_buffer( MediaBuffer **out);
-     // If nonBlocking is false, it blocks until a buffer is available and
-     // passes it to the caller in *buffer, while returning OK.
-     // The returned buffer will have a reference count of 1.
-     // If nonBlocking is true and a buffer is not immediately available,
-     // buffer is set to NULL and it returns WOULD_BLOCK.
--    status_t acquire_buffer(MediaBuffer **buffer, bool nonBlocking = false);
-+    status_t acquire_buffer(MediaBuffer **buffer, bool nonBlocking);
- 
- protected:
-     virtual void signalBufferReturned(MediaBuffer *buffer);
 diff --git a/media/libmedia/Android.mk b/media/libmedia/Android.mk
-index a2e0909..89595a3 100644
+index a3c3d3c..4d42b99 100644
 --- a/media/libmedia/Android.mk
 +++ b/media/libmedia/Android.mk
-@@ -64,6 +64,10 @@ LOCAL_SRC_FILES:= \
- 
- LOCAL_SRC_FILES += ../libnbaio/roundup.c
+@@ -69,6 +69,10 @@ LOCAL_SRC_FILES:= \
+     StringArray.cpp \
+     AudioPolicy.cpp
  
 +ifeq ($(BOARD_OMX_NEEDS_LEGACY_AUDIO),true)
 +	LOCAL_CFLAGS += -DBOARD_OMX_NEEDS_LEGACY_AUDIO
@@ -136,10 +114,10 @@ index a2e0909..89595a3 100644
 diff --git a/media/libmedia/AudioSystem.cpp b/media/libmedia/AudioSystem.cpp
 old mode 100644
 new mode 100755
-index 9cae21c..cceaec6
+index 3bfb09a..53f00a0
 --- a/media/libmedia/AudioSystem.cpp
 +++ b/media/libmedia/AudioSystem.cpp
-@@ -239,6 +239,13 @@ int AudioSystem::logToLinear(float volume)
+@@ -247,6 +247,13 @@ int AudioSystem::logToLinear(float volume)
      return volume ? 100 - int(dBConvertInverse * log(volume) + 0.5) : 0;
  }
  
@@ -153,7 +131,7 @@ index 9cae21c..cceaec6
  status_t AudioSystem::getOutputSamplingRate(uint32_t* samplingRate, audio_stream_type_t streamType)
  {
      audio_io_handle_t output;
-@@ -283,6 +290,13 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t output,
+@@ -286,6 +293,13 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t output,
      return NO_ERROR;
  }
  
@@ -167,7 +145,7 @@ index 9cae21c..cceaec6
  status_t AudioSystem::getOutputFrameCount(size_t* frameCount, audio_stream_type_t streamType)
  {
      audio_io_handle_t output;
-@@ -637,6 +651,14 @@ audio_policy_forced_cfg_t AudioSystem::getForceUse(audio_policy_force_use_t usag
+@@ -741,6 +755,14 @@ audio_policy_forced_cfg_t AudioSystem::getForceUse(audio_policy_force_use_t usag
  }
  
  
@@ -185,10 +163,10 @@ index 9cae21c..cceaec6
 diff --git a/media/libmedia/AudioTrack.cpp b/media/libmedia/AudioTrack.cpp
 old mode 100644
 new mode 100755
-index 389aacc..a11ee88
+index 444f4d8..1333932
 --- a/media/libmedia/AudioTrack.cpp
 +++ b/media/libmedia/AudioTrack.cpp
-@@ -52,6 +52,22 @@ static int64_t getNowUs()
+@@ -105,6 +105,22 @@ static size_t calculateMinFrameCount(
  }
  
  // static
@@ -211,7 +189,7 @@ index 389aacc..a11ee88
  status_t AudioTrack::getMinFrameCount(
          size_t* frameCount,
          audio_stream_type_t streamType,
-@@ -111,6 +127,33 @@ status_t AudioTrack::getMinFrameCount(
+@@ -160,6 +176,33 @@ status_t AudioTrack::getMinFrameCount(
  }
  
  // ---------------------------------------------------------------------------
@@ -245,7 +223,7 @@ index 389aacc..a11ee88
  
  AudioTrack::AudioTrack()
      : mStatus(NO_INIT),
-@@ -1393,6 +1436,7 @@ void AudioTrack::releaseBuffer(Buffer* audioBuffer)
+@@ -1576,6 +1619,7 @@ void AudioTrack::releaseBuffer(const Buffer* audioBuffer)
  
  // -------------------------------------------------------------------------
  
@@ -256,7 +234,7 @@ index 389aacc..a11ee88
 diff --git a/media/libstagefright/AudioPlayer.cpp b/media/libstagefright/AudioPlayer.cpp
 old mode 100644
 new mode 100755
-index e24824b..c56ffe8
+index dd9d393..bcddcf3
 --- a/media/libstagefright/AudioPlayer.cpp
 +++ b/media/libstagefright/AudioPlayer.cpp
 @@ -231,7 +231,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
@@ -268,65 +246,39 @@ index e24824b..c56ffe8
  
          if ((err = mAudioTrack->initCheck()) != OK) {
              mAudioTrack.clear();
-diff --git a/media/libstagefright/MediaBufferGroup.cpp b/media/libstagefright/MediaBufferGroup.cpp
-old mode 100644
-new mode 100755
-index f2ad949..bdc9d67
---- a/media/libstagefright/MediaBufferGroup.cpp
-+++ b/media/libstagefright/MediaBufferGroup.cpp
-@@ -55,12 +55,14 @@ void MediaBufferGroup::add_buffer(MediaBuffer *buffer) {
-     mLastBuffer = buffer;
- }
- 
--#ifdef USES_LEGACY_ACQUIRE_WVM
--status_t MediaBufferGroup::acquire_buffer(
--    MediaBuffer **out) {
--        return this->acquire_buffer(out, false);
--    }
-+#ifdef ADD_LEGACY_ACQUIRE_BUFFER_SYMBOL
-+extern "C" status_t _ZN7android16MediaBufferGroup14acquire_bufferEPPNS_11MediaBufferE(
-+    MediaBufferGroup* group, MediaBuffer **out) {
-+    return group->acquire_buffer(out, false);
-+}
- #endif
-+
-+status_t MediaBufferGroup::acquire_buffer( MediaBuffer **out) { return this->acquire_buffer(out, false); }
- status_t MediaBufferGroup::acquire_buffer(
-     MediaBuffer **out, bool nonBlocking) {
-         Mutex::Autolock autoLock(mLock);
 diff --git a/media/libstagefright/omx/Android.mk b/media/libstagefright/omx/Android.mk
 old mode 100644
 new mode 100755
-index aaa8334..e1fc285
+index 5f0f567..7900dcd
 --- a/media/libstagefright/omx/Android.mk
 +++ b/media/libstagefright/omx/Android.mk
-@@ -4,6 +4,9 @@ include $(CLEAR_VARS)
- ifeq ($(TARGET_DEVICE), manta)
-     LOCAL_CFLAGS += -DSURFACE_IS_BGR32
- endif
+@@ -32,6 +32,9 @@ LOCAL_SHARED_LIBRARIES :=               \
+ 
+ LOCAL_MODULE:= libstagefright_omx
+ LOCAL_CFLAGS += -Werror -Wall
 +ifeq ($(BOARD_USES_PROPRIETARY_OMX),TF101)
 +LOCAL_CFLAGS     += -DTF101_OMX
 +endif
+ LOCAL_CLANG := true
  
- LOCAL_SRC_FILES:=                     \
-         GraphicBufferSource.cpp       \
+ include $(BUILD_SHARED_LIBRARY)
 diff --git a/media/libstagefright/omx/OMXMaster.cpp b/media/libstagefright/omx/OMXMaster.cpp
 old mode 100644
 new mode 100755
-index ae3cb33..122f718
+index ae3cb33..8455dfb
 --- a/media/libstagefright/omx/OMXMaster.cpp
 +++ b/media/libstagefright/omx/OMXMaster.cpp
-@@ -45,6 +45,10 @@ OMXMaster::~OMXMaster() {
+@@ -44,6 +44,10 @@ OMXMaster::~OMXMaster() {
+ }
  
  void OMXMaster::addVendorPlugin() {
-     addPlugin("libstagefrighthw.so");
 +
 +#ifdef TF101_OMX
 +    addPlugin("libnvomx.so");
 +#endif
+     addPlugin("libstagefrighthw.so");
  }
  
- void OMXMaster::addPlugin(const char *libname) {
 @@ -68,6 +72,9 @@ void OMXMaster::addPlugin(const char *libname) {
  }
  
@@ -337,7 +289,7 @@ index ae3cb33..122f718
      Mutex::Autolock autoLock(mLock);
  
      mPlugins.push_back(plugin);
-@@ -106,13 +113,22 @@ void OMXMaster::clearPlugins() {
+@@ -106,13 +113,21 @@ void OMXMaster::clearPlugins() {
  
      mPluginByComponentName.clear();
  
@@ -349,7 +301,6 @@ index ae3cb33..122f718
 -        else
 -            delete *it;
 +        else {
-+           ALOGV("plugin %d", *it);
 +#ifdef TF101_OMX
 +           if( *it != NULL && plugin != 1) // 1st plugin is NV, crashes on delete => skip, better than crash for the moment
 +#endif
@@ -384,12 +335,10 @@ diff --git a/media/libstagefright/omx/SoftOMXComponent.cpp b/media/libstagefrigh
 old mode 100644
 new mode 100755
 diff --git a/media/libstagefright/omx/SoftOMXPlugin.cpp b/media/libstagefright/omx/SoftOMXPlugin.cpp
-old mode 100644
-new mode 100755
-index 9b6958a..ac87ebb
+index 0f9c00c..4251cce 100755
 --- a/media/libstagefright/omx/SoftOMXPlugin.cpp
 +++ b/media/libstagefright/omx/SoftOMXPlugin.cpp
-@@ -73,6 +73,7 @@ OMX_ERRORTYPE SoftOMXPlugin::makeComponentInstance(
+@@ -74,6 +74,7 @@ OMX_ERRORTYPE SoftOMXPlugin::makeComponentInstance(
          OMX_COMPONENTTYPE **component) {
      ALOGV("makeComponentInstance '%s'", name);
  

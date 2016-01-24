@@ -18,9 +18,9 @@ PRODUCT_PACKAGES := \
     SpareParts \
     PQiToggle \
     Development \
-    libmbm-ril \
     Stk \
-    Mms
+    Mms \
+#    libmbm-ril \
 
 DEVICE_PACKAGE_OVERLAYS += device/notionink/adam_3g/overlay
 
