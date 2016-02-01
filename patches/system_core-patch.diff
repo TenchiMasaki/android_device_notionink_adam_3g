@@ -1,3 +1,81 @@
+diff --git a/healthd/healthd_mode_charger.cpp b/healthd/healthd_mode_charger.cpp
+old mode 100644
+new mode 100755
+index 1b6e216..8657f48
+--- a/healthd/healthd_mode_charger.cpp
++++ b/healthd/healthd_mode_charger.cpp
+@@ -397,7 +397,7 @@ static void draw_battery(struct charger *charger)
+              batt_anim->cur_frame, frame->min_capacity,
+              frame->disp_time);
+     }
+-    healthd_board_mode_charger_draw_battery(batt_prop);
++    //healthd_board_mode_charger_draw_battery(batt_prop);
+ }
+ 
+ static void redraw_screen(struct charger *charger)
+@@ -451,7 +451,7 @@ static void update_screen_state(struct charger *charger, int64_t now)
+         gr_font_size(&char_width, &char_height);
+ 
+ #ifndef CHARGER_DISABLE_INIT_BLANK
+-        healthd_board_mode_charger_set_backlight(false);
++        //healthd_board_mode_charger_set_backlight(false);
+         gr_fb_blank(true);
+ #endif
+         minui_inited = true;
+@@ -461,7 +461,7 @@ static void update_screen_state(struct charger *charger, int64_t now)
+     if (batt_anim->cur_cycle == batt_anim->num_cycles) {
+         reset_animation(batt_anim);
+         charger->next_screen_transition = -1;
+-        healthd_board_mode_charger_set_backlight(false);
++        //healthd_board_mode_charger_set_backlight(false);
+         gr_fb_blank(true);
+         LOGV("[%" PRId64 "] animation done\n", now);
+         if (charger->charger_connected)
+@@ -495,7 +495,7 @@ static void update_screen_state(struct charger *charger, int64_t now)
+     /* unblank the screen on first cycle */
+     if (batt_anim->cur_cycle == 0) {
+         gr_fb_blank(false);
+-        healthd_board_mode_charger_set_backlight(true);
++        //healthd_board_mode_charger_set_backlight(true);
+     }
+ 
+     /* draw the new frame (@ cur_frame) */
+@@ -608,7 +608,7 @@ static void process_key(struct charger *charger, int code, int64_t now)
+                    accordingly. */
+                 if (property_get_bool("ro.enable_boot_charger_mode", false)) {
+                     LOGW("[%" PRId64 "] booting from charger mode\n", now);
+-                    healthd_board_mode_charger_set_backlight(false);
++                    //healthd_board_mode_charger_set_backlight(false);
+                     gr_fb_blank(true);
+                     property_set("sys.boot_from_charger_mode", "1");
+                 } else {
+@@ -639,7 +639,7 @@ static void process_key(struct charger *charger, int code, int64_t now)
+                 } else {
+                     reset_animation(batt_anim);
+                     charger->next_screen_transition = -1;
+-                    healthd_board_mode_charger_set_backlight(false);
++                    //healthd_board_mode_charger_set_backlight(false);
+                     gr_fb_blank(true);
+                     if (charger->charger_connected)
+                         request_suspend(true);
+@@ -673,7 +673,7 @@ static void handle_power_supply_state(struct charger *charger, int64_t now)
+     if (!charger->have_battery_state)
+         return;
+ 
+-    healthd_board_mode_charger_battery_update(batt_prop);
++    //healthd_board_mode_charger_battery_update(batt_prop);
+ 
+     if (batt_prop && batt_prop->batteryLevel >= 0) {
+         soc = batt_prop->batteryLevel;
+@@ -802,7 +802,7 @@ void healthd_mode_charger_init(struct healthd_config* config)
+ 
+     LOGW("--------------- STARTING CHARGER MODE ---------------\n");
+ 
+-    healthd_board_mode_charger_init();
++    //healthd_board_mode_charger_init();
+ 
+     ret = ev_init(input_callback, charger);
+     if (!ret) {
 diff --git a/include/utils/VectorImpl.h b/include/utils/VectorImpl.h
 old mode 100644
 new mode 100755
@@ -64,10 +142,10 @@ index ad65fdb..3d95a87
 diff --git a/libutils/VectorImpl.cpp b/libutils/VectorImpl.cpp
 old mode 100644
 new mode 100755
-index 30ca663..c4944cf
+index de65a6c..ffd552b
 --- a/libutils/VectorImpl.cpp
 +++ b/libutils/VectorImpl.cpp
-@@ -516,6 +516,17 @@ void VectorImpl::_do_move_backward(void* dest, const void* from, size_t num) con
+@@ -552,6 +552,17 @@ void VectorImpl::_do_move_backward(void* dest, const void* from, size_t num) con
      do_move_backward(dest, from, num);
  }
  
@@ -85,7 +163,7 @@ index 30ca663..c4944cf
  /*****************************************************************************/
  
  SortedVectorImpl::SortedVectorImpl(size_t itemSize, uint32_t flags)
-@@ -631,6 +642,17 @@ ssize_t SortedVectorImpl::remove(const void* item)
+@@ -667,6 +678,17 @@ ssize_t SortedVectorImpl::remove(const void* item)
      return i;
  }
  
@@ -106,10 +184,10 @@ index 30ca663..c4944cf
 diff --git a/sdcard/sdcard.c b/sdcard/sdcard.c
 old mode 100644
 new mode 100755
-index a79e2dd..b6e0b49
+index 13009aa..ad28be9
 --- a/sdcard/sdcard.c
 +++ b/sdcard/sdcard.c
-@@ -1756,7 +1756,7 @@ static int fuse_setup(struct fuse* fuse, gid_t gid, mode_t mask) {
+@@ -1773,7 +1773,7 @@ static int fuse_setup(struct fuse* fuse, gid_t gid, mode_t mask) {
              fuse->fd, fuse->global->uid, fuse->global->gid);
      if (mount("/dev/fuse", fuse->dest_path, "fuse", MS_NOSUID | MS_NODEV | MS_NOEXEC |
              MS_NOATIME, opts) != 0) {

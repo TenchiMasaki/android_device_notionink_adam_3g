@@ -1,33 +1,25 @@
 diff --git a/core/Makefile b/core/Makefile
 old mode 100644
 new mode 100755
-index 8e61f45..9ddd685
+index ecaffff..e4eb594
 --- a/core/Makefile
 +++ b/core/Makefile
-@@ -671,6 +671,8 @@ INTERNAL_USERIMAGES_DEPS += $(MKEXTUSERIMG) $(MAKE_EXT4FS) $(E2FSCK)
- ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
- INTERNAL_USERIMAGES_DEPS += $(MKF2FSUSERIMG) $(MAKE_F2FS)
- endif
+@@ -733,6 +733,8 @@ else
+ ifeq ($(TARGET_USERIMAGES_USE_EXT4),true)
+ INTERNAL_USERIMAGES_USE_EXT := true
+ INTERNAL_USERIMAGES_EXT_VARIANT := ext4
 +else
 +INTERNAL_USERIMAGES_DEPS := $(MKYAFFS2)
  endif
- 
- ifeq ($(BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE),squashfs)
-@@ -1230,6 +1232,7 @@ DISTTOOLS :=  $(HOST_OUT_EXECUTABLES)/minigzip \
- 	  $(HOST_OUT_EXECUTABLES)/mkbootfs \
- 	  $(HOST_OUT_EXECUTABLES)/mkbootimg \
- 	  $(HOST_OUT_EXECUTABLES)/fs_config \
-+	  $(HOST_OUT_EXECUTABLES)/mkyaffs2image \
- 	  $(HOST_OUT_EXECUTABLES)/zipalign \
- 	  $(HOST_OUT_EXECUTABLES)/bsdiff \
- 	  $(HOST_OUT_EXECUTABLES)/imgdiff \
+ endif
+ endif
 diff --git a/tools/releasetools/blockimgdiff.py b/tools/releasetools/blockimgdiff.py
 old mode 100644
 new mode 100755
-index 216486c..8f99cbf
+index a6c6bd8..b12cade
 --- a/tools/releasetools/blockimgdiff.py
 +++ b/tools/releasetools/blockimgdiff.py
-@@ -194,7 +194,7 @@ class BlockImageDiff(object):
+@@ -256,7 +256,7 @@ class BlockImageDiff(object):
      self.src = src
  
      # The updater code that installs the patch always uses 4k blocks.
@@ -36,30 +28,15 @@ index 216486c..8f99cbf
      assert src.blocksize == 4096
  
      # The range sets in each filemap should comprise a partition of
-@@ -247,12 +247,12 @@ class BlockImageDiff(object):
-       tgt_size = xf.tgt_ranges.size()
- 
-       if xf.style == "new":
--        assert xf.tgt_ranges
-+#        assert xf.tgt_ranges
-         out.append("%s %s\n" % (xf.style, xf.tgt_ranges.to_string_raw()))
-         total += tgt_size
-       elif xf.style == "move":
-         performs_read = True
--        assert xf.tgt_ranges
-+#        assert xf.tgt_ranges
-         assert xf.src_ranges.size() == tgt_size
-         if xf.src_ranges != xf.tgt_ranges:
-           out.append("%s %s %s\n" % (
 diff --git a/tools/releasetools/sparse_img.py b/tools/releasetools/sparse_img.py
 old mode 100644
 new mode 100755
-index 7574747..0b9c3c1
+index 07f3c1c..0fd6af4
 --- a/tools/releasetools/sparse_img.py
 +++ b/tools/releasetools/sparse_img.py
-@@ -41,17 +41,17 @@ class SparseImage(object):
+@@ -46,17 +46,17 @@ class SparseImage(object):
+     self.total_blocks = total_blks = header[6]
      total_chunks = header[7]
-     image_checksum = header[8]
  
 -    if magic != 0xED26FF3A:
 -      raise ValueError("Magic should be 0xED26FF3A but is 0x%08X" % (magic,))
@@ -83,3 +60,22 @@ index 7574747..0b9c3c1
  
      print("Total of %u %u-byte output blocks in %u input chunks."
            % (total_blks, blk_sz, total_chunks))
+diff --git a/tools/roomservice.py b/tools/roomservice.py
+index 038d796..ab7f644 100755
+--- a/tools/roomservice.py
++++ b/tools/roomservice.py
+@@ -264,10 +264,10 @@ def fetch_dependencies(device):
+         raise Exception("ERROR: could not find your device "
+                         "folder location, bailing out")
+     dependencies = parse_dependency_file(location)
+-    if dependencies is None:
+-        print("WARNING: %s file not found" % dep_location)
+-        sys.exit();
+-    create_dependency_manifest(dependencies)
++#    if dependencies is None:
++#        print("WARNING: %s file not found" % dep_location)
++#        sys.exit();
++#    create_dependency_manifest(dependencies)
+ 
+ 
+ def check_device_exists(device):

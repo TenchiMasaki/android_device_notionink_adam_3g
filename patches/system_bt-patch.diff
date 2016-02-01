@@ -1,113 +1,9 @@
 diff --git a/bta/dm/bta_dm_act.c b/bta/dm/bta_dm_act.c
 old mode 100644
 new mode 100755
-index eb49637..9b53dbd
---- a/bta/dm/bta_dm_act.c
-+++ b/bta/dm/bta_dm_act.c
-@@ -539,9 +539,17 @@ void bta_dm_set_dev_name (tBTA_DM_MSG *p_data)
- void bta_dm_set_visibility(tBTA_DM_MSG *p_data)
- {
-     UINT16 window, interval;
-+#if (BLE_INCLUDED == TRUE)
-     UINT16 le_disc_mode = BTM_BleReadDiscoverability();
-+#else
-+	UINT16 le_disc_mode = 0;
-+#endif
-     UINT16 disc_mode = BTM_ReadDiscoverability(&window, &interval);
-+#if (BLE_INCLUDED == TRUE)
-     UINT16 le_conn_mode = BTM_BleReadConnectability();
-+#else
-+	UINT16 le_conn_mode = 0;
-+#endif
-     UINT16 conn_mode = BTM_ReadConnectability(&window, &interval);
- 
-     /* set modes for Discoverability and connectability if not ignore */
-@@ -666,6 +674,7 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
-             if (!bdcmp(bta_dm_cb.device_list.peer_device[i].peer_bdaddr, p_dev->bd_addr))
-             {
-                 bta_dm_cb.device_list.peer_device[i].conn_state = BTA_DM_UNPAIRING;
-+#if 0
-                 btm_remove_acl( p_dev->bd_addr, bta_dm_cb.device_list.peer_device[i].transport);
-                 APPL_TRACE_DEBUG("%s:transport = %d", __func__,
-                                   bta_dm_cb.device_list.peer_device[i].transport);
-@@ -674,6 +683,7 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
-                 if(bta_dm_cb.device_list.peer_device[i].transport == BT_TRANSPORT_LE)
-                    other_transport = BT_TRANSPORT_BR_EDR;
-                 else
-+#endif
-                    other_transport = BT_TRANSPORT_LE;
-                 break;
-             }
-@@ -687,6 +697,7 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
-     // If it is DUMO device and device is paired as different address, unpair that device
-     // if different address
-     BOOLEAN continue_delete_other_dev = FALSE;
-+#if 0
-     if ((other_transport && (BTM_ReadConnectedTransportAddress(other_address, other_transport))) ||
-       (!other_transport && (BTM_ReadConnectedTransportAddress(other_address, BT_TRANSPORT_BR_EDR) ||
-        BTM_ReadConnectedTransportAddress(other_address, BT_TRANSPORT_LE))))
-@@ -708,6 +719,7 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
-         APPL_TRACE_DEBUG("%s: continue to delete the other dev ", __func__);
-         continue_delete_other_dev = TRUE;
-     }
-+#endif
- 
-     /* Delete the device mentioned in the msg */
-     if (continue_delete_dev)
-@@ -2314,6 +2326,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
-                             bta_dm_search_cb.p_btm_inq_info->appl_knows_rem_name);
-     }
- 
-+#if BLE_INCLUDED == TRUE
-     if((bta_dm_search_cb.p_btm_inq_info)
-        && (bta_dm_search_cb.p_btm_inq_info->results.device_type == BT_DEVICE_TYPE_BLE)
-        && (bta_dm_search_cb.state == BTA_DM_SEARCH_ACTIVE))
-@@ -2321,6 +2334,7 @@ static void bta_dm_discover_device(BD_ADDR remote_bd_addr)
-         /* Do not perform RNR for LE devices at inquiry complete*/
-         bta_dm_search_cb.name_discover_done = TRUE;
-     }
-+#endif
- 
-     /* if name discovery is not done and application needs remote name */
-     if ((!bta_dm_search_cb.name_discover_done)
 diff --git a/bta/dm/bta_dm_api.c b/bta/dm/bta_dm_api.c
 old mode 100644
 new mode 100755
-index 061e7ff..0b885c2
---- a/bta/dm/bta_dm_api.c
-+++ b/bta/dm/bta_dm_api.c
-@@ -919,6 +919,7 @@ void BTA_DmSetBlePrefConnParams(BD_ADDR bd_addr,
- *******************************************************************************/
- void BTA_DmSetBleConnScanParams(UINT32 scan_interval, UINT32 scan_window)
- {
-+#if BLE_INCLUDED == TRUE
-     tBTA_DM_API_BLE_SCAN_PARAMS  *p_msg;
-     if ((p_msg = (tBTA_DM_API_BLE_SCAN_PARAMS *)GKI_getbuf(sizeof(tBTA_DM_API_BLE_SCAN_PARAMS))) != NULL)
-     {
-@@ -928,6 +929,7 @@ void BTA_DmSetBleConnScanParams(UINT32 scan_interval, UINT32 scan_window)
-         p_msg->scan_window      = scan_window;
-         bta_sys_sendmsg(p_msg);
-     }
-+#endif
- }
- 
- /*******************************************************************************
-@@ -945,6 +947,7 @@ void BTA_DmSetBleConnScanParams(UINT32 scan_interval, UINT32 scan_window)
- ** Returns          void
- **
- *******************************************************************************/
-+#if BLE_INCLUDED == TRUE
- void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT32 scan_interval,
-                             UINT32 scan_window, tBLE_SCAN_MODE scan_mode,
-                             tBLE_SCAN_PARAM_SETUP_CBACK scan_param_setup_cback)
-@@ -964,6 +967,7 @@ void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT32 scan_interval,
-         bta_sys_sendmsg(p_msg);
-     }
- }
-+#endif
- 
- /*******************************************************************************
- **
 diff --git a/bta/dm/bta_dm_main.c b/bta/dm/bta_dm_main.c
 old mode 100644
 new mode 100755
@@ -129,21 +25,6 @@ index 7e8c506..8f7892c
 diff --git a/btif/include/btif_gatt_multi_adv_util.h b/btif/include/btif_gatt_multi_adv_util.h
 old mode 100644
 new mode 100755
-index f9d4a8d..a479259
---- a/btif/include/btif_gatt_multi_adv_util.h
-+++ b/btif/include/btif_gatt_multi_adv_util.h
-@@ -55,9 +55,11 @@ typedef struct
-     BOOLEAN is_scan_rsp;
-     UINT8 client_if;
-     UINT16 service_uuid_len;
-+#if BLE_INCLUDED==TRUE
-     tBTA_BLE_AD_MASK mask;
-     tBTA_BLE_ADV_DATA data;
-     tBTA_BLE_ADV_PARAMS param;
-+#endif
-     TIMER_LIST_ENT tle_limited_timer;
-     int timeout_s;
- }btgatt_multi_adv_inst_cb;
 diff --git a/btif/src/bluetooth.c b/btif/src/bluetooth.c
 old mode 100644
 new mode 100755
@@ -162,21 +43,6 @@ new mode 100755
 diff --git a/stack/btm/btm_acl.c b/stack/btm/btm_acl.c
 old mode 100644
 new mode 100755
-index b09f91b..b99a2c4
---- a/stack/btm/btm_acl.c
-+++ b/stack/btm/btm_acl.c
-@@ -927,9 +927,11 @@ void btm_read_remote_version_complete (UINT8 *p)
-                 STREAM_TO_UINT16 (p_acl_cb->lmp_subversion, p);
-             }
- 
-+#if (defined BLE_INCLUDED && BLE_INCLUDED == TRUE)
-             if (p_acl_cb->transport == BT_TRANSPORT_LE)
-                 l2cble_notify_le_connection (p_acl_cb->remote_addr);
-             break;
-+#endif
-         }
-     }
- }
 diff --git a/stack/btm/btm_int.h b/stack/btm/btm_int.h
 old mode 100644
 new mode 100755
