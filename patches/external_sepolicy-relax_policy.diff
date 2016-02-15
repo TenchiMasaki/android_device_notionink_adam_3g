@@ -145,7 +145,15 @@ index b6eeb2e..5e8719f
  )
  
  ifelse(shipping_build, `true',
-@@ -427,7 +428,7 @@ neverallow { domain -init } proc:{ file dir } mounton;
+@@ -414,6 +415,7 @@ neverallow domain {
+   -apk_data_file
+   -app_data_file
+   -asec_public_file
++  -zygote_exec
+ }:file execmod;
+ 
+ # TODO: prohibit non-zygote spawned processes from using shared libraries
+@@ -427,7 +429,7 @@ neverallow { domain -init } proc:{ file dir } mounton;
  # written on domain are applied to all processes.
  # This is achieved by ensuring that it is impossible to transition
  # from a domain to a non-domain type and vice versa.
