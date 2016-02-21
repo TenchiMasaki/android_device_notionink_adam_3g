@@ -1,0 +1,85 @@
+diff --git a/core/Makefile b/core/Makefile
+old mode 100644
+new mode 100755
+index 8e61f45..9ddd685
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -671,6 +671,8 @@ INTERNAL_USERIMAGES_DEPS += $(MKEXTUSERIMG) $(MAKE_EXT4FS) $(E2FSCK)
+ ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
+ INTERNAL_USERIMAGES_DEPS += $(MKF2FSUSERIMG) $(MAKE_F2FS)
+ endif
++else
++INTERNAL_USERIMAGES_DEPS := $(MKYAFFS2)
+ endif
+ 
+ ifeq ($(BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE),squashfs)
+@@ -1230,6 +1232,7 @@ DISTTOOLS :=  $(HOST_OUT_EXECUTABLES)/minigzip \
+ 	  $(HOST_OUT_EXECUTABLES)/mkbootfs \
+ 	  $(HOST_OUT_EXECUTABLES)/mkbootimg \
+ 	  $(HOST_OUT_EXECUTABLES)/fs_config \
++	  $(HOST_OUT_EXECUTABLES)/mkyaffs2image \
+ 	  $(HOST_OUT_EXECUTABLES)/zipalign \
+ 	  $(HOST_OUT_EXECUTABLES)/bsdiff \
+ 	  $(HOST_OUT_EXECUTABLES)/imgdiff \
+diff --git a/tools/releasetools/blockimgdiff.py b/tools/releasetools/blockimgdiff.py
+old mode 100644
+new mode 100755
+index 216486c..8f99cbf
+--- a/tools/releasetools/blockimgdiff.py
++++ b/tools/releasetools/blockimgdiff.py
+@@ -194,7 +194,7 @@ class BlockImageDiff(object):
+     self.src = src
+ 
+     # The updater code that installs the patch always uses 4k blocks.
+-    assert tgt.blocksize == 4096
++#    assert tgt.blocksize == 4096
+     assert src.blocksize == 4096
+ 
+     # The range sets in each filemap should comprise a partition of
+@@ -247,12 +247,12 @@ class BlockImageDiff(object):
+       tgt_size = xf.tgt_ranges.size()
+ 
+       if xf.style == "new":
+-        assert xf.tgt_ranges
++#        assert xf.tgt_ranges
+         out.append("%s %s\n" % (xf.style, xf.tgt_ranges.to_string_raw()))
+         total += tgt_size
+       elif xf.style == "move":
+         performs_read = True
+-        assert xf.tgt_ranges
++#        assert xf.tgt_ranges
+         assert xf.src_ranges.size() == tgt_size
+         if xf.src_ranges != xf.tgt_ranges:
+           out.append("%s %s %s\n" % (
+diff --git a/tools/releasetools/sparse_img.py b/tools/releasetools/sparse_img.py
+old mode 100644
+new mode 100755
+index 7574747..0b9c3c1
+--- a/tools/releasetools/sparse_img.py
++++ b/tools/releasetools/sparse_img.py
+@@ -41,17 +41,17 @@ class SparseImage(object):
+     total_chunks = header[7]
+     image_checksum = header[8]
+ 
+-    if magic != 0xED26FF3A:
+-      raise ValueError("Magic should be 0xED26FF3A but is 0x%08X" % (magic,))
++#    if magic != 0xED26FF3A:
++#      raise ValueError("Magic should be 0xED26FF3A but is 0x%08X" % (magic,))
+     if major_version != 1 or minor_version != 0:
+       raise ValueError("I know about version 1.0, but this is version %u.%u" %
+                        (major_version, minor_version))
+-    if file_hdr_sz != 28:
+-      raise ValueError("File header size was expected to be 28, but is %u." %
+-                       (file_hdr_sz,))
+-    if chunk_hdr_sz != 12:
+-      raise ValueError("Chunk header size was expected to be 12, but is %u." %
+-                       (chunk_hdr_sz,))
++#    if file_hdr_sz != 28:
++#      raise ValueError("File header size was expected to be 28, but is %u." %
++#                       (file_hdr_sz,))
++#    if chunk_hdr_sz != 12:
++#      raise ValueError("Chunk header size was expected to be 12, but is %u." %
++#                       (chunk_hdr_sz,))
+ 
+     print("Total of %u %u-byte output blocks in %u input chunks."
+           % (total_blks, blk_sz, total_chunks))

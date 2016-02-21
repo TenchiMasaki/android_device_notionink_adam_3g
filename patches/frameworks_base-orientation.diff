@@ -1,16 +1,66 @@
+diff --git a/core/res/res/values/config.xml b/core/res/res/values/config.xml
+old mode 100644
+new mode 100755
+index 6c96f84..ebe64bf
+--- a/core/res/res/values/config.xml
++++ b/core/res/res/values/config.xml
+@@ -2326,4 +2326,8 @@
+     <!-- The BT name of the keyboard packaged with the device. If this is defined, SystemUI will
+          automatically try to pair with it when the device exits tablet mode. -->
+     <string translatable="false" name="config_packagedKeyboardName"></string>
++    
++    <!-- Older sensors are not setting event.timestamp correctly.  Setting to
++          true will use SystemClock.elapsedRealtimeNanos() to set timestamp-->
++    <bool name="config_useSystemClockforSensors">false</bool>
+ </resources>
+diff --git a/core/res/res/values/symbols.xml b/core/res/res/values/symbols.xml
+old mode 100644
+new mode 100755
+index 1bfb06c..4922067
+--- a/core/res/res/values/symbols.xml
++++ b/core/res/res/values/symbols.xml
+@@ -2332,4 +2332,6 @@
+   <java-symbol type="drawable" name="platlogo_m" />
+ 
+   <java-symbol type="string" name="config_packagedKeyboardName" />
++  
++  <java-symbol type="bool" name="config_useSystemClockforSensors" />
+ </resources>
 diff --git a/services/core/java/com/android/server/policy/WindowOrientationListener.java b/services/core/java/com/android/server/policy/WindowOrientationListener.java
 old mode 100644
 new mode 100755
 index 9916223..dd95ef1
 --- a/services/core/java/com/android/server/policy/WindowOrientationListener.java
 +++ b/services/core/java/com/android/server/policy/WindowOrientationListener.java
+@@ -56,6 +56,7 @@ public abstract class WindowOrientationListener {
+     private int mRate;
+     private String mSensorType;
+     private Sensor mSensor;
++    private boolean museSystemClockforSensors;
+     private OrientationJudge mOrientationJudge;
+     private int mCurrentRotation = -1;
+ 
+@@ -105,9 +106,13 @@ public abstract class WindowOrientationListener {
+             }
+         }
+ 
++        museSystemClockforSensors = context.getResources().getBoolean(
++                com.android.internal.R.bool.config_useSystemClockforSensors);
++
+         if (mOrientationJudge == null) {
+             mSensor = mSensorManager.getDefaultSensor(USE_GRAVITY_SENSOR
+                     ? Sensor.TYPE_GRAVITY : Sensor.TYPE_ACCELEROMETER);
++
+             if (mSensor != null) {
+                 // Create listener only if sensors do exist
+                 mOrientationJudge = new AccelSensorJudge(context);
 @@ -598,7 +603,12 @@ public abstract class WindowOrientationListener {
                  // Reset the orientation listener state if the samples are too far apart in time
                  // or when we see values of (0, 0, 0) which indicates that we polled the
                  // accelerometer too soon after turning it on and we don't have any data yet.
 -                final long now = event.timestamp;
 +                final long now;
-+                if (true) {
++                if (museSystemClockforSensors) {
 +                    now = SystemClock.elapsedRealtimeNanos();
 +                } else {
 +                    now = event.timestamp;
