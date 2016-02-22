@@ -339,21 +339,6 @@ index 024a292..0749342
 diff --git a/media/libstagefright/omx/Android.mk b/media/libstagefright/omx/Android.mk
 old mode 100644
 new mode 100755
-index 5f0f567..3b081c4
---- a/media/libstagefright/omx/Android.mk
-+++ b/media/libstagefright/omx/Android.mk
-@@ -1,6 +1,11 @@
- LOCAL_PATH:= $(call my-dir)
- include $(CLEAR_VARS)
- 
-+
-+ifeq ($(BOARD_USES_PROPRIETARY_OMX),TF101)
-+LOCAL_CFLAGS     += -DTF101_OMX
-+endif
-+
- LOCAL_SRC_FILES:=                     \
-         FrameDropper.cpp              \
-         GraphicBufferSource.cpp       \
 diff --git a/media/libstagefright/omx/GraphicBufferSource.cpp b/media/libstagefright/omx/GraphicBufferSource.cpp
 old mode 100644
 new mode 100755
@@ -363,57 +348,6 @@ new mode 100755
 diff --git a/media/libstagefright/omx/OMXMaster.cpp b/media/libstagefright/omx/OMXMaster.cpp
 old mode 100644
 new mode 100755
-index ae3cb33..81f8068
---- a/media/libstagefright/omx/OMXMaster.cpp
-+++ b/media/libstagefright/omx/OMXMaster.cpp
-@@ -45,6 +45,13 @@ OMXMaster::~OMXMaster() {
- 
- void OMXMaster::addVendorPlugin() {
-     addPlugin("libstagefrighthw.so");
-+#ifdef SAMSUNG_OMX
-+    addPlugin("libsomxcore.so");
-+#endif
-+
-+#ifdef TF101_OMX
-+    addPlugin("libnvomx.so");
-+#endif
- }
- 
- void OMXMaster::addPlugin(const char *libname) {
-@@ -68,6 +75,9 @@ void OMXMaster::addPlugin(const char *libname) {
- }
- 
- void OMXMaster::addPlugin(OMXPluginBase *plugin) {
-+    if (plugin == 0) {
-+       return;
-+    }
-     Mutex::Autolock autoLock(mLock);
- 
-     mPlugins.push_back(plugin);
-@@ -106,13 +116,21 @@ void OMXMaster::clearPlugins() {
- 
-     mPluginByComponentName.clear();
- 
-+    int plugin = 1;
-     for (List<OMXPluginBase *>::iterator it = mPlugins.begin();
-             it != mPlugins.end(); ++it) {
-         if (destroyOMXPlugin)
-             destroyOMXPlugin(*it);
--        else
--            delete *it;
-+        else {
-+#ifdef TF101_OMX
-+           if( *it != NULL && plugin != 1) // 1st plugin is NV, crashes on delete => skip, better than crash for the moment
-+#endif
-+	      delete *it;
-+        }
-+
-+
-         *it = NULL;
-+	plugin++;
-     }
- 
-     mPlugins.clear();
 diff --git a/media/libstagefright/omx/SoftOMXComponent.cpp b/media/libstagefright/omx/SoftOMXComponent.cpp
 old mode 100644
 new mode 100755
