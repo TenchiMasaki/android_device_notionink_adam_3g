@@ -17,6 +17,9 @@ ro.opengles.version=131072
 ro.zygote.disable_gl_preload=true
 ro.opengles.surface.rgb565=true
 
+# 16bit Transparency
+persist.sys.use_16bpp_alpha=1
+
 # Used to enable or disable the use of PBOs on OpenGL ES 3.0 hardware.
 hwui.use_gpu_pixel_buffers=false
 
@@ -39,6 +42,7 @@ ro.hwui.disable_scissor_opt=true
 # Power Save tweaks
 ro.ril.disable.power.collapse=1
 pm.sleep_mode=1
+ro.config.hw_power_saving=true
 
 # keep launcher in memory
 sys.keep_app_1=com.android.launcher3
@@ -105,3 +109,6 @@ ro.config.low_ram=true
 
 # Disable JIT
 #dalvik.vm.jit.codecachesize=0
+
+# make sdcard writable to all
+persist.external_drive_world_rw=1
