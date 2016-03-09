@@ -1,0 +1,33 @@
+diff --git a/TrimTask.cpp b/TrimTask.cpp
+old mode 100644
+new mode 100755
+index 94bd097..87dcc81
+--- a/TrimTask.cpp
++++ b/TrimTask.cpp
+@@ -43,7 +43,7 @@ using android::base::StringPrintf;
+ 
+ namespace android {
+ namespace vold {
+-
++#if 0
+ static const char* kWakeLock = "TrimTask";
+ 
+ TrimTask::TrimTask(int flags) : mFlags(flags) {
+@@ -112,6 +112,7 @@ static void notifyResult(const std::string& path, int64_t bytes, int64_t delta)
+ }
+ 
+ void TrimTask::run() {
++#if 0
+     acquire_wake_lock(PARTIAL_WAKE_LOCK, kWakeLock);
+ 
+     for (auto path : mPaths) {
+@@ -149,7 +150,9 @@ void TrimTask::run() {
+     }
+ 
+     release_wake_lock(kWakeLock);
++#endif
+ }
++#endif
+ 
+ }  // namespace vold
+ }  // namespace android
