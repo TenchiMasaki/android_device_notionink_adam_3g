@@ -156,7 +156,7 @@ index 0000000..de8a57c
 +	subs	r0,r0,#1
 +	bx	lr
 diff --git a/libc/arch-arm/tegra2/bionic/memcpy.S b/libc/arch-arm/tegra2/bionic/memcpy.S
-new file mode 100755
+new file mode 100644
 index 0000000..f4465f4
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/memcpy.S
@@ -564,7 +564,7 @@ index 0000000..f4465f4
 +error_string:
 +        .string     "memcpy buffer overflow"
 diff --git a/libc/arch-arm/tegra2/bionic/memset.S b/libc/arch-arm/tegra2/bionic/memset.S
-new file mode 100755
+new file mode 100644
 index 0000000..ec95adc
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/memset.S
@@ -702,7 +702,7 @@ index 0000000..ec95adc
 +error_string:
 +        .string     "memset buffer overflow"
 diff --git a/libc/arch-arm/tegra2/bionic/strcmp.S b/libc/arch-arm/tegra2/bionic/strcmp.S
-new file mode 100755
+new file mode 100644
 index 0000000..94dff8d
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/strcmp.S
@@ -1085,7 +1085,7 @@ index 0000000..94dff8d
 +        bx      lr
 +END(strcmp)
 diff --git a/libc/arch-arm/tegra2/bionic/strcpy.S b/libc/arch-arm/tegra2/bionic/strcpy.S
-new file mode 100755
+new file mode 100644
 index 0000000..9ff7c4b
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/bionic/strcpy.S
@@ -1341,20 +1341,21 @@ index 0000000..125e92f
 +	bx	lr
 diff --git a/libc/arch-arm/tegra2/tegra2.mk b/libc/arch-arm/tegra2/tegra2.mk
 new file mode 100755
-index 0000000..a621eb1
+index 0000000..efd454c
 --- /dev/null
 +++ b/libc/arch-arm/tegra2/tegra2.mk
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,14 @@
 +libc_bionic_src_files_arm += \
-+    arch-arm/tegra2/bionic/memchr.S \
++    arch-arm/generic/bionic/memcmp.S \
 +    arch-arm/tegra2/bionic/memcpy.S \
 +    arch-arm/tegra2/bionic/memset.S \
-+    upstream-openbsd/lib/libc/string/strcat.c \
 +    arch-arm/tegra2/bionic/strcmp.S \
 +    arch-arm/tegra2/bionic/strcpy.S \
 +    arch-arm/tegra2/bionic/strlen.S \
 +    bionic/__strcat_chk.cpp \
 +    bionic/__strcpy_chk.cpp \
-+    bionic/memmove.c
-+    
-
++
++libc_openbsd_src_files_arm += \
++    upstream-openbsd/lib/libc/string/memmove.c \
++    upstream-openbsd/lib/libc/string/stpcpy.c \
++    upstream-openbsd/lib/libc/string/strcat.c \
