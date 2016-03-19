@@ -1,18 +1,3 @@
-diff --git a/Android.mk b/Android.mk
-old mode 100644
-new mode 100755
-index 1b903bd..cb62cfe
---- a/Android.mk
-+++ b/Android.mk
-@@ -5,7 +5,7 @@ include $(CLEAR_VARS)
- # SELinux policy version.
- # Must be <= /sys/fs/selinux/policyvers reported by the Android kernel.
- # Must be within the compatibility range reported by checkpolicy -V.
--POLICYVERS ?= 30
-+POLICYVERS ?= 26
- 
- MLS_SENS=1
- MLS_CATS=1024
 diff --git a/app.te b/app.te
 old mode 100644
 new mode 100755
@@ -31,7 +16,7 @@ index b08ce71..8f5bcd1
 diff --git a/domain.te b/domain.te
 old mode 100644
 new mode 100755
-index 11980d0..6ea22ea
+index 022c425..3f08a2f
 --- a/domain.te
 +++ b/domain.te
 @@ -173,7 +173,7 @@ allow domain { asec_public_file asec_apk_file }:dir r_dir_perms;
@@ -125,7 +110,7 @@ index 11980d0..6ea22ea
  
  # Nothing should be writing to files in the rootfs.
  neverallow { domain -lvm_placeholder } rootfs:file { create write setattr relabelto append unlink link rename };
-@@ -335,7 +336,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -340,7 +341,7 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -134,7 +119,7 @@ index 11980d0..6ea22ea
  
  # Require that domains explicitly label unknown properties, and do not allow
  # anyone but init to modify unknown properties.
-@@ -350,7 +351,7 @@ neverallow { domain -recovery } system_block_device:blk_file write;
+@@ -355,7 +356,7 @@ neverallow { domain -recovery } system_block_device:blk_file write;
  neverallow { domain -install_recovery -recovery } recovery_block_device:blk_file write;
  
  # Only servicemanager should be able to register with binder as the context manager
@@ -143,7 +128,7 @@ index 11980d0..6ea22ea
  
  # Only authorized processes should be writing to files in /data/dalvik-cache
  # (excluding /data/dalvik-cache/profiles, which is labeled differently)
-@@ -360,6 +361,8 @@ neverallow {
+@@ -365,6 +366,8 @@ neverallow {
    -zygote
    -installd
    -dex2oat
@@ -152,7 +137,7 @@ index 11980d0..6ea22ea
  } dalvikcache_data_file:file no_w_file_perms;
  
  neverallow {
-@@ -399,7 +402,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
+@@ -404,7 +407,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
  # Nobody should be able to execute su on user builds.
  # On userdebug/eng builds, only dumpstate, shell, and
  # su itself execute su.
@@ -161,7 +146,7 @@ index 11980d0..6ea22ea
  
  # Do not allow the introduction of new execmod rules. Text relocations
  # and modification of executable pages are unsafe.
-@@ -442,6 +445,9 @@ neverallow {
+@@ -447,6 +450,9 @@ neverallow {
    -system_server
    -system_app
    -init
@@ -192,28 +177,6 @@ index 1585b84..8fa0a50
  # init should never execute a program without changing to another domain.
 -neverallow init { file_type fs_type }:file execute_no_trans;
 +#neverallow init { file_type fs_type }:file execute_no_trans;
-diff --git a/ioctl_macros b/ioctl_macros
-old mode 100644
-new mode 100755
-index e71e0ce..1e5c5f3
---- a/ioctl_macros
-+++ b/ioctl_macros
-@@ -1,11 +1,12 @@
- # socket ioctls allowed to unprivileged apps
- define(`unpriv_sock_ioctls', `
- {
-+  ioctl
- # all socket ioctls except the Mac address SIOCGIFHWADDR 0x8927
--0x8900-0x8926 0x8928-0x89ff
-+# 0x8900-0x8926 0x8928-0x89ff
- # all wireless extensions ioctls except get/set essid
- # IOCSIWESSID 0x8B1A SIOCGIWESSID 0x8B1B
--0x8B00-0x8B09 0x8B1C-0x8BFF
-+# 0x8B00-0x8B09 0x8B1C-0x8BFF
- # commonly used TTY ioctls
--0x5411 0x5451
-+# 0x5411 0x5451
- }')
 diff --git a/logd.te b/logd.te
 old mode 100644
 new mode 100755
@@ -226,18 +189,3 @@ index b0d978f..2c79744
  # Write to files in /data/data or system files on /data
 -neverallow logd { app_data_file system_data_file }:dir_file_class_set write;
 +neverallow logd { app_data_file }:dir_file_class_set write;
-diff --git a/system_server.te b/system_server.te
-old mode 100644
-new mode 100755
-index 0b18eb4..3b2e2ef
---- a/system_server.te
-+++ b/system_server.te
-@@ -451,7 +451,7 @@ neverallow system_server { bluetooth_data_file nfc_data_file shell_data_file app
- # a bug (for example, bug 16317188), or represents an attempt by
- # system server to dynamically load a dex file, something we do not
- # want to allow.
--neverallow system_server dex2oat_exec:file no_x_file_perms;
-+#neverallow system_server dex2oat_exec:file no_x_file_perms;
- 
- # The only block device system_server should be accessing is
- # the frp_block_device. This helps avoid a system_server to root

@@ -268,28 +268,7 @@ new mode 100755
 index ae3cb33..8455dfb
 --- a/media/libstagefright/omx/OMXMaster.cpp
 +++ b/media/libstagefright/omx/OMXMaster.cpp
-@@ -44,6 +44,10 @@ OMXMaster::~OMXMaster() {
- }
- 
- void OMXMaster::addVendorPlugin() {
-+
-+#ifdef TF101_OMX
-+    addPlugin("libnvomx.so");
-+#endif
-     addPlugin("libstagefrighthw.so");
- }
- 
-@@ -68,6 +72,9 @@ void OMXMaster::addPlugin(const char *libname) {
- }
- 
- void OMXMaster::addPlugin(OMXPluginBase *plugin) {
-+    if (plugin == 0) {
-+       return;
-+    }
-     Mutex::Autolock autoLock(mLock);
- 
-     mPlugins.push_back(plugin);
-@@ -106,13 +113,21 @@ void OMXMaster::clearPlugins() {
+@@ -106,13 +116,21 @@ void OMXMaster::clearPlugins() {
  
      mPluginByComponentName.clear();
  
@@ -302,7 +281,7 @@ index ae3cb33..8455dfb
 -            delete *it;
 +        else {
 +#ifdef TF101_OMX
-+           if( *it != NULL && plugin != 1) // 1st plugin is NV, crashes on delete => skip, better than crash for the moment
++           if( *it != NULL && plugin != 1 && plugin != 2) // 1st plugin is NV, crashes on delete => skip, better than crash for the moment
 +#endif
 +	      delete *it;
 +        }
