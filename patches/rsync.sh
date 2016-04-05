@@ -33,4 +33,4 @@ for p in $(find device/notionink/adam_3g/patches/ -name "*.diff")
 
 cd $rootDir
 echo "Start repo sync"
-repo sync
+repo sync --force-sync
