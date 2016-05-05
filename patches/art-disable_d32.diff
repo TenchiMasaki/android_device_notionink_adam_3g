@@ -1,30 +1,18 @@
-diff --cc compiler/optimizing/code_generator_arm.cc
-index 3f28e64,e5de2ab..0000000
-mode 100644,100644..100755
+diff --git a/compiler/optimizing/code_generator_arm.cc b/compiler/optimizing/code_generator_arm.cc
+old mode 100644
+new mode 100755
+index 3f28e64..76c90ed
 --- a/compiler/optimizing/code_generator_arm.cc
 +++ b/compiler/optimizing/code_generator_arm.cc
-@@@ -49,10 -55,18 +49,6 @@@ static constexpr Register kCoreCalleeSa
-  static constexpr SRegister kFpuCalleeSaves[] =
-      { S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, S27, S28, S29, S30, S31 };
-  
-- // D31 cannot be split into two S registers, and the register allocator only works on
-- // S registers. Therefore there is no need to block it.
-- static constexpr DRegister DTMP = D31;
- -class InvokeRuntimeCallingConvention : public CallingConvention<Register, SRegister> {
- - public:
- -  InvokeRuntimeCallingConvention()
- -      : CallingConvention(kRuntimeParameterCoreRegisters,
- -                          kRuntimeParameterCoreRegistersLength,
- -                          kRuntimeParameterFpuRegisters,
- -                          kRuntimeParameterFpuRegistersLength) {}
- -
- - private:
- -  DISALLOW_COPY_AND_ASSIGN(InvokeRuntimeCallingConvention);
- -};
---
-  #define __ reinterpret_cast<ArmAssembler*>(codegen->GetAssembler())->
-  #define QUICK_ENTRY_POINT(x) QUICK_ENTRYPOINT_OFFSET(kArmWordSize, x).Int32Value()
-  
+@@ -51,7 +51,7 @@ static constexpr SRegister kFpuCalleeSaves[] =
+ 
+ // D31 cannot be split into two S registers, and the register allocator only works on
+ // S registers. Therefore there is no need to block it.
+-static constexpr DRegister DTMP = D31;
++static constexpr DRegister DTMP = D15;
+ 
+ #define __ reinterpret_cast<ArmAssembler*>(codegen->GetAssembler())->
+ #define QUICK_ENTRY_POINT(x) QUICK_ENTRYPOINT_OFFSET(kArmWordSize, x).Int32Value()
 diff --git a/compiler/utils/arm/constants_arm.h b/compiler/utils/arm/constants_arm.h
 old mode 100644
 new mode 100755
