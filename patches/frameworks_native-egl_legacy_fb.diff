@@ -352,7 +352,7 @@ index 4b7986e..6bfe6f3
 diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
 old mode 100644
 new mode 100755
-index 82bdd6b..7442c96
+index 82bdd6b..3e142ed
 --- a/libs/gui/SurfaceComposerClient.cpp
 +++ b/libs/gui/SurfaceComposerClient.cpp
 @@ -534,6 +534,25 @@ void SurfaceComposerClient::dispose() {
@@ -403,7 +403,7 @@ index 82bdd6b..7442c96
  int SurfaceComposerClient::getActiveConfig(const sp<IBinder>& display) {
      return ComposerService::getComposerService()->getActiveConfig(display);
  }
-@@ -690,8 +717,17 @@ status_t ScreenshotClient::capture(
+@@ -764,6 +791,14 @@ status_t ScreenshotClient::capture(
          uint32_t minLayerZ, uint32_t maxLayerZ, bool useIdentityTransform) {
      sp<ISurfaceComposer> s(ComposerService::getComposerService());
      if (s == NULL) return NO_INIT;
@@ -416,13 +416,9 @@ index 82bdd6b..7442c96
 +    }
 +#endif
      return s->captureScreen(display, producer, sourceCrop,
--            reqWidth, reqHeight, minLayerZ, maxLayerZ, useIdentityTransform);
-+            reqWidth, reqHeight, minLayerZ, maxLayerZ, useIdentityTransform,
-+            ISurfaceComposer::eRotateNone, false);
- }
- 
- ScreenshotClient::ScreenshotClient()
-@@ -719,6 +755,19 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+             reqWidth, reqHeight, minLayerZ, maxLayerZ, useIdentityTransform,
+             ISurfaceComposer::eRotateNone, SS_CPU_CONSUMER);
+@@ -794,6 +829,19 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
          bool useIdentityTransform, uint32_t rotation) {
      sp<ISurfaceComposer> s(ComposerService::getComposerService());
      if (s == NULL) return NO_INIT;
@@ -442,7 +438,7 @@ index 82bdd6b..7442c96
      sp<CpuConsumer> cpuConsumer = getCpuConsumer();
  
      if (mHaveBuffer) {
-@@ -813,6 +853,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+@@ -813,6 +861,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
          }
      }
      return err;
@@ -450,7 +446,7 @@ index 82bdd6b..7442c96
  }
  
  status_t ScreenshotClient::update(const sp<IBinder>& display,
-@@ -837,12 +878,16 @@ status_t ScreenshotClient::update(const sp<IBinder>& display, Rect sourceCrop,
+@@ -837,12 +886,16 @@ status_t ScreenshotClient::update(const sp<IBinder>& display, Rect sourceCrop,
  }
  
  void ScreenshotClient::release() {
@@ -765,7 +761,7 @@ new mode 100755
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
 old mode 100644
 new mode 100755
-index b27fc2b..229edb9
+index 43a0bd8..d7b3283
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
 @@ -26,6 +26,9 @@
@@ -778,7 +774,7 @@ index b27fc2b..229edb9
  
  #include <cutils/log.h>
  #include <cutils/iosched_policy.h>
-@@ -3008,12 +3011,18 @@ status_t SurfaceFlinger::onTransact(
+@@ -3015,12 +3018,18 @@ status_t SurfaceFlinger::onTransact(
              break;
          }
          case CAPTURE_SCREEN:
@@ -797,7 +793,7 @@ index b27fc2b..229edb9
                      !PermissionCache::checkPermission(sReadFramebuffer, pid, uid)) {
                  ALOGE("Permission Denial: "
                          "can't read framebuffer pid=%d, uid=%d", pid, uid);
-@@ -3349,9 +3358,18 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3358,9 +3367,18 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
              Mutex::Autolock _l(flinger->mStateLock);
              sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
              bool useReadPixels = this->useReadPixels && !flinger->mGpuToCpuSupported;
@@ -819,7 +815,7 @@ index b27fc2b..229edb9
              static_cast<GraphicProducerWrapper*>(IInterface::asBinder(producer).get())->exit(result);
              return true;
          }
-@@ -3495,8 +3513,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3504,8 +3522,10 @@ status_t SurfaceFlinger::captureScreenImplLocked(
  
      status_t result = native_window_api_connect(window, NATIVE_WINDOW_API_EGL);
      if (result == NO_ERROR) {
@@ -832,7 +828,7 @@ index b27fc2b..229edb9
  
          int err = 0;
          err = native_window_set_buffers_dimensions(window, reqWidth, reqHeight);
-@@ -3576,6 +3596,14 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3585,6 +3605,14 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                                  buf->unlock();
                              }
                          }
@@ -847,7 +843,7 @@ index b27fc2b..229edb9
                          if (DEBUG_SCREENSHOTS) {
                              uint32_t* pixels = new uint32_t[reqWidth*reqHeight];
                              getRenderEngine().readPixels(0, 0, reqWidth, reqHeight, pixels);
-@@ -3671,6 +3699,139 @@ void SurfaceFlinger::drawWormHoleIfRequired(HWComposer::LayerListIterator& /*cur
+@@ -3680,6 +3708,139 @@ void SurfaceFlinger::drawWormHoleIfRequired(HWComposer::LayerListIterator& /*cur
      drawWormhole(hw, region);
  }
  
@@ -987,7 +983,7 @@ index b27fc2b..229edb9
  // ---------------------------------------------------------------------------
  
  SurfaceFlinger::LayerVector::LayerVector() {
-@@ -3717,6 +3878,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
+@@ -3726,6 +3887,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
  }; // namespace android
  
  
@@ -995,7 +991,7 @@ index b27fc2b..229edb9
  #if defined(__gl_h_)
  #error "don't include gl/gl.h in this file"
  #endif
-@@ -3724,3 +3886,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
+@@ -3733,3 +3895,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(DisplayDevice::DisplayTyp
  #if defined(__gl2_h_)
  #error "don't include gl2/gl2.h in this file"
  #endif
