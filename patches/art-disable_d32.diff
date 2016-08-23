@@ -1,0 +1,54 @@
+diff --git a/compiler/optimizing/code_generator_arm.cc b/compiler/optimizing/code_generator_arm.cc
+old mode 100644
+new mode 100755
+index 3f28e64..76c90ed
+--- a/compiler/optimizing/code_generator_arm.cc
++++ b/compiler/optimizing/code_generator_arm.cc
+@@ -51,7 +51,7 @@ static constexpr SRegister kFpuCalleeSaves[] =
+ 
+ // D31 cannot be split into two S registers, and the register allocator only works on
+ // S registers. Therefore there is no need to block it.
+-static constexpr DRegister DTMP = D31;
++static constexpr DRegister DTMP = D15;
+ 
+ #define __ reinterpret_cast<ArmAssembler*>(codegen->GetAssembler())->
+ #define QUICK_ENTRY_POINT(x) QUICK_ENTRYPOINT_OFFSET(kArmWordSize, x).Int32Value()
+diff --git a/compiler/utils/arm/constants_arm.h b/compiler/utils/arm/constants_arm.h
+old mode 100644
+new mode 100755
+index 1513296..e6a2bdb
+--- a/compiler/utils/arm/constants_arm.h
++++ b/compiler/utils/arm/constants_arm.h
+@@ -38,6 +38,14 @@ namespace arm {
+ // Constants for specific fields are defined in their respective named enums.
+ // General constants are in an anonymous enum in class Instr.
+ 
++// We support both VFPv3-D16 and VFPv3-D32 profiles, but currently only one at
++// a time, so that compile time optimizations can be applied.
++// Warning: VFPv3-D32 is untested.
++#define VFPv3_D16
++#if defined(VFPv3_D16) == defined(VFPv3_D32)
++#error "Exactly one of VFPv3_D16 or VFPv3_D32 can be defined at a time."
++#endif
++
+ // 4 bits option for the dmb instruction.
+ // Order and values follows those of the ARM Architecture Reference Manual.
+ enum DmbOptions {
+@@ -74,6 +82,9 @@ enum DRegister {  // private marker to avoid generate-operator-out.py from proce
+   D13 = 13,
+   D14 = 14,
+   D15 = 15,
++#ifdef VFPv3_D16
++    kNumberOfDRegisters = 16,
++#else
+   D16 = 16,
+   D17 = 17,
+   D18 = 18,
+@@ -91,6 +102,7 @@ enum DRegister {  // private marker to avoid generate-operator-out.py from proce
+   D30 = 30,
+   D31 = 31,
+   kNumberOfDRegisters = 32,
++#endif
+   kNumberOfOverlappingDRegisters = 16,
+   kNoDRegister = -1,
+ };
