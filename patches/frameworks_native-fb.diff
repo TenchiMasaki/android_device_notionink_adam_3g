@@ -1,0 +1,15 @@
+diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
+old mode 100644
+new mode 100755
+index 0247723..347b108
+--- a/services/surfaceflinger/Layer.cpp
++++ b/services/surfaceflinger/Layer.cpp
+@@ -161,7 +161,7 @@ void Layer::onFirstRef() {
+     mSurfaceFlingerConsumer->setName(mName);
+ 
+ #ifdef TARGET_DISABLE_TRIPLE_BUFFERING
+-#warning "disabling triple buffering"
++//#warning "disabling triple buffering"
+ #else
+     mProducer->setMaxDequeuedBufferCount(2);
+ #endif

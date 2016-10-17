@@ -44,13 +44,32 @@ index 21ad71c..88c3a05
  private:
              ssize_t         _indexOrderOf(const void* item, size_t* order = 0) const;
  
+diff --git a/init/init.cpp b/init/init.cpp
+old mode 100644
+new mode 100755
+index 84da2b9..e63b10b
+--- a/init/init.cpp
++++ b/init/init.cpp
+@@ -334,10 +334,10 @@ static int set_mmap_rnd_bits_action(const std::vector<std::string>& args)
+     ERROR("Unknown architecture\n");
+ #endif
+ 
+-#ifdef __BRILLO__
++//#ifdef __BRILLO__
+     // TODO: b/27794137
+     ret = 0;
+-#endif
++//#endif
+     if (ret == -1) {
+         ERROR("Unable to set adequate mmap entropy value!\n");
+         security_failure();
 diff --git a/libutils/String8.cpp b/libutils/String8.cpp
 old mode 100644
 new mode 100755
-index 771d312..7eceb35
+index 755e0d1..23f9708
 --- a/libutils/String8.cpp
 +++ b/libutils/String8.cpp
-@@ -166,7 +166,9 @@ String8::String8(StaticLinkage)
+@@ -167,7 +167,9 @@ String8::String8(StaticLinkage)
  String8::String8(const String8& o)
      : mString(o.mString)
  {
