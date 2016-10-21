@@ -62,15 +62,15 @@ sys.keep_app_1=com.android.launcher3
 dalvik.gc.type=precise
 
 # Interpret only
-pm.dexopt.first-boot=interpret-only
-pm.dexopt.boot=verify-profile
-pm.dexopt.install=interpret-only
+# pm.dexopt.first-boot=interpret-only
+# pm.dexopt.boot=verify-profile
+# pm.dexopt.install=interpret-only
 
-dalvik.vm.dex2oat-filter=interpret-only
-dalvik.vm.image-dex2oat-filter=speed
+# dalvik.vm.dex2oat-filter=interpret-only
+# dalvik.vm.image-dex2oat-filter=speed
 
-# dalvik.vm.dex2oat-flags=--no-watch-dog
-# config.dex2oat-compiler-backend=Quick
+dalvik.vm.dex2oat-flags=--no-watch-dog
+config.dex2oat-compiler-backend=Quick
 dalvik.vm.dex2oat-swap=false
 
 # AMR Wideband provides improved speech quality compared to Narrowband speech coders
