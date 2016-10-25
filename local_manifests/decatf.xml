@@ -80,7 +80,7 @@
     <!--  -->
     <!-- Extras -->
     <!--  -->
-    <project path="external/busybox" name="CyanogenMod/android_external_busybox" remote="github" revision="cm-13.0" />
+<!--    <project path="external/busybox" name="CyanogenMod/android_external_busybox" remote="github" revision="cm-13.0" /> -->
     <project path="external/ffmpeg" name="CyanogenMod/android_external_ffmpeg"  revision="cm-14.0" remote="github"/>
     <project path="external/stagefright-plugins" name="CyanogenMod/android_external_stagefright-plugins"  revision="cm-14.0" remote="github"/>
 
