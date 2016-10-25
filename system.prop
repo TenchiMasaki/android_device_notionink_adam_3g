@@ -16,6 +16,7 @@ wifi.supplicant_scan_interval=180
 ro.opengles.version=131072
 ro.zygote.disable_gl_preload=true
 ro.opengles.surface.rgb565=true
+sys.max_texture_size=2048
 
 # 16bit Transparency
 persist.sys.use_16bpp_alpha=1
@@ -69,9 +70,9 @@ dalvik.gc.type=precise
 # dalvik.vm.dex2oat-filter=interpret-only
 # dalvik.vm.image-dex2oat-filter=speed
 
-dalvik.vm.dex2oat-flags=--no-watch-dog
-config.dex2oat-compiler-backend=Quick
-dalvik.vm.dex2oat-swap=false
+# dalvik.vm.dex2oat-flags=--no-watch-dog
+# config.dex2oat-compiler-backend=Quick
+# dalvik.vm.dex2oat-swap=false
 
 # AMR Wideband provides improved speech quality compared to Narrowband speech coders
 ro.ril.enable.amr.wideband=1
@@ -98,6 +99,7 @@ media.stagefright.enable-meta=true
 media.stagefright.enable-scan=true
 media.stagefright.enable-http=true
 media.stagefright.enable-record=true
+persist.sys.media.legacy-drm=true
 
 # Scrolling Responsiveness
 #windowsmgr.max_events_per_sec=90
@@ -117,3 +119,9 @@ ro.config.low_ram=true
 # make sdcard writable to all
 persist.external_drive_world_rw=1
 ro.sys.sdcardfs=true
+
+# bootloop fix
+sys.disable_ext_animation=1
+
+# enable multiwindow
+persist.sys.debug.multi_window=true
