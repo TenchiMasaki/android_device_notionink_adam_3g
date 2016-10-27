@@ -1,3 +1,17 @@
+diff --git a/opengl/libs/EGL/egl_object.cpp b/opengl/libs/EGL/egl_object.cpp
+old mode 100644
+new mode 100755
+index 90f27d1..af3d2fd
+--- a/opengl/libs/EGL/egl_object.cpp
++++ b/opengl/libs/EGL/egl_object.cpp
+@@ -124,6 +124,7 @@ void egl_context_t::onMakeCurrent(EGLSurface draw, EGLSurface read) {
+     if (gl_extensions.isEmpty()) {
+         // call the implementation's glGetString(GL_EXTENSIONS)
+         const char* exts = (const char *)gEGLImpl.hooks[version]->gl.glGetString(GL_EXTENSIONS);
++        if (!exts) return;
+         gl_extensions.setTo(exts);
+         if (gl_extensions.find("GL_EXT_debug_marker") < 0) {
+             String8 temp("GL_EXT_debug_marker ");
 diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
 old mode 100644
 new mode 100755
