@@ -1,0 +1,85 @@
+diff --git a/libs/gui/Android.mk b/libs/gui/Android.mk
+old mode 100644
+new mode 100755
+index 07e04d8..ec5ad26
+--- a/libs/gui/Android.mk
++++ b/libs/gui/Android.mk
+@@ -108,6 +108,10 @@ ifeq ($(TARGET_ICS_SENSOR_BLOB),true)
+ 	LOCAL_CPPFLAGS += -DICS_SENSOR_BLOB
+ endif
+ 
++ifeq ($(SENSORS_NEED_SETRATE_ON_ENABLE), true)
++        LOCAL_CFLAGS += -DSENSORS_SETRATE_ON_ENABLE
++endif
++
+ include $(BUILD_SHARED_LIBRARY)
+ 
+ ifeq (,$(ONE_SHOT_MAKEFILE))
+diff --git a/libs/gui/SensorEventQueue.cpp b/libs/gui/SensorEventQueue.cpp
+old mode 100644
+new mode 100755
+index 6d69839..766b4a0
+--- a/libs/gui/SensorEventQueue.cpp
++++ b/libs/gui/SensorEventQueue.cpp
+@@ -139,8 +139,14 @@ status_t SensorEventQueue::disableSensor(Sensor const* sensor) const {
+ 
+ status_t SensorEventQueue::enableSensor(int32_t handle, int32_t samplingPeriodUs,
+                                         int maxBatchReportLatencyUs, int reservedFlags) const {
+-    return mSensorEventConnection->enableDisable(handle, true, us2ns(samplingPeriodUs),
++    status_t err = mSensorEventConnection->enableDisable(handle, true, us2ns(samplingPeriodUs),
+                                                  us2ns(maxBatchReportLatencyUs), reservedFlags);
++    #ifdef SENSORS_SETRATE_ON_ENABLE
++    if (err == NO_ERROR) {
++        mSensorEventConnection->setEventRate(handle, us2ns(samplingPeriodUs));
++    }
++    #endif
++    return err;
+ }
+ 
+ status_t SensorEventQueue::flush() const {
+diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
+old mode 100644
+new mode 100755
+index fb83eff..4be9b4a
+--- a/services/sensorservice/SensorService.cpp
++++ b/services/sensorservice/SensorService.cpp
+@@ -1070,16 +1070,19 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+     // to maintain the on-change logic (any on-change events except the initial
+     // one should be trigger by a change in value). Also if this sensor isn't
+     // already active, don't call flush().
++    const SensorDevice& device(SensorDevice::getInstance());
+     if (err == NO_ERROR &&
+             sensor->getSensor().getReportingMode() == AREPORTING_MODE_CONTINUOUS &&
+             rec->getNumConnections() > 1) {
+-        connection->setFirstFlushPending(handle, true);
+-        status_t err_flush = sensor->flush(connection.get(), handle);
+-        // Flush may return error if the underlying h/w sensor uses an older HAL.
+-        if (err_flush == NO_ERROR) {
+-            rec->addPendingFlushConnection(connection.get());
+-        } else {
+-            connection->setFirstFlushPending(handle, false);
++        if (device.getHalDeviceVersion() >= SENSORS_DEVICE_API_VERSION_1_1) {
++            connection->setFirstFlushPending(handle, true);
++            status_t err_flush = sensor->flush(connection.get(), handle);
++            // Flush may return error if the underlying h/w sensor uses an older HAL.
++            if (err_flush == NO_ERROR) {
++                rec->addPendingFlushConnection(connection.get());
++            } else {
++                connection->setFirstFlushPending(handle, false);
++            }
+         }
+     }
+ 
+@@ -1105,6 +1108,11 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+         mNextSensorRegIndex = (mNextSensorRegIndex + 1) % SENSOR_REGISTRATIONS_BUF_SIZE;
+     }
+ 
++    if (device.getHalDeviceVersion() < SENSORS_DEVICE_API_VERSION_1_1) {
++        // Pre-1.1 sensor HALs had no flush method, and relied on setDelay at init
++        sensor->setDelay(connection.get(), handle, samplingPeriodNs);
++    }
++
+     if (err != NO_ERROR) {
+         // batch/activate has failed, reset our state.
+         cleanupWithoutDisableLocked(connection, handle);
+
