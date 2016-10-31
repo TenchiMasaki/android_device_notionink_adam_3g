@@ -1,0 +1,134 @@
+diff --git a/api/system-current.txt b/api/system-current.txt
+old mode 100644
+new mode 100755
+index d1c0394..481a9e6
+--- a/api/system-current.txt
++++ b/api/system-current.txt
+@@ -48971,9 +48971,7 @@ package android.webkit {
+ 
+   public static abstract interface WebViewProvider.ViewDelegate {
+     method public abstract boolean dispatchKeyEvent(android.view.KeyEvent);
+-    method public abstract android.view.View findFocus(android.view.View);
+     method public abstract android.view.accessibility.AccessibilityNodeProvider getAccessibilityNodeProvider();
+-    method public abstract android.os.Handler getHandler(android.os.Handler);
+     method public abstract void onActivityResult(int, int, android.content.Intent);
+     method public abstract void onAttachedToWindow();
+     method public abstract void onConfigurationChanged(android.content.res.Configuration);
+diff --git a/core/java/android/os/storage/StorageManager.java b/core/java/android/os/storage/StorageManager.java
+old mode 100644
+new mode 100755
+index 485bbd1..b834506
+--- a/core/java/android/os/storage/StorageManager.java
++++ b/core/java/android/os/storage/StorageManager.java
+@@ -1239,7 +1239,10 @@ public class StorageManager {
+             return mMountService.mountAppFuse(name);
+         } catch (RemoteException e) {
+             throw e.rethrowFromSystemServer();
++        } catch (IllegalStateException e) {
++            Log.e(TAG, "mountAppFuse(" + name + ") " + e.getMessage());
+         }
++        return null;
+     }
+ 
+     /// Consts to match the password types in cryptfs.h
+diff --git a/core/java/android/webkit/WebView.java b/core/java/android/webkit/WebView.java
+old mode 100644
+new mode 100755
+index f54edf1..ecace32
+--- a/core/java/android/webkit/WebView.java
++++ b/core/java/android/webkit/WebView.java
+@@ -32,7 +32,6 @@ import android.net.http.SslCertificate;
+ import android.net.Uri;
+ import android.os.Build;
+ import android.os.Bundle;
+-import android.os.Handler;
+ import android.os.Looper;
+ import android.os.Message;
+ import android.os.StrictMode;
+@@ -2643,16 +2642,6 @@ public class WebView extends AbsoluteLayout
+         mProvider.getViewDelegate().onFinishTemporaryDetach();
+     }
+ 
+-    @Override
+-    public Handler getHandler() {
+-        return mProvider.getViewDelegate().getHandler(super.getHandler());
+-    }
+-
+-    @Override
+-    public View findFocus() {
+-        return mProvider.getViewDelegate().findFocus(super.findFocus());
+-    }
+-
+     /**
+      * Receive the result from a previous call to {@link #startActivityForResult(Intent, int)}.
+      *
+diff --git a/core/java/android/webkit/WebViewProvider.java b/core/java/android/webkit/WebViewProvider.java
+old mode 100644
+new mode 100755
+index e5b65e7..94d231c
+--- a/core/java/android/webkit/WebViewProvider.java
++++ b/core/java/android/webkit/WebViewProvider.java
+@@ -28,7 +28,6 @@ import android.graphics.drawable.Drawable;
+ import android.net.http.SslCertificate;
+ import android.net.Uri;
+ import android.os.Bundle;
+-import android.os.Handler;
+ import android.os.Message;
+ import android.print.PrintDocumentAdapter;
+ import android.view.DragEvent;
+@@ -387,10 +386,6 @@ public interface WebViewProvider {
+         public void onFinishTemporaryDetach();
+ 
+         public void onActivityResult(int requestCode, int resultCode, Intent data);
+-
+-        public Handler getHandler(Handler originalHandler);
+-
+-        public View findFocus(View originalFocusedView);
+     }
+ 
+     interface ScrollDelegate {
+diff --git a/libs/hwui/renderthread/EglManager.cpp b/libs/hwui/renderthread/EglManager.cpp
+old mode 100644
+new mode 100755
+index ac6a28f..c162723
+--- a/libs/hwui/renderthread/EglManager.cpp
++++ b/libs/hwui/renderthread/EglManager.cpp
+@@ -339,6 +339,7 @@ bool EglManager::swapBuffers(const Frame& frame, const SkRect& screenDirty) {
+     frame.map(screenDirty, rects);
+     eglSwapBuffersWithDamageKHR(mEglDisplay, frame.mSurface, rects,
+             screenDirty.isEmpty() ? 0 : 1);
++    eglSwapBuffers(mEglDisplay, frame.mSurface);
+ 
+     EGLint err = eglGetError();
+     if (CC_LIKELY(err == EGL_SUCCESS)) {
+diff --git a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
+old mode 100644
+new mode 100755
+index 2a30229..2636559
+--- a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
++++ b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
+@@ -649,7 +649,7 @@ class AppWidgetServiceImpl extends IAppWidgetService.Stub implements WidgetBacku
+     }
+ 
+     private void ensureGroupStateLoadedLocked(int userId, boolean enforceUserUnlockingOrUnlocked) {
+-        if (enforceUserUnlockingOrUnlocked && !isUserRunningAndUnlocked(userId)) {
++        if (enforceUserUnlockingOrUnlocked && !mUserManager.isUserRunning(userId)) {
+             throw new IllegalStateException(
+                     "User " + userId + " must be unlocked for widgets to be available");
+         }
+diff --git a/services/core/java/com/android/server/AlarmManagerService.java b/services/core/java/com/android/server/AlarmManagerService.java
+old mode 100644
+new mode 100755
+index 3f59b02..a22b9b6
+--- a/services/core/java/com/android/server/AlarmManagerService.java
++++ b/services/core/java/com/android/server/AlarmManagerService.java
+@@ -2625,7 +2625,8 @@ class AlarmManagerService extends SystemService {
+                                 // is a repeating alarm, so toss the hoser.
+                                 removeImpl(alarm.operation);
+                             }
+-                        }
++                        } catch (Exception e) {
++						}
+                     }
+                     break;
+                 }
