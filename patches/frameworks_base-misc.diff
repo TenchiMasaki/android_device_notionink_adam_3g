@@ -1,0 +1,44 @@
+diff --git a/core/java/android/content/ContentResolver.java b/core/java/android/content/ContentResolver.java
+old mode 100644
+new mode 100755
+index b3320d6..a181f46
+--- a/core/java/android/content/ContentResolver.java
++++ b/core/java/android/content/ContentResolver.java
+@@ -1414,6 +1414,8 @@ public abstract class ContentResolver {
+             // Arbitrary and not worth documenting, as Activity
+             // Manager will kill this process shortly anyway.
+             return -1;
++        } catch (NullPointerException ef) {
++        	return -1;
+         } finally {
+             releaseProvider(provider);
+         }
+diff --git a/core/java/android/hardware/Camera.java b/core/java/android/hardware/Camera.java
+old mode 100644
+new mode 100755
+index acf0677..1023439
+--- a/core/java/android/hardware/Camera.java
++++ b/core/java/android/hardware/Camera.java
+@@ -4164,7 +4164,7 @@ public class Camera {
+         // Example string: "(10000,26623),(10000,30000)". Return null if the
+         // passing string is null or the size is 0.
+         private ArrayList<int[]> splitRange(String str) {
+-            if (str == null || str.charAt(0) != '('
++            if (str == null || str.length() == 0 || str.charAt(0) != '('
+                     || str.charAt(str.length() - 1) != ')') {
+                 Log.e(TAG, "Invalid range list string=" + str);
+                 return null;
+diff --git a/core/java/android/util/Log.java b/core/java/android/util/Log.java
+old mode 100644
+new mode 100755
+index 5bc6c94..3b86269
+--- a/core/java/android/util/Log.java
++++ b/core/java/android/util/Log.java
+@@ -233,6 +233,7 @@ public final class Log {
+      * @param msg The message you would like logged.
+      */
+     public static int e(String tag, String msg) {
++        if (tag == null || msg == null) return 0;
+         return println_native(LOG_ID_MAIN, ERROR, tag, msg);
+     }
+ 
