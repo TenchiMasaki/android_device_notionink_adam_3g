@@ -312,6 +312,36 @@ index 71bc94b..bb7693f
 +    return 0;
 +}
 +#endif
+diff --git a/libutils/RefBase.cpp b/libutils/RefBase.cpp
+index f90e28b..b08c8d6 100644
+--- a/libutils/RefBase.cpp
++++ b/libutils/RefBase.cpp
+@@ -378,6 +378,13 @@ private:
+ #endif
+ };
+ 
++class ReferenceConverterBase {
++public:
++    virtual size_t getReferenceTypeSize() const = 0;
++    virtual void* getReferenceBase(void const*) const = 0;
++    inline virtual ~ReferenceConverterBase() { }
++};
++
+ // ---------------------------------------------------------------------------
+ 
+ void RefBase::incStrong(const void* id) const
+@@ -710,6 +717,11 @@ void RefBase::onLastWeakRef(const void* /*id*/)
+ {
+ }
+ 
++extern "C" void _ZN7android7RefBase14moveReferencesEPvPKvjRKNS_22ReferenceConverterBaseE(void* /*dst*/, void const* /*src*/, size_t /*n*/,
++        const ReferenceConverterBase& /*caster*/)
++{
++}
++
+ // ---------------------------------------------------------------------------
+ 
+ #if DEBUG_REFS
 diff --git a/libutils/String8.cpp b/libutils/String8.cpp
 old mode 100644
 new mode 100755

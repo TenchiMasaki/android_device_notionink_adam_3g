@@ -1,10 +1,10 @@
 diff --git a/api/system-current.txt b/api/system-current.txt
 old mode 100644
 new mode 100755
-index d1c0394..481a9e6
+index c33fe6e..3c982cd
 --- a/api/system-current.txt
 +++ b/api/system-current.txt
-@@ -48971,9 +48971,7 @@ package android.webkit {
+@@ -49337,9 +49337,7 @@ package android.webkit {
  
    public static abstract interface WebViewProvider.ViewDelegate {
      method public abstract boolean dispatchKeyEvent(android.view.KeyEvent);
@@ -14,13 +14,58 @@ index d1c0394..481a9e6
      method public abstract void onActivityResult(int, int, android.content.Intent);
      method public abstract void onAttachedToWindow();
      method public abstract void onConfigurationChanged(android.content.res.Configuration);
+diff --git a/core/java/android/content/ContentResolver.java b/core/java/android/content/ContentResolver.java
+old mode 100644
+new mode 100755
+index b3320d6..a181f46
+--- a/core/java/android/content/ContentResolver.java
++++ b/core/java/android/content/ContentResolver.java
+@@ -1414,6 +1414,8 @@ public abstract class ContentResolver {
+             // Arbitrary and not worth documenting, as Activity
+             // Manager will kill this process shortly anyway.
+             return -1;
++        } catch (NullPointerException ef) {
++        	return -1;
+         } finally {
+             releaseProvider(provider);
+         }
+diff --git a/core/java/android/hardware/Camera.java b/core/java/android/hardware/Camera.java
+old mode 100644
+new mode 100755
+index acf0677..1023439
+--- a/core/java/android/hardware/Camera.java
++++ b/core/java/android/hardware/Camera.java
+@@ -4164,7 +4164,7 @@ public class Camera {
+         // Example string: "(10000,26623),(10000,30000)". Return null if the
+         // passing string is null or the size is 0.
+         private ArrayList<int[]> splitRange(String str) {
+-            if (str == null || str.charAt(0) != '('
++            if (str == null || str.length() == 0 || str.charAt(0) != '('
+                     || str.charAt(str.length() - 1) != ')') {
+                 Log.e(TAG, "Invalid range list string=" + str);
+                 return null;
+diff --git a/core/java/android/inputmethodservice/IInputMethodWrapper.java b/core/java/android/inputmethodservice/IInputMethodWrapper.java
+index 167d5a0..d9cd3f58 100644
+--- a/core/java/android/inputmethodservice/IInputMethodWrapper.java
++++ b/core/java/android/inputmethodservice/IInputMethodWrapper.java
+@@ -287,6 +287,10 @@ class IInputMethodWrapper extends IInputMethod.Stub
+     @Override
+     public void setSessionEnabled(IInputMethodSession session, boolean enabled) {
+         try {
++			if (session == null) {
++                Log.w(TAG, "No Session");
++                return;
++			}
+             InputMethodSession ls = ((IInputMethodSessionWrapper)
+                     session).getInternalInputMethodSession();
+             if (ls == null) {
 diff --git a/core/java/android/os/storage/StorageManager.java b/core/java/android/os/storage/StorageManager.java
 old mode 100644
 new mode 100755
-index 485bbd1..b834506
+index c5507b9..7c9b320
 --- a/core/java/android/os/storage/StorageManager.java
 +++ b/core/java/android/os/storage/StorageManager.java
-@@ -1239,7 +1239,10 @@ public class StorageManager {
+@@ -1286,7 +1286,10 @@ public class StorageManager {
              return mMountService.mountAppFuse(name);
          } catch (RemoteException e) {
              throw e.rethrowFromSystemServer();
@@ -31,6 +76,20 @@ index 485bbd1..b834506
      }
  
      /// Consts to match the password types in cryptfs.h
+diff --git a/core/java/android/util/Log.java b/core/java/android/util/Log.java
+old mode 100644
+new mode 100755
+index 5bc6c94..3b86269
+--- a/core/java/android/util/Log.java
++++ b/core/java/android/util/Log.java
+@@ -233,6 +233,7 @@ public final class Log {
+      * @param msg The message you would like logged.
+      */
+     public static int e(String tag, String msg) {
++        if (tag == null || msg == null) return 0;
+         return println_native(LOG_ID_MAIN, ERROR, tag, msg);
+     }
+ 
 diff --git a/core/java/android/webkit/WebView.java b/core/java/android/webkit/WebView.java
 old mode 100644
 new mode 100755
@@ -87,6 +146,37 @@ index e5b65e7..94d231c
      }
  
      interface ScrollDelegate {
+diff --git a/core/jni/AndroidRuntime.cpp b/core/jni/AndroidRuntime.cpp
+old mode 100644
+new mode 100755
+index 315887d..8de730a
+--- a/core/jni/AndroidRuntime.cpp
++++ b/core/jni/AndroidRuntime.cpp
+@@ -629,6 +629,7 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
+     char methodTraceFileBuf[sizeof("-Xmethod-trace-file:") + PROPERTY_VALUE_MAX];
+     char methodTraceFileSizeBuf[sizeof("-Xmethod-trace-file-size:") + PROPERTY_VALUE_MAX];
+     char fingerprintBuf[sizeof("-Xfingerprint:") + PROPERTY_VALUE_MAX];
++    char compilerBackendBuf[sizeof("--compiler-backend=") + PROPERTY_VALUE_MAX];
+ 
+     bool checkJni = false;
+     property_get("dalvik.vm.checkjni", propBuf, "");
+@@ -899,6 +900,16 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
+     parseRuntimeOption("dalvik.vm.zygote.max-boot-retry", cachePruneBuf,
+                        "-Xzygote-max-boot-retry=");
+ 
++    // Specify the compiler backend
++    property_get("config.dex2oat-compiler-backend", propBuf, "");
++    if (strcmp(propBuf, "Optimizing") == 0 || strcmp(propBuf, "Quick") == 0) {
++        snprintf(compilerBackendBuf, sizeof(compilerBackendBuf), "--compiler-backend=%s", propBuf);
++        addOption("-Xcompiler-option");
++        addOption(compilerBackendBuf);
++        addOption("-Ximage-compiler-option");
++        addOption(compilerBackendBuf);
++    }
++
+     /*
+      * When running with debug.generate-debug-info, add --generate-debug-info to
+      * the compiler options so that the boot image, if it is compiled on device,
 diff --git a/libs/hwui/renderthread/EglManager.cpp b/libs/hwui/renderthread/EglManager.cpp
 old mode 100644
 new mode 100755
@@ -101,13 +191,82 @@ index ac6a28f..c162723
  
      EGLint err = eglGetError();
      if (CC_LIKELY(err == EGL_SUCCESS)) {
+diff --git a/media/java/android/mtp/MtpDatabase.java b/media/java/android/mtp/MtpDatabase.java
+index 760a2d1..21aed9a 100755
+--- a/media/java/android/mtp/MtpDatabase.java
++++ b/media/java/android/mtp/MtpDatabase.java
+@@ -945,6 +945,7 @@ public class MtpDatabase implements AutoCloseable {
+                             ID_WHERE, new String[] {  Integer.toString(handle) }, null, null);
+             if (c != null && c.moveToNext()) {
+                 String path = c.getString(1);
++                if (path == null) return MtpConstants.RESPONSE_INVALID_OBJECT_HANDLE;
+                 path.getChars(0, path.length(), outFilePath, 0);
+                 outFilePath[path.length()] = 0;
+                 // File transfers from device to host will likely fail if the size is incorrect.
+diff --git a/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java b/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java
+old mode 100644
+new mode 100755
+index cd78e61..a6e436f
+--- a/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java
++++ b/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java
+@@ -67,8 +67,12 @@ public class AppFuse {
+     void mount(StorageManager storageManager) throws IOException {
+         Preconditions.checkState(mDeviceFd == null);
+         mDeviceFd = storageManager.mountAppFuse(mName);
+-        mMessageThread = new AppFuseMessageThread(mDeviceFd.dup().detachFd());
+-        mMessageThread.start();
++        if(mDeviceFd == null) {
++            Log.e(MtpDocumentsProvider.TAG, "mount() mDeviceFd == null");
++        } else {
++            mMessageThread = new AppFuseMessageThread(mDeviceFd.dup().detachFd());
++            mMessageThread.start();
++        }
+     }
+ 
+     @VisibleForTesting
+diff --git a/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java b/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
+old mode 100644
+new mode 100755
+index d789477..df615d6
+--- a/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
++++ b/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
+@@ -433,6 +433,7 @@ class GlobalScreenshot {
+ 
+     private MediaActionSound mCameraSound;
+ 
++    private final int mSfHwRotation;
+ 
+     /**
+      * @param context everything needs a context :(
+@@ -503,6 +504,9 @@ class GlobalScreenshot {
+         // Setup the Camera shutter sound
+         mCameraSound = new MediaActionSound();
+         mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
++
++        // Load hardware rotation from prop
++        mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
+     }
+ 
+     /**
+@@ -547,7 +551,10 @@ class GlobalScreenshot {
+         // only in the natural orientation of the device :!)
+         mDisplay.getRealMetrics(mDisplayMetrics);
+         float[] dims = {mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels};
+-        float degrees = getDegreesForRotation(mDisplay.getRotation());
++        int rot = mDisplay.getRotation();
++        // Allow for abnormal hardware orientation
++        rot = (rot + mSfHwRotation) % 4;
++        float degrees = getDegreesForRotation(rot);
+         boolean requiresRotation = (degrees > 0);
+         if (requiresRotation) {
+             // Get the dimensions of the device in its native orientation
 diff --git a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
 old mode 100644
 new mode 100755
-index 2a30229..2636559
+index 9d3889b..4226cf1
 --- a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
 +++ b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
-@@ -649,7 +649,7 @@ class AppWidgetServiceImpl extends IAppWidgetService.Stub implements WidgetBacku
+@@ -652,7 +652,7 @@ class AppWidgetServiceImpl extends IAppWidgetService.Stub implements WidgetBacku
      }
  
      private void ensureGroupStateLoadedLocked(int userId, boolean enforceUserUnlockingOrUnlocked) {
@@ -119,10 +278,10 @@ index 2a30229..2636559
 diff --git a/services/core/java/com/android/server/AlarmManagerService.java b/services/core/java/com/android/server/AlarmManagerService.java
 old mode 100644
 new mode 100755
-index 3f59b02..a22b9b6
+index 20cca16..48a25e3
 --- a/services/core/java/com/android/server/AlarmManagerService.java
 +++ b/services/core/java/com/android/server/AlarmManagerService.java
-@@ -2625,7 +2625,8 @@ class AlarmManagerService extends SystemService {
+@@ -2629,7 +2629,8 @@ class AlarmManagerService extends SystemService {
                                  // is a repeating alarm, so toss the hoser.
                                  removeImpl(alarm.operation);
                              }
@@ -132,3 +291,235 @@ index 3f59b02..a22b9b6
                      }
                      break;
                  }
+diff --git a/services/core/java/com/android/server/pm/DefaultPermissionGrantPolicy.java b/services/core/java/com/android/server/pm/DefaultPermissionGrantPolicy.java
+old mode 100644
+new mode 100755
+index ded85f3..c89ba93
+--- a/services/core/java/com/android/server/pm/DefaultPermissionGrantPolicy.java
++++ b/services/core/java/com/android/server/pm/DefaultPermissionGrantPolicy.java
+@@ -660,6 +660,92 @@ final class DefaultPermissionGrantPolicy {
+                     && doesPackageSupportRuntimePermissions(storageManagerPckg)) {
+                 grantRuntimePermissionsLPw(storageManagerPckg, STORAGE_PERMISSIONS, true, userId);
+             }
++
++            // Google Account
++            PackageParser.Package googleaccountPackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.gsf.login", userId);
++            if (googleaccountPackage != null) {
++                grantRuntimePermissionsLPw(googleaccountPackage, CONTACTS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleaccountPackage, PHONE_PERMISSIONS, userId);
++            }
++
++            // Google App
++            PackageParser.Package googleappPackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.googlequicksearchbox", userId);
++            if (googleappPackage != null) {
++                grantRuntimePermissionsLPw(googleappPackage, CALENDAR_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleappPackage, CAMERA_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleappPackage, CONTACTS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleappPackage, LOCATION_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleappPackage, MICROPHONE_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleappPackage, PHONE_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleappPackage, SMS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(googleappPackage, STORAGE_PERMISSIONS, userId);
++            }
++
++            // Google Play Services
++            PackageParser.Package gmscorePackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.gms", userId);
++            if (gmscorePackage != null) {
++                grantRuntimePermissionsLPw(gmscorePackage, SENSORS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, CALENDAR_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, CAMERA_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, CONTACTS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, LOCATION_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, MICROPHONE_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, PHONE_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, SMS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gmscorePackage, STORAGE_PERMISSIONS, userId);
++            }
++
++			// Google Connectivity Services
++            PackageParser.Package gcsPackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.apps.gcs", userId);
++            if (gcsPackage != null) {
++                grantRuntimePermissionsLPw(gcsPackage, CONTACTS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gcsPackage, LOCATION_PERMISSIONS, userId);
++            }
++
++			// Google Contacts Sync
++            PackageParser.Package googlecontactssyncPackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.syncadapters.contacts", userId);
++            if (googlecontactssyncPackage != null) {
++                grantRuntimePermissionsLPw(googlecontactssyncPackage, CONTACTS_PERMISSIONS, userId);
++            }			
++
++			// Google Backup Transport
++            PackageParser.Package googlebackuptransportPackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.backuptransport", userId);
++            if (googlebackuptransportPackage != null) {
++                grantRuntimePermissionsLPw(googlebackuptransportPackage, CONTACTS_PERMISSIONS, userId);
++            }			
++			
++			// Google Play Framework
++            PackageParser.Package gsfcorePackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.gsf", userId);
++            if (gsfcorePackage != null) {
++                grantRuntimePermissionsLPw(gsfcorePackage, CONTACTS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(gsfcorePackage, PHONE_PERMISSIONS, userId);
++            }		
++
++			// Google Setup Wizard
++            PackageParser.Package setupwizardPackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.google.android.setupwizard", userId);
++            if (setupwizardPackage != null) {
++                grantRuntimePermissionsLPw(setupwizardPackage, CONTACTS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(setupwizardPackage, PHONE_PERMISSIONS, userId);
++            }	
++
++			// Google Play Store
++            PackageParser.Package vendingPackage = getDefaultProviderAuthorityPackageLPr(
++                    "com.android.vending", userId);
++            if (vendingPackage != null) {
++                grantRuntimePermissionsLPw(vendingPackage, CONTACTS_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(vendingPackage, PHONE_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(vendingPackage, LOCATION_PERMISSIONS, userId);
++                grantRuntimePermissionsLPw(vendingPackage, SMS_PERMISSIONS, userId);
++            }
++
+             mService.mSettings.onDefaultRuntimePermissionsGrantedLPr(userId);
+         }
+     }
+@@ -683,7 +769,9 @@ final class DefaultPermissionGrantPolicy {
+         if (doesPackageSupportRuntimePermissions(smsPackage)) {
+             grantRuntimePermissionsLPw(smsPackage, PHONE_PERMISSIONS, userId);
+             grantRuntimePermissionsLPw(smsPackage, CONTACTS_PERMISSIONS, userId);
++            grantRuntimePermissionsLPw(smsPackage, PHONE_PERMISSIONS, userId);
+             grantRuntimePermissionsLPw(smsPackage, SMS_PERMISSIONS, userId);
++            grantRuntimePermissionsLPw(smsPackage, STORAGE_PERMISSIONS, true, userId);
+         }
+     }
+ 
+diff --git a/services/core/java/com/android/server/policy/WindowOrientationListener.java b/services/core/java/com/android/server/policy/WindowOrientationListener.java
+old mode 100644
+new mode 100755
+index 8ef0acb..5e021b8
+--- a/services/core/java/com/android/server/policy/WindowOrientationListener.java
++++ b/services/core/java/com/android/server/policy/WindowOrientationListener.java
+@@ -592,7 +592,12 @@ public abstract class WindowOrientationListener {
+                 // Reset the orientation listener state if the samples are too far apart in time
+                 // or when we see values of (0, 0, 0) which indicates that we polled the
+                 // accelerometer too soon after turning it on and we don't have any data yet.
+-                final long now = event.timestamp;
++                final long now;
++                if (true) {
++                    now = SystemClock.elapsedRealtimeNanos();
++                } else {
++                    now = event.timestamp;
++                }
+                 final long then = mLastFilteredTimestampNanos;
+                 final float timeDeltaMS = (now - then) * 0.000001f;
+                 final boolean skipSample;
+@@ -689,10 +694,11 @@ public abstract class WindowOrientationListener {
+                                 // atan2 returns [-180, 180]; normalize to [0, 360]
+                                 orientationAngle += 360;
+                             }
++                            if(orientationAngle > 360) orientationAngle = 0; // protection for sensor sending bad values
+ 
+                             // Find the nearest rotation.
+                             int nearestRotation = (orientationAngle + 45) / 90;
+-                            if (nearestRotation == 4) {
++                            if (nearestRotation >= 4) {
+                                 nearestRotation = 0;
+                             }
+ 
+diff --git a/services/core/java/com/android/server/wm/ScreenRotationAnimation.java b/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
+old mode 100644
+new mode 100755
+index c118a21..185e597
+--- a/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
++++ b/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
+@@ -67,6 +67,7 @@ class ScreenRotationAnimation {
+     BlackFrame mExitingBlackFrame;
+     BlackFrame mEnteringBlackFrame;
+     int mWidth, mHeight;
++    int mSnapshotRotation;
+ 
+     int mOriginalRotation;
+     int mOriginalWidth, mOriginalHeight;
+@@ -237,13 +238,26 @@ class ScreenRotationAnimation {
+             originalWidth = displayInfo.logicalWidth;
+             originalHeight = displayInfo.logicalHeight;
+         }
+-        if (originalRotation == Surface.ROTATION_90
+-                || originalRotation == Surface.ROTATION_270) {
+-            mWidth = originalHeight;
+-            mHeight = originalWidth;
++        // Allow for abnormal hardware orientation
++        mSnapshotRotation = (4 - android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90) % 4;
++        if (mSnapshotRotation == Surface.ROTATION_0 || mSnapshotRotation == Surface.ROTATION_180) {
++            if (originalRotation == Surface.ROTATION_90
++                 || originalRotation == Surface.ROTATION_270) {
++                mWidth = originalHeight;
++                mHeight = originalWidth;
++            } else {
++                mWidth = originalWidth;
++                mHeight = originalHeight;
++            }
+         } else {
+-            mWidth = originalWidth;
+-            mHeight = originalHeight;
++            if (originalRotation == Surface.ROTATION_90
++                || originalRotation == Surface.ROTATION_270) {
++                mWidth = originalWidth;
++                mHeight = originalHeight;
++            } else {
++                mWidth = originalHeight;
++                mHeight = originalWidth;
++            }
+         }
+ 
+         mOriginalRotation = originalRotation;
+@@ -361,7 +375,7 @@ class ScreenRotationAnimation {
+         // Compute the transformation matrix that must be applied
+         // to the snapshot to make it stay in the same original position
+         // with the current screen rotation.
+-        int delta = DisplayContent.deltaRotation(rotation, Surface.ROTATION_0);
++        int delta = DisplayContent.deltaRotation(rotation, mSnapshotRotation);
+         createRotationMatrix(delta, mWidth, mHeight, mSnapshotInitialMatrix);
+ 
+         if (DEBUG_STATE) Slog.v(TAG, "**** ROTATION: " + delta);
+diff --git a/services/core/java/com/android/server/wm/WindowManagerService.java b/services/core/java/com/android/server/wm/WindowManagerService.java
+old mode 100644
+new mode 100755
+index eb9ad6c..eb1f6a3
+--- a/services/core/java/com/android/server/wm/WindowManagerService.java
++++ b/services/core/java/com/android/server/wm/WindowManagerService.java
+@@ -354,6 +354,8 @@ public class WindowManagerService extends IWindowManager.Stub
+ 
+     final private KeyguardDisableHandler mKeyguardDisableHandler;
+ 
++    private final int mSfHwRotation;
++
+     final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+         @Override
+         public void onReceive(Context context, Intent intent) {
+@@ -1055,6 +1057,9 @@ public class WindowManagerService extends IWindowManager.Stub
+             SurfaceControl.closeTransaction();
+         }
+ 
++        // Load hardware rotation from prop
++        mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
++
+         showEmulatorDisplayOverlayIfNeeded();
+     }
+ 
+@@ -6499,6 +6504,8 @@ public class WindowManagerService extends IWindowManager.Stub
+ 
+             // The screenshot API does not apply the current screen rotation.
+             int rot = getDefaultDisplayContentLocked().getDisplay().getRotation();
++            // Allow for abnormal hardware orientation
++            rot = (rot + mSfHwRotation) % 4;
+ 
+             if (rot == Surface.ROTATION_90 || rot == Surface.ROTATION_270) {
+                 rot = (rot == Surface.ROTATION_90) ? Surface.ROTATION_270 : Surface.ROTATION_90;

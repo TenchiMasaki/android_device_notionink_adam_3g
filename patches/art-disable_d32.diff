@@ -1,25 +1,164 @@
 diff --git a/compiler/optimizing/code_generator_arm.cc b/compiler/optimizing/code_generator_arm.cc
 old mode 100644
 new mode 100755
-index 3f28e64..76c90ed
+index 45e9b58..b22e7ba
 --- a/compiler/optimizing/code_generator_arm.cc
 +++ b/compiler/optimizing/code_generator_arm.cc
-@@ -51,7 +51,7 @@ static constexpr SRegister kFpuCalleeSaves[] =
+@@ -53,10 +53,6 @@ static constexpr Register kCoreCalleeSaves[] =
+ static constexpr SRegister kFpuCalleeSaves[] =
+     { S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, S27, S28, S29, S30, S31 };
  
- // D31 cannot be split into two S registers, and the register allocator only works on
- // S registers. Therefore there is no need to block it.
+-// D31 cannot be split into two S registers, and the register allocator only works on
+-// S registers. Therefore there is no need to block it.
 -static constexpr DRegister DTMP = D31;
-+static constexpr DRegister DTMP = D15;
+-
+ static constexpr uint32_t kPackedSwitchCompareJumpThreshold = 7;
  
- #define __ reinterpret_cast<ArmAssembler*>(codegen->GetAssembler())->
- #define QUICK_ENTRY_POINT(x) QUICK_ENTRYPOINT_OFFSET(kArmWordSize, x).Int32Value()
+ #define __ down_cast<ArmAssembler*>(codegen->GetAssembler())->
+@@ -4887,8 +4883,10 @@ void ParallelMoveResolverARM::EmitMove(size_t index) {
+     }
+   } else if (source.IsDoubleStackSlot()) {
+     if (destination.IsDoubleStackSlot()) {
+-      __ LoadDFromOffset(DTMP, SP, source.GetStackIndex());
+-      __ StoreDToOffset(DTMP, SP, destination.GetStackIndex());
++      __ LoadFromOffset(kLoadWord, IP, SP, source.GetStackIndex());
++      __ StoreToOffset(kStoreWord, IP, SP, destination.GetStackIndex());
++      __ LoadFromOffset(kLoadWord, IP, SP, source.GetHighStackIndex(kArmWordSize));
++      __ StoreToOffset(kStoreWord, IP, SP, destination.GetHighStackIndex(kArmWordSize));
+     } else if (destination.IsRegisterPair()) {
+       DCHECK(ExpectedPairLayout(destination));
+       __ LoadFromOffset(
+@@ -5016,13 +5014,16 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
+     __ vmovs(source.AsFpuRegister<SRegister>(), destination.AsFpuRegister<SRegister>());
+     __ vmovsr(destination.AsFpuRegister<SRegister>(), IP);
+   } else if (source.IsRegisterPair() && destination.IsRegisterPair()) {
+-    __ vmovdrr(DTMP, source.AsRegisterPairLow<Register>(), source.AsRegisterPairHigh<Register>());
++    __ Mov(IP, source.AsRegisterPairLow<Register>());
+     __ Mov(source.AsRegisterPairLow<Register>(), destination.AsRegisterPairLow<Register>());
++    __ Mov(destination.AsRegisterPairLow<Register>(), IP);
++    __ Mov(IP, source.AsRegisterPairHigh<Register>());
+     __ Mov(source.AsRegisterPairHigh<Register>(), destination.AsRegisterPairHigh<Register>());
+-    __ vmovrrd(destination.AsRegisterPairLow<Register>(),
+-               destination.AsRegisterPairHigh<Register>(),
+-               DTMP);
++    __ Mov(destination.AsRegisterPairHigh<Register>(), IP);
+   } else if (source.IsRegisterPair() || destination.IsRegisterPair()) {
++    // TODO: Find a D register available in the parallel moves,
++    // or reserve globally a D register.
++    DRegister tmp = D0;
+     Register low_reg = source.IsRegisterPair()
+         ? source.AsRegisterPairLow<Register>()
+         : destination.AsRegisterPairLow<Register>();
+@@ -5030,15 +5031,27 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
+         ? destination.GetStackIndex()
+         : source.GetStackIndex();
+     DCHECK(ExpectedPairLayout(source.IsRegisterPair() ? source : destination));
+-    __ vmovdrr(DTMP, low_reg, static_cast<Register>(low_reg + 1));
++    // Make room for the pushed DRegister.
++    mem += 8;
++    __ vpushd(tmp, 1);
++    __ vmovdrr(tmp, low_reg, static_cast<Register>(low_reg + 1));
+     __ LoadFromOffset(kLoadWordPair, low_reg, SP, mem);
+-    __ StoreDToOffset(DTMP, SP, mem);
++    __ StoreDToOffset(tmp, SP, mem);
++    __ vpopd(tmp, 1);
+   } else if (source.IsFpuRegisterPair() && destination.IsFpuRegisterPair()) {
++    // TODO: Find a D register available in the parallel moves,
++    // or reserve globally a D register.
++    DRegister tmp = D0;
+     DRegister first = FromLowSToD(source.AsFpuRegisterPairLow<SRegister>());
+     DRegister second = FromLowSToD(destination.AsFpuRegisterPairLow<SRegister>());
+-    __ vmovd(DTMP, first);
++    while (tmp == first || tmp == second) {
++      tmp = static_cast<DRegister>(tmp + 1);
++    }
++    __ vpushd(tmp, 1);
++    __ vmovd(tmp, first);
+     __ vmovd(first, second);
+-    __ vmovd(second, DTMP);
++    __ vmovd(second, tmp);
++    __ vpopd(tmp, 1);
+   } else if (source.IsFpuRegisterPair() || destination.IsFpuRegisterPair()) {
+     DRegister reg = source.IsFpuRegisterPair()
+         ? FromLowSToD(source.AsFpuRegisterPairLow<SRegister>())
+@@ -5046,9 +5059,15 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
+     int mem = source.IsFpuRegisterPair()
+         ? destination.GetStackIndex()
+         : source.GetStackIndex();
+-    __ vmovd(DTMP, reg);
++    // TODO: Find or reserve a D register.
++    DRegister tmp = reg == D0 ? D1 : D0;
++    // Make room for the pushed DRegister.
++    mem += 8;
++    __ vpushd(tmp, 1);
++    __ vmovd(tmp, reg);
+     __ LoadDFromOffset(reg, SP, mem);
+-    __ StoreDToOffset(DTMP, SP, mem);
++    __ StoreDToOffset(tmp, SP, mem);
++    __ vpopd(tmp, 1);
+   } else if (source.IsFpuRegister() || destination.IsFpuRegister()) {
+     SRegister reg = source.IsFpuRegister() ? source.AsFpuRegister<SRegister>()
+                                            : destination.AsFpuRegister<SRegister>();
+diff --git a/compiler/utils/arm/assembler_arm.h b/compiler/utils/arm/assembler_arm.h
+index ffbe786..86da46a 100644
+--- a/compiler/utils/arm/assembler_arm.h
++++ b/compiler/utils/arm/assembler_arm.h
+@@ -737,44 +737,18 @@ class ArmAssembler : public Assembler {
+   virtual void LoadImmediate(Register rd, int32_t value, Condition cond = AL) = 0;
+   void LoadSImmediate(SRegister sd, float value, Condition cond = AL) {
+     if (!vmovs(sd, value, cond)) {
+-      int32_t int_value = bit_cast<int32_t, float>(value);
+-      if (int_value == bit_cast<int32_t, float>(0.0f)) {
+-        // 0.0 is quite common, so we special case it by loading
+-        // 2.0 in `sd` and then substracting it.
+-        bool success = vmovs(sd, 2.0, cond);
+-        CHECK(success);
+-        vsubs(sd, sd, sd, cond);
+-      } else {
+-        LoadImmediate(IP, int_value, cond);
+-        vmovsr(sd, IP, cond);
+-      }
++      LoadImmediate(IP, bit_cast<int32_t, float>(value), cond);
++      vmovsr(sd, IP, cond);
+     }
+   }
+ 
+   void LoadDImmediate(DRegister sd, double value, Condition cond = AL) {
+     if (!vmovd(sd, value, cond)) {
+       uint64_t int_value = bit_cast<uint64_t, double>(value);
+-      if (int_value == bit_cast<uint64_t, double>(0.0)) {
+-        // 0.0 is quite common, so we special case it by loading
+-        // 2.0 in `sd` and then substracting it.
+-        bool success = vmovd(sd, 2.0, cond);
+-        CHECK(success);
+-        vsubd(sd, sd, sd, cond);
+-      } else {
+-        if (sd < 16) {
+-          SRegister low = static_cast<SRegister>(sd << 1);
+-          SRegister high = static_cast<SRegister>(low + 1);
+-          LoadSImmediate(low, bit_cast<float, uint32_t>(Low32Bits(int_value)), cond);
+-          if (High32Bits(int_value) == Low32Bits(int_value)) {
+-            vmovs(high, low);
+-          } else {
+-            LoadSImmediate(high, bit_cast<float, uint32_t>(High32Bits(int_value)), cond);
+-          }
+-        } else {
+-          LOG(FATAL) << "Unimplemented loading of double into a D register "
+-                     << "that cannot be split into two S registers";
+-        }
+-      }
++      LoadSImmediate(
++          static_cast<SRegister>(sd << 1), bit_cast<float, uint32_t>(Low32Bits(int_value)));
++      LoadSImmediate(
++          static_cast<SRegister>((sd << 1) + 1), bit_cast<float, uint32_t>(High32Bits(int_value)));
+     }
+   }
+ 
 diff --git a/compiler/utils/arm/constants_arm.h b/compiler/utils/arm/constants_arm.h
-old mode 100644
-new mode 100755
-index 1513296..e6a2bdb
+index 2060064..1b894b9 100644
 --- a/compiler/utils/arm/constants_arm.h
 +++ b/compiler/utils/arm/constants_arm.h
-@@ -38,6 +38,14 @@ namespace arm {
+@@ -39,6 +39,14 @@ namespace arm {
  // Constants for specific fields are defined in their respective named enums.
  // General constants are in an anonymous enum in class Instr.
  
@@ -34,17 +173,17 @@ index 1513296..e6a2bdb
  // 4 bits option for the dmb instruction.
  // Order and values follows those of the ARM Architecture Reference Manual.
  enum DmbOptions {
-@@ -74,6 +82,9 @@ enum DRegister {  // private marker to avoid generate-operator-out.py from proce
+@@ -75,6 +83,9 @@ enum DRegister {  // private marker to avoid generate-operator-out.py from proce
    D13 = 13,
    D14 = 14,
    D15 = 15,
 +#ifdef VFPv3_D16
-+    kNumberOfDRegisters = 16,
++  kNumberOfDRegisters = 16,
 +#else
    D16 = 16,
    D17 = 17,
    D18 = 18,
-@@ -91,6 +102,7 @@ enum DRegister {  // private marker to avoid generate-operator-out.py from proce
+@@ -92,6 +103,7 @@ enum DRegister {  // private marker to avoid generate-operator-out.py from proce
    D30 = 30,
    D31 = 31,
    kNumberOfDRegisters = 32,
