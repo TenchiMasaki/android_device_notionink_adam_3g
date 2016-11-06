@@ -1,10 +1,10 @@
 diff --git a/linker/linker.cpp b/linker/linker.cpp
 old mode 100644
 new mode 100755
-index 39aa2ca..70941bc
+index 4166be7..d1ec721
 --- a/linker/linker.cpp
 +++ b/linker/linker.cpp
-@@ -3739,13 +3739,8 @@ bool soinfo::prelink_image() {
+@@ -3829,13 +3829,8 @@ bool soinfo::prelink_image() {
          break;
  
        case DT_TEXTREL:
@@ -18,16 +18,23 @@ index 39aa2ca..70941bc
  
        case DT_SYMBOLIC:
          has_DT_SYMBOLIC = true;
-@@ -3923,12 +3918,6 @@ bool soinfo::link_image(const soinfo_list_t& global_group, const soinfo_list_t&
+@@ -4013,19 +4008,6 @@ bool soinfo::link_image(const soinfo_list_t& global_group, const soinfo_list_t&
  
  #if !defined(__LP64__)
    if (has_text_relocations) {
 -    // Fail if app is targeting sdk version > 22
+-#if !defined(__i386__) // ffmpeg says that they require text relocations on x86
+-#if defined(TARGET_NEEDS_PLATFORM_TEXT_RELOCATIONS)
+-    if (get_application_target_sdk_version() != __ANDROID_API__
+-        && get_application_target_sdk_version() > 22) {
+-#else
 -    if (get_application_target_sdk_version() > 22) {
+-#endif
 -      PRINT("%s: has text relocations", get_realpath());
 -      DL_ERR("%s: has text relocations", get_realpath());
 -      return false;
 -    }
+-#endif
      // Make segments writable to allow text relocations to work properly. We will later call
      // phdr_table_protect_segments() after all of them are applied.
      DL_WARN("%s has text relocations. This is wasting memory and prevents "
