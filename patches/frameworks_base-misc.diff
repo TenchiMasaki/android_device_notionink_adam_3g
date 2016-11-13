@@ -177,6 +177,24 @@ index 315887d..8de730a
      /*
       * When running with debug.generate-debug-info, add --generate-debug-info to
       * the compiler options so that the boot image, if it is compiled on device,
+diff --git a/core/res/res/xml/config_webview_packages.xml b/core/res/res/xml/config_webview_packages.xml
+old mode 100644
+new mode 100755
+index f062b59..e8c8b73
+--- a/core/res/res/xml/config_webview_packages.xml
++++ b/core/res/res/xml/config_webview_packages.xml
+@@ -15,7 +15,11 @@
+ -->
+ 
+ <webviewproviders>
++    <webviewprovider description="Google WebView" packageName="com.google.android.webview" availableByDefault="true">
++    </webviewprovider>
++
+     <!-- The default WebView implementation -->
+     <webviewprovider description="Android WebView" packageName="com.android.webview" availableByDefault="true">
+     </webviewprovider>
++
+ </webviewproviders>
 diff --git a/libs/hwui/renderthread/EglManager.cpp b/libs/hwui/renderthread/EglManager.cpp
 old mode 100644
 new mode 100755

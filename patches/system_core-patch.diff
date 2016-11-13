@@ -121,7 +121,7 @@ index 84da2b9..487ac5c
 diff --git a/init/service.cpp b/init/service.cpp
 old mode 100644
 new mode 100755
-index f1ffa18..50b5696
+index 3149f8e..6d3c613
 --- a/init/service.cpp
 +++ b/init/service.cpp
 @@ -372,16 +372,16 @@ bool Service::Start() {
@@ -150,7 +150,7 @@ index f1ffa18..50b5696
 diff --git a/init/util.cpp b/init/util.cpp
 old mode 100644
 new mode 100755
-index 84b4155..31a87ae
+index 89d3276..60899f7
 --- a/init/util.cpp
 +++ b/init/util.cpp
 @@ -466,9 +466,13 @@ int restorecon(const char* pathname)
@@ -167,7 +167,7 @@ index 84b4155..31a87ae
 +    return selinux_android_restorecon(pathname, RESTORECON_RECURSIVE_FLAGS);
  }
  
- /*
+ int restorecon_recursive_skipce(const char* pathname)
 diff --git a/libcutils/iosched_policy.c b/libcutils/iosched_policy.c
 old mode 100644
 new mode 100755
@@ -404,10 +404,10 @@ index e8d40ed..c149212
 diff --git a/rootdir/init.rc b/rootdir/init.rc
 old mode 100644
 new mode 100755
-index 3466dce..e5a0e69
+index 56379db..d04881c
 --- a/rootdir/init.rc
 +++ b/rootdir/init.rc
-@@ -450,6 +450,9 @@ on post-fs-data
+@@ -468,6 +468,9 @@ on post-fs-data
  
      # Set SELinux security contexts on upgrade or policy update.
      restorecon_recursive /data
@@ -417,7 +417,7 @@ index 3466dce..e5a0e69
  
      # Check any timezone data in /data is newer than the copy in /system, delete if not.
      exec - system system -- /system/bin/tzdatacheck /system/usr/share/zoneinfo /data/misc/zoneinfo
-@@ -635,7 +638,3 @@ on property:ro.debuggable=1
+@@ -653,7 +656,3 @@ on property:ro.debuggable=1
      # The folder is used to store method traces.
      chmod 0773 /data/misc/trace
      start console
@@ -428,33 +428,9 @@ index 3466dce..e5a0e69
 diff --git a/rootdir/init.zygote32_64.rc b/rootdir/init.zygote32_64.rc
 old mode 100644
 new mode 100755
-index 555eda4..b50fe46
---- a/rootdir/init.zygote32_64.rc
-+++ b/rootdir/init.zygote32_64.rc
-@@ -7,7 +7,7 @@ service zygote /system/bin/app_process32 -Xzygote /system/bin --zygote --start-s
-     onrestart restart cameraserver
-     onrestart restart media
-     onrestart restart netd
--    writepid /dev/cpuset/foreground/tasks /sys/fs/cgroup/stune/foreground/tasks
-+    writepid /dev/cpuset/foreground/tasks /dev/stune/foreground/tasks
- 
- service zygote_secondary /system/bin/app_process64 -Xzygote /system/bin --zygote --socket-name=zygote_secondary
-     class main
 diff --git a/rootdir/init.zygote64_32.rc b/rootdir/init.zygote64_32.rc
 old mode 100644
 new mode 100755
-index 46f9f02..615fe66
---- a/rootdir/init.zygote64_32.rc
-+++ b/rootdir/init.zygote64_32.rc
-@@ -7,7 +7,7 @@ service zygote /system/bin/app_process64 -Xzygote /system/bin --zygote --start-s
-     onrestart restart cameraserver
-     onrestart restart media
-     onrestart restart netd
--    writepid /dev/cpuset/foreground/tasks /sys/fs/cgroup/stune/foreground/tasks
-+    writepid /dev/cpuset/foreground/tasks /dev/stune/foreground/tasks
- 
- service zygote_secondary /system/bin/app_process32 -Xzygote /system/bin --zygote --socket-name=zygote_secondary
-     class main
 diff --git a/sdcard/sdcard.c b/sdcard/sdcard.c
 old mode 100644
 new mode 100755

@@ -33,10 +33,10 @@ index 83e9580..6ebf21a
 diff --git a/include/gui/ISurfaceComposer.h b/include/gui/ISurfaceComposer.h
 old mode 100644
 new mode 100755
-index af26721..1624650
+index 74a4123..3c74924
 --- a/include/gui/ISurfaceComposer.h
 +++ b/include/gui/ISurfaceComposer.h
-@@ -145,7 +145,20 @@ public:
+@@ -151,7 +151,20 @@ public:
              Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
              uint32_t minLayerZ, uint32_t maxLayerZ,
              bool useIdentityTransform,
@@ -57,7 +57,7 @@ index af26721..1624650
  
      /* Clears the frame statistics for animations.
       *
-@@ -183,6 +196,9 @@ public:
+@@ -189,6 +202,9 @@ public:
          GET_BUILT_IN_DISPLAY,
          SET_TRANSACTION_STATE,
          AUTHENTICATE_SURFACE,
@@ -70,13 +70,13 @@ index af26721..1624650
 diff --git a/include/gui/Surface.h b/include/gui/Surface.h
 old mode 100644
 new mode 100755
-index bcce14a..825913d
+index 8177ec6..2388212
 --- a/include/gui/Surface.h
 +++ b/include/gui/Surface.h
-@@ -364,6 +364,10 @@ private:
-     bool mSharedBufferHasBeenQueued;
- 
+@@ -377,6 +377,10 @@ private:
      Condition mQueueBufferCondition;
+ 
+     uint64_t mNextFrameNumber;
 +
 +#ifdef SURFACE_SKIP_FIRST_DEQUEUE
 +    bool                        mDequeuedOnce;
@@ -87,7 +87,7 @@ index bcce14a..825913d
 diff --git a/include/gui/SurfaceComposerClient.h b/include/gui/SurfaceComposerClient.h
 old mode 100644
 new mode 100755
-index 312e02f..600aa0b
+index b8ee331..4ff62f0
 --- a/include/gui/SurfaceComposerClient.h
 +++ b/include/gui/SurfaceComposerClient.h
 @@ -41,6 +41,9 @@ namespace android {
@@ -100,7 +100,7 @@ index 312e02f..600aa0b
  class ISurfaceComposerClient;
  class IGraphicBufferProducer;
  class Region;
-@@ -199,6 +202,9 @@ public:
+@@ -212,6 +215,9 @@ public:
              bool useIdentityTransform);
  
  private:
@@ -210,10 +210,10 @@ index e88ae29..f0761ef
 diff --git a/libs/gui/Android.mk b/libs/gui/Android.mk
 old mode 100644
 new mode 100755
-index 635020e..ec5ad26
+index 46feb1c..f924bac
 --- a/libs/gui/Android.mk
 +++ b/libs/gui/Android.mk
-@@ -83,6 +83,13 @@ LOCAL_SHARED_LIBRARIES := \
+@@ -84,6 +84,13 @@ LOCAL_SHARED_LIBRARIES := \
  	libutils \
  	liblog
  
@@ -227,7 +227,7 @@ index 635020e..ec5ad26
  
  LOCAL_MODULE := libgui
  
-@@ -93,6 +100,18 @@ ifeq ($(TARGET_BOARD_PLATFORM), tegra3)
+@@ -94,6 +101,18 @@ ifeq ($(TARGET_BOARD_PLATFORM), tegra3)
  	LOCAL_CFLAGS += -DDONT_USE_FENCE_SYNC
  endif
  
@@ -249,10 +249,10 @@ index 635020e..ec5ad26
 diff --git a/libs/gui/ISurfaceComposer.cpp b/libs/gui/ISurfaceComposer.cpp
 old mode 100644
 new mode 100755
-index a8b4fa8..2489f70
+index f0b0ada..3f3327b
 --- a/libs/gui/ISurfaceComposer.cpp
 +++ b/libs/gui/ISurfaceComposer.cpp
-@@ -99,12 +99,40 @@ public:
+@@ -101,12 +101,40 @@ public:
          remote()->transact(BnSurfaceComposer::BOOT_FINISHED, data, &reply);
      }
  
@@ -294,7 +294,7 @@ index a8b4fa8..2489f70
      {
          Parcel data, reply;
          data.writeInterfaceToken(ISurfaceComposer::getInterfaceDescriptor());
-@@ -117,6 +145,7 @@ public:
+@@ -119,6 +147,7 @@ public:
          data.writeUint32(maxLayerZ);
          data.writeInt32(static_cast<int32_t>(useIdentityTransform));
          data.writeInt32(static_cast<int32_t>(rotation));
@@ -302,7 +302,7 @@ index a8b4fa8..2489f70
          remote()->transact(BnSurfaceComposer::CAPTURE_SCREEN, data, &reply);
          return reply.readInt32();
      }
-@@ -371,6 +400,31 @@ status_t BnSurfaceComposer::onTransact(
+@@ -449,6 +478,31 @@ status_t BnSurfaceComposer::onTransact(
              bootFinished();
              return NO_ERROR;
          }
@@ -334,7 +334,7 @@ index a8b4fa8..2489f70
          case CAPTURE_SCREEN: {
              CHECK_INTERFACE(ISurfaceComposer, data, reply);
              sp<IBinder> display = data.readStrongBinder();
-@@ -384,11 +438,13 @@ status_t BnSurfaceComposer::onTransact(
+@@ -462,11 +516,13 @@ status_t BnSurfaceComposer::onTransact(
              uint32_t maxLayerZ = data.readUint32();
              bool useIdentityTransform = static_cast<bool>(data.readInt32());
              int32_t rotation = data.readInt32();
@@ -414,10 +414,10 @@ index 6d69839..766b4a0
 diff --git a/libs/gui/Surface.cpp b/libs/gui/Surface.cpp
 old mode 100644
 new mode 100755
-index bcfe714..195fa67
+index dbf8114..d4955b1
 --- a/libs/gui/Surface.cpp
 +++ b/libs/gui/Surface.cpp
-@@ -84,6 +84,9 @@ Surface::Surface(
+@@ -85,6 +85,9 @@ Surface::Surface(
      mConnectedToCpu = false;
      mProducerControlledByApp = controlledByApp;
      mSwapIntervalZero = false;
@@ -427,7 +427,7 @@ index bcfe714..195fa67
  }
  
  Surface::~Surface() {
-@@ -311,6 +314,10 @@ int Surface::dequeueBuffer(android_native_buffer_t** buffer, int* fenceFd) {
+@@ -348,6 +351,10 @@ int Surface::dequeueBuffer(android_native_buffer_t** buffer, int* fenceFd) {
          mSharedBufferHasBeenQueued = false;
      }
  
@@ -438,7 +438,7 @@ index bcfe714..195fa67
      return OK;
  }
  
-@@ -507,12 +514,19 @@ int Surface::query(int what, int* value) const {
+@@ -546,12 +553,19 @@ int Surface::query(int what, int* value) const {
                  }
                  break;
              case NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER: {
@@ -466,10 +466,10 @@ index bcfe714..195fa67
 diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
 old mode 100644
 new mode 100755
-index 92ae41e..01c3ccb
+index 3df5f74..2dda789
 --- a/libs/gui/SurfaceComposerClient.cpp
 +++ b/libs/gui/SurfaceComposerClient.cpp
-@@ -784,6 +784,12 @@ status_t SurfaceComposerClient::getHdrCapabilities(const sp<IBinder>& display,
+@@ -808,6 +808,12 @@ status_t SurfaceComposerClient::getHdrCapabilities(const sp<IBinder>& display,
  
  // ----------------------------------------------------------------------------
  
@@ -482,7 +482,7 @@ index 92ae41e..01c3ccb
  status_t ScreenshotClient::capture(
          const sp<IBinder>& display,
          const sp<IGraphicBufferProducer>& producer,
-@@ -791,8 +797,17 @@ status_t ScreenshotClient::capture(
+@@ -815,8 +821,17 @@ status_t ScreenshotClient::capture(
          uint32_t minLayerZ, uint32_t maxLayerZ, bool useIdentityTransform) {
      sp<ISurfaceComposer> s(ComposerService::getComposerService());
      if (s == NULL) return NO_INIT;
@@ -501,7 +501,7 @@ index 92ae41e..01c3ccb
  }
  
  ScreenshotClient::ScreenshotClient()
-@@ -820,6 +835,19 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+@@ -844,6 +859,19 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
          bool useIdentityTransform, uint32_t rotation) {
      sp<ISurfaceComposer> s(ComposerService::getComposerService());
      if (s == NULL) return NO_INIT;
@@ -521,7 +521,7 @@ index 92ae41e..01c3ccb
      sp<CpuConsumer> cpuConsumer = getCpuConsumer();
  
      if (mHaveBuffer) {
-@@ -830,7 +858,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+@@ -854,7 +882,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
  
      status_t err = s->captureScreen(display, mProducer, sourceCrop,
              reqWidth, reqHeight, minLayerZ, maxLayerZ, useIdentityTransform,
@@ -530,7 +530,7 @@ index 92ae41e..01c3ccb
  
      if (err == NO_ERROR) {
          err = mCpuConsumer->lockNextBuffer(&mBuffer);
-@@ -839,6 +867,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+@@ -863,6 +891,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
          }
      }
      return err;
@@ -538,7 +538,7 @@ index 92ae41e..01c3ccb
  }
  
  status_t ScreenshotClient::update(const sp<IBinder>& display,
-@@ -863,12 +892,16 @@ status_t ScreenshotClient::update(const sp<IBinder>& display, Rect sourceCrop,
+@@ -887,12 +916,16 @@ status_t ScreenshotClient::update(const sp<IBinder>& display, Rect sourceCrop,
  }
  
  void ScreenshotClient::release() {
@@ -558,7 +558,7 @@ index 92ae41e..01c3ccb
 diff --git a/opengl/libs/EGL/egl_object.cpp b/opengl/libs/EGL/egl_object.cpp
 old mode 100644
 new mode 100755
-index 90f27d1..af3d2fd
+index cfecf77..781eb3c
 --- a/opengl/libs/EGL/egl_object.cpp
 +++ b/opengl/libs/EGL/egl_object.cpp
 @@ -124,6 +124,7 @@ void egl_context_t::onMakeCurrent(EGLSurface draw, EGLSurface read) {
@@ -572,10 +572,10 @@ index 90f27d1..af3d2fd
 diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
 old mode 100644
 new mode 100755
-index fb83eff..4be9b4a
+index a24740b..9fd9472
 --- a/services/sensorservice/SensorService.cpp
 +++ b/services/sensorservice/SensorService.cpp
-@@ -1070,16 +1070,19 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+@@ -1084,16 +1084,19 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
      // to maintain the on-change logic (any on-change events except the initial
      // one should be trigger by a change in value). Also if this sensor isn't
      // already active, don't call flush().
@@ -602,7 +602,7 @@ index fb83eff..4be9b4a
          }
      }
  
-@@ -1105,6 +1108,11 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
+@@ -1119,6 +1122,11 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
          mNextSensorRegIndex = (mNextSensorRegIndex + 1) % SENSOR_REGISTRATIONS_BUF_SIZE;
      }
  
@@ -617,10 +617,10 @@ index fb83eff..4be9b4a
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
 old mode 100644
 new mode 100755
-index fb6307e..fa9eb92
+index dc5e97b..f1277e6
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
-@@ -81,6 +81,10 @@ ifeq ($(TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK),true)
+@@ -79,6 +79,10 @@ ifeq ($(TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK),true)
      LOCAL_CFLAGS += -DRUNNING_WITHOUT_SYNC_FRAMEWORK
  endif
  
@@ -634,32 +634,13 @@ index fb6307e..fa9eb92
 diff --git a/services/surfaceflinger/DispSync.cpp b/services/surfaceflinger/DispSync.cpp
 old mode 100644
 new mode 100755
-index 37b6420..0df3b24
---- a/services/surfaceflinger/DispSync.cpp
-+++ b/services/surfaceflinger/DispSync.cpp
-@@ -22,6 +22,7 @@
- 
- #include <math.h>
- 
-+#include <cutils/iosched_policy.h>
- #include <cutils/log.h>
- 
- #include <ui/Fence.h>
-@@ -383,6 +384,7 @@ DispSync::DispSync(const char* name) :
-         mThread(new DispSyncThread(name)) {
- 
-     mThread->run("DispSync", PRIORITY_URGENT_DISPLAY + PRIORITY_MORE_FAVORABLE);
-+    android_set_rt_ioprio(mThread->getTid(), 1);
- 
-     reset();
-     beginResync();
 diff --git a/services/surfaceflinger/DisplayDevice.cpp b/services/surfaceflinger/DisplayDevice.cpp
 old mode 100644
 new mode 100755
-index a67b3ff..a03fd27
+index 5c2c0ad..831f295
 --- a/services/surfaceflinger/DisplayDevice.cpp
 +++ b/services/surfaceflinger/DisplayDevice.cpp
-@@ -446,6 +446,20 @@ status_t DisplayDevice::orientationToTransfrom(
+@@ -457,6 +457,20 @@ status_t DisplayDevice::orientationToTransfrom(
          int orientation, int w, int h, Transform* tr)
  {
      uint32_t flags = 0;
@@ -680,7 +661,7 @@ index a67b3ff..a03fd27
      switch (orientation) {
      case DisplayState::eOrientationDefault:
          flags = Transform::ROT_0;
-@@ -501,7 +515,15 @@ void DisplayDevice::setProjection(int orientation,
+@@ -512,7 +526,15 @@ void DisplayDevice::setProjection(int orientation,
      if (!frame.isValid()) {
          // the destination frame can be invalid if it has never been set,
          // in that case we assume the whole display frame.
@@ -700,10 +681,10 @@ index a67b3ff..a03fd27
 diff --git a/services/surfaceflinger/DisplayDevice.h b/services/surfaceflinger/DisplayDevice.h
 old mode 100644
 new mode 100755
-index dd9b104..77cce8a
+index 105e980..f276308
 --- a/services/surfaceflinger/DisplayDevice.h
 +++ b/services/surfaceflinger/DisplayDevice.h
-@@ -234,7 +234,7 @@ private:
+@@ -239,7 +239,7 @@ private:
      /*
       * Transaction state
       */
@@ -737,10 +718,10 @@ index dd88adb..2dacd87
 diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
 old mode 100644
 new mode 100755
-index 0247723..347b108
+index 785df1a..51dd98d
 --- a/services/surfaceflinger/Layer.cpp
 +++ b/services/surfaceflinger/Layer.cpp
-@@ -161,7 +161,7 @@ void Layer::onFirstRef() {
+@@ -164,7 +164,7 @@ void Layer::onFirstRef() {
      mSurfaceFlingerConsumer->setName(mName);
  
  #ifdef TARGET_DISABLE_TRIPLE_BUFFERING
@@ -917,7 +898,7 @@ index 7c3f9b5..b268119
 diff --git a/services/surfaceflinger/RenderEngine/RenderEngine.cpp b/services/surfaceflinger/RenderEngine/RenderEngine.cpp
 old mode 100644
 new mode 100755
-index 27357b9..feeb987
+index d6a032f..d0df8ab
 --- a/services/surfaceflinger/RenderEngine/RenderEngine.cpp
 +++ b/services/surfaceflinger/RenderEngine/RenderEngine.cpp
 @@ -262,9 +262,11 @@ void RenderEngine::dump(String8& result) {
@@ -946,7 +927,7 @@ index 27357b9..feeb987
 diff --git a/services/surfaceflinger/RenderEngine/RenderEngine.h b/services/surfaceflinger/RenderEngine/RenderEngine.h
 old mode 100644
 new mode 100755
-index 9cc1ed7..2eaa7ec
+index 0259881..30f6355
 --- a/services/surfaceflinger/RenderEngine/RenderEngine.h
 +++ b/services/surfaceflinger/RenderEngine/RenderEngine.h
 @@ -51,8 +51,11 @@ class RenderEngine {
@@ -963,7 +944,7 @@ index 9cc1ed7..2eaa7ec
  
  protected:
      RenderEngine();
-@@ -83,8 +86,10 @@ public:
+@@ -85,8 +88,10 @@ public:
          RenderEngine& mEngine;
          uint32_t mTexName, mFbName;
          uint32_t mStatus;
@@ -978,7 +959,7 @@ index 9cc1ed7..2eaa7ec
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
 old mode 100644
 new mode 100755
-index a10a813..4f4621a
+index 2a67f4c..0650baa
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
 @@ -27,6 +27,7 @@
@@ -989,7 +970,7 @@ index a10a813..4f4621a
  #include <cutils/log.h>
  #include <cutils/properties.h>
  
-@@ -490,6 +491,7 @@ void SurfaceFlinger::init() {
+@@ -501,6 +502,7 @@ void SurfaceFlinger::init() {
  
      mEventControlThread = new EventControlThread(this);
      mEventControlThread->run("EventControl", PRIORITY_URGENT_DISPLAY);
@@ -997,7 +978,7 @@ index a10a813..4f4621a
  
      // initialize our drawing state
      mDrawingState = mCurrentState;
-@@ -3213,7 +3215,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3418,7 +3420,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          const sp<IGraphicBufferProducer>& producer,
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
@@ -1007,7 +988,7 @@ index a10a813..4f4621a
  
      if (CC_UNLIKELY(display == 0))
          return BAD_VALUE;
-@@ -3256,6 +3259,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3461,6 +3464,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          uint32_t minLayerZ,maxLayerZ;
          bool useIdentityTransform;
          Transform::orientation_flags rotation;
@@ -1015,7 +996,7 @@ index a10a813..4f4621a
          status_t result;
          bool isLocalScreenshot;
      public:
-@@ -3266,13 +3270,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3471,13 +3475,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
                  uint32_t minLayerZ, uint32_t maxLayerZ,
                  bool useIdentityTransform,
                  Transform::orientation_flags rotation,
@@ -1032,7 +1013,7 @@ index a10a813..4f4621a
          {
          }
          status_t getResult() const {
-@@ -3281,9 +3286,11 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3486,9 +3491,11 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          virtual bool handler() {
              Mutex::Autolock _l(flinger->mStateLock);
              sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
@@ -1045,7 +1026,7 @@ index a10a813..4f4621a
              static_cast<GraphicProducerWrapper*>(IInterface::asBinder(producer).get())->exit(result);
              return true;
          }
-@@ -3299,7 +3306,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3504,7 +3511,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
      sp<MessageBase> msg = new MessageCaptureScreen(this,
              display, IGraphicBufferProducer::asInterface( wrapper ),
              sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
@@ -1055,7 +1036,7 @@ index a10a813..4f4621a
  
      status_t res = postMessageAsync(msg);
      if (res == NO_ERROR) {
-@@ -3382,7 +3390,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3587,7 +3595,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
          bool useIdentityTransform, Transform::orientation_flags rotation,
@@ -1064,7 +1045,7 @@ index a10a813..4f4621a
  {
      ATRACE_CALL();
  
-@@ -3452,7 +3460,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3665,7 +3673,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                  if (image != EGL_NO_IMAGE_KHR) {
                      // this binds the given EGLImage as a framebuffer for the
                      // duration of this scope.
@@ -1074,7 +1055,7 @@ index a10a813..4f4621a
                      if (imageBond.getStatus() == NO_ERROR) {
                          // this will in fact render into our dequeued buffer
                          // via an FBO, which means we didn't have to create
-@@ -3499,6 +3508,15 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3712,6 +3721,15 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                                  ALOGW("captureScreen: error creating EGL fence: %#x", eglGetError());
                              }
                          }
@@ -1093,10 +1074,10 @@ index a10a813..4f4621a
 diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
 old mode 100644
 new mode 100755
-index 633e956..d56679c
+index b98924b..06d70e0
 --- a/services/surfaceflinger/SurfaceFlinger.h
 +++ b/services/surfaceflinger/SurfaceFlinger.h
-@@ -212,7 +212,15 @@ private:
+@@ -218,7 +218,15 @@ private:
              const sp<IGraphicBufferProducer>& producer,
              Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
              uint32_t minLayerZ, uint32_t maxLayerZ,
@@ -1112,7 +1093,7 @@ index 633e956..d56679c
      virtual status_t getDisplayStats(const sp<IBinder>& display,
              DisplayStatInfo* stats);
      virtual status_t getDisplayConfigs(const sp<IBinder>& display,
-@@ -337,7 +345,16 @@ private:
+@@ -350,7 +358,16 @@ private:
              Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
              uint32_t minLayerZ, uint32_t maxLayerZ,
              bool useIdentityTransform, Transform::orientation_flags rotation,
@@ -1133,7 +1114,7 @@ index 633e956..d56679c
 diff --git a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 old mode 100644
 new mode 100755
-index 7f3b269..cdbabc5
+index 650d6b4..203199d
 --- a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 @@ -25,6 +25,9 @@
@@ -1146,7 +1127,7 @@ index 7f3b269..cdbabc5
  
  #include <cutils/log.h>
  #include <cutils/properties.h>
-@@ -634,10 +637,21 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
+@@ -635,10 +638,21 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
              info.orientation = 0;
          }
  
@@ -1171,8 +1152,8 @@ index 7f3b269..cdbabc5
 +        }
          info.fps = float(1e9 / hwConfig.refresh);
          info.appVsyncOffset = VSYNC_EVENT_PHASE_OFFSET_NS;
-         info.colorTransform = hwConfig.colorTransform;
-@@ -2959,12 +2973,18 @@ status_t SurfaceFlinger::onTransact(
+ 
+@@ -3052,12 +3066,18 @@ status_t SurfaceFlinger::onTransact(
              break;
          }
          case CAPTURE_SCREEN:
@@ -1191,7 +1172,7 @@ index 7f3b269..cdbabc5
                      !PermissionCache::checkPermission(sReadFramebuffer, pid, uid)) {
                  ALOGE("Permission Denial: "
                          "can't read framebuffer pid=%d, uid=%d", pid, uid);
-@@ -3227,7 +3247,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3331,7 +3351,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          const sp<IGraphicBufferProducer>& producer,
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
@@ -1201,7 +1182,7 @@ index 7f3b269..cdbabc5
  
      if (CC_UNLIKELY(display == 0))
          return BAD_VALUE;
-@@ -3272,6 +3293,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3376,6 +3397,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          Transform::orientation_flags rotation;
          status_t result;
          bool isLocalScreenshot;
@@ -1209,7 +1190,7 @@ index 7f3b269..cdbabc5
      public:
          MessageCaptureScreen(SurfaceFlinger* flinger,
                  const sp<IBinder>& display,
-@@ -3280,13 +3302,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3384,13 +3406,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
                  uint32_t minLayerZ, uint32_t maxLayerZ,
                  bool useIdentityTransform,
                  Transform::orientation_flags rotation,
@@ -1226,7 +1207,7 @@ index 7f3b269..cdbabc5
          {
          }
          status_t getResult() const {
-@@ -3295,9 +3318,21 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3399,9 +3422,21 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          virtual bool handler() {
              Mutex::Autolock _l(flinger->mStateLock);
              sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
@@ -1249,7 +1230,7 @@ index 7f3b269..cdbabc5
              static_cast<GraphicProducerWrapper*>(IInterface::asBinder(producer).get())->exit(result);
              return true;
          }
-@@ -3313,7 +3348,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3417,7 +3452,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
      sp<MessageBase> msg = new MessageCaptureScreen(this,
              display, IGraphicBufferProducer::asInterface( wrapper ),
              sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
@@ -1258,7 +1239,7 @@ index 7f3b269..cdbabc5
  
      status_t res = postMessageAsync(msg);
      if (res == NO_ERROR) {
-@@ -3398,7 +3433,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3502,7 +3537,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
          bool useIdentityTransform, Transform::orientation_flags rotation,
@@ -1267,7 +1248,7 @@ index 7f3b269..cdbabc5
  {
      ATRACE_CALL();
  
-@@ -3468,7 +3503,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3572,7 +3607,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                  if (image != EGL_NO_IMAGE_KHR) {
                      // this binds the given EGLImage as a framebuffer for the
                      // duration of this scope.
@@ -1276,7 +1257,7 @@ index 7f3b269..cdbabc5
                      if (imageBond.getStatus() == NO_ERROR) {
                          // this will in fact render into our dequeued buffer
                          // via an FBO, which means we didn't have to create
-@@ -3515,6 +3550,15 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3619,6 +3654,15 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                                  ALOGW("captureScreen: error creating EGL fence: %#x", eglGetError());
                              }
                          }
@@ -1292,7 +1273,7 @@ index 7f3b269..cdbabc5
                          if (DEBUG_SCREENSHOTS) {
                              uint32_t* pixels = new uint32_t[reqWidth*reqHeight];
                              getRenderEngine().readPixels(0, 0, reqWidth, reqHeight, pixels);
-@@ -3576,6 +3620,139 @@ void SurfaceFlinger::checkScreenshot(size_t w, size_t s, size_t h, void const* v
+@@ -3685,6 +3729,139 @@ void SurfaceFlinger::checkScreenshot(size_t w, size_t s, size_t h, void const* v
      }
  }
  
@@ -1432,7 +1413,7 @@ index 7f3b269..cdbabc5
  // ---------------------------------------------------------------------------
  
  SurfaceFlinger::LayerVector::LayerVector() {
-@@ -3633,6 +3810,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
+@@ -3742,6 +3919,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
  }; // namespace android
  
  
@@ -1440,20 +1421,8 @@ index 7f3b269..cdbabc5
  #if defined(__gl_h_)
  #error "don't include gl/gl.h in this file"
  #endif
-@@ -3640,3 +3818,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
+@@ -3749,3 +3927,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
  #if defined(__gl2_h_)
  #error "don't include gl2/gl2.h in this file"
  #endif
 +#endif
-diff --git a/services/surfaceflinger/surfaceflinger.rc b/services/surfaceflinger/surfaceflinger.rc
-old mode 100644
-new mode 100755
-index 2b4ea2a..435aa0c
---- a/services/surfaceflinger/surfaceflinger.rc
-+++ b/services/surfaceflinger/surfaceflinger.rc
-@@ -3,4 +3,4 @@ service surfaceflinger /system/bin/surfaceflinger
-     user system
-     group graphics drmrpc readproc
-     onrestart restart zygote
--    writepid /sys/fs/cgroup/stune/foreground/tasks
-+    writepid /dev/stune/foreground/tasks

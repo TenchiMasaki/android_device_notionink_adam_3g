@@ -42,10 +42,10 @@ index e994069..8e322af 100644
          // all non-secure decoders, OMX.google.* codecs and encoders can go in the codec process
          // (non-OMX.google.* encoders can be excluded using system property.)
 diff --git a/media/libstagefright/omx/OMXNodeInstance.cpp b/media/libstagefright/omx/OMXNodeInstance.cpp
-index 4908062..ed0fbbb 100644
+index 395dad8..2f55c65 100644
 --- a/media/libstagefright/omx/OMXNodeInstance.cpp
 +++ b/media/libstagefright/omx/OMXNodeInstance.cpp
-@@ -1585,11 +1585,11 @@ bool OMXNodeInstance::handleMessage(omx_message &msg) {
+@@ -1726,11 +1726,11 @@ bool OMXNodeInstance::handleMessage(omx_message &msg) {
          BufferMeta *buffer_meta =
              static_cast<BufferMeta *>(buffer->pAppPrivate);
  
