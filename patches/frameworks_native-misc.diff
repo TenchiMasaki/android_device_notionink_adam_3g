@@ -1,10 +1,10 @@
 diff --git a/include/binder/Parcel.h b/include/binder/Parcel.h
 old mode 100644
 new mode 100755
-index 1c355c4..bd23069
+index 1e3d02f..3550f30
 --- a/include/binder/Parcel.h
 +++ b/include/binder/Parcel.h
-@@ -496,8 +496,10 @@ public:
+@@ -502,8 +502,10 @@ public:
          inline void* data() { return mData; }
      };
  
@@ -113,7 +113,7 @@ index c4f88b6..14aa309
 diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
 old mode 100644
 new mode 100755
-index e88ae29..f0761ef
+index 19ce3eb..52caa24
 --- a/libs/binder/Parcel.cpp
 +++ b/libs/binder/Parcel.cpp
 @@ -567,7 +567,11 @@ status_t Parcel::appendFrom(const Parcel *parcel, size_t offset, size_t len)
@@ -352,7 +352,7 @@ index f0b0ada..3f3327b
 diff --git a/libs/gui/Sensor.cpp b/libs/gui/Sensor.cpp
 old mode 100644
 new mode 100755
-index 053d153..e48afd2
+index c706b29..2d73c83
 --- a/libs/gui/Sensor.cpp
 +++ b/libs/gui/Sensor.cpp
 @@ -457,6 +457,7 @@ status_t Sensor::flatten(void* buffer, size_t size) const {
@@ -617,7 +617,7 @@ index dbd0624..1767334
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
 old mode 100644
 new mode 100755
-index ffda035..2cd221a
+index 00e8090..c886728
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
 @@ -79,6 +79,10 @@ ifeq ($(TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK),true)
@@ -696,7 +696,7 @@ index 105e980..f276308
 diff --git a/services/surfaceflinger/EventThread.cpp b/services/surfaceflinger/EventThread.cpp
 old mode 100644
 new mode 100755
-index dd88adb..2dacd87
+index 03d95f0..4dbaca9
 --- a/services/surfaceflinger/EventThread.cpp
 +++ b/services/surfaceflinger/EventThread.cpp
 @@ -20,6 +20,7 @@
@@ -707,14 +707,6 @@ index dd88adb..2dacd87
  
  #include <gui/BitTube.h>
  #include <gui/IDisplayEventConnection.h>
-@@ -92,6 +93,7 @@ void EventThread::sendVsyncHintOnLocked() {
- 
- void EventThread::onFirstRef() {
-     run("EventThread", PRIORITY_URGENT_DISPLAY + PRIORITY_MORE_FAVORABLE);
-+    android_set_rt_ioprio(getTid(), 1);
- }
- 
- sp<EventThread::Connection> EventThread::createEventConnection() const {
 diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
 old mode 100644
 new mode 100755
@@ -959,7 +951,7 @@ index 0259881..30f6355
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
 old mode 100644
 new mode 100755
-index 8db071e..46b9864
+index 646af52..7d4bcd7
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
 @@ -27,6 +27,7 @@
@@ -970,15 +962,7 @@ index 8db071e..46b9864
  #include <cutils/log.h>
  #include <cutils/properties.h>
  
-@@ -501,6 +502,7 @@ void SurfaceFlinger::init() {
- 
-     mEventControlThread = new EventControlThread(this);
-     mEventControlThread->run("EventControl", PRIORITY_URGENT_DISPLAY);
-+    android_set_rt_ioprio(mEventControlThread->getTid(), 1);
- 
-     // initialize our drawing state
-     mDrawingState = mCurrentState;
-@@ -3438,7 +3440,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3438,7 +3439,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          const sp<IGraphicBufferProducer>& producer,
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
@@ -988,7 +972,7 @@ index 8db071e..46b9864
  
      if (CC_UNLIKELY(display == 0))
          return BAD_VALUE;
-@@ -3481,6 +3484,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3481,6 +3483,7 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          uint32_t minLayerZ,maxLayerZ;
          bool useIdentityTransform;
          Transform::orientation_flags rotation;
@@ -996,7 +980,7 @@ index 8db071e..46b9864
          status_t result;
          bool isLocalScreenshot;
      public:
-@@ -3491,13 +3495,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3491,13 +3494,14 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
                  uint32_t minLayerZ, uint32_t maxLayerZ,
                  bool useIdentityTransform,
                  Transform::orientation_flags rotation,
@@ -1013,7 +997,7 @@ index 8db071e..46b9864
          {
          }
          status_t getResult() const {
-@@ -3506,9 +3511,11 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3506,9 +3510,11 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
          virtual bool handler() {
              Mutex::Autolock _l(flinger->mStateLock);
              sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
@@ -1026,7 +1010,7 @@ index 8db071e..46b9864
              static_cast<GraphicProducerWrapper*>(IInterface::asBinder(producer).get())->exit(result);
              return true;
          }
-@@ -3524,7 +3531,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3524,7 +3530,8 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
      sp<MessageBase> msg = new MessageCaptureScreen(this,
              display, IGraphicBufferProducer::asInterface( wrapper ),
              sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
@@ -1036,7 +1020,7 @@ index 8db071e..46b9864
  
      status_t res = postMessageAsync(msg);
      if (res == NO_ERROR) {
-@@ -3607,7 +3615,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3607,7 +3614,7 @@ status_t SurfaceFlinger::captureScreenImplLocked(
          Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
          uint32_t minLayerZ, uint32_t maxLayerZ,
          bool useIdentityTransform, Transform::orientation_flags rotation,
@@ -1045,7 +1029,7 @@ index 8db071e..46b9864
  {
      ATRACE_CALL();
  
-@@ -3685,7 +3693,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3685,7 +3692,8 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                  if (image != EGL_NO_IMAGE_KHR) {
                      // this binds the given EGLImage as a framebuffer for the
                      // duration of this scope.
@@ -1055,7 +1039,7 @@ index 8db071e..46b9864
                      if (imageBond.getStatus() == NO_ERROR) {
                          // this will in fact render into our dequeued buffer
                          // via an FBO, which means we didn't have to create
-@@ -3732,6 +3741,15 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3732,6 +3740,15 @@ status_t SurfaceFlinger::captureScreenImplLocked(
                                  ALOGW("captureScreen: error creating EGL fence: %#x", eglGetError());
                              }
                          }
@@ -1114,7 +1098,7 @@ index b98924b..06d70e0
 diff --git a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 old mode 100644
 new mode 100755
-index b0f418c..42035d9
+index 5d95e66..4d2cf74
 --- a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 @@ -25,6 +25,9 @@

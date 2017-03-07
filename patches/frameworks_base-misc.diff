@@ -312,24 +312,10 @@ index 488f457..2ac20f7
 diff --git a/services/core/java/com/android/server/policy/WindowOrientationListener.java b/services/core/java/com/android/server/policy/WindowOrientationListener.java
 old mode 100644
 new mode 100755
-index 396bc85..40e3097
+index 65dd89d..a94bb1d
 --- a/services/core/java/com/android/server/policy/WindowOrientationListener.java
 +++ b/services/core/java/com/android/server/policy/WindowOrientationListener.java
-@@ -597,7 +597,12 @@ public abstract class WindowOrientationListener {
-                 // Reset the orientation listener state if the samples are too far apart in time
-                 // or when we see values of (0, 0, 0) which indicates that we polled the
-                 // accelerometer too soon after turning it on and we don't have any data yet.
--                final long now = event.timestamp;
-+                final long now;
-+                if (true) {
-+                    now = SystemClock.elapsedRealtimeNanos();
-+                } else {
-+                    now = event.timestamp;
-+                }
-                 final long then = mLastFilteredTimestampNanos;
-                 final float timeDeltaMS = (now - then) * 0.000001f;
-                 final boolean skipSample;
-@@ -694,10 +699,11 @@ public abstract class WindowOrientationListener {
+@@ -699,10 +699,11 @@ public abstract class WindowOrientationListener {
                                  // atan2 returns [-180, 180]; normalize to [0, 360]
                                  orientationAngle += 360;
                              }
