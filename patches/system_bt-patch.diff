@@ -1,3 +1,14 @@
+diff --git a/EventLogTags.logtags b/EventLogTags.logtags
+old mode 100644
+new mode 100755
+index dc1d239..32493d8
+--- a/EventLogTags.logtags
++++ b/EventLogTags.logtags
+@@ -35,4 +35,3 @@
+ 
+ 1010000 bt_hci_timeout (opcode|1)
+ 1010001 bt_config_source (opcode|1)
+-1010002 bt_hci_unknown_type (hci_type|1)
 diff --git a/bta/dm/bta_dm_act.c b/bta/dm/bta_dm_act.c
 old mode 100644
 new mode 100755
@@ -193,6 +204,33 @@ index 82d377d..34b2307
  
  /*******************************************************************************
   * Functions
+diff --git a/hci/src/hci_hal_h4.c b/hci/src/hci_hal_h4.c
+old mode 100644
+new mode 100755
+index 9c7afe5..062b6c0
+--- a/hci/src/hci_hal_h4.c
++++ b/hci/src/hci_hal_h4.c
+@@ -38,8 +38,6 @@
+ // when streaming time sensitive data (A2DP).
+ #define HCI_THREAD_PRIORITY -19
+ 
+-#define BT_HCI_UNKNOWN_MESSAGE_TYPE_NUM 1010002
+-
+ // Our interface and modules we import
+ static const hci_hal_t interface;
+ static const hci_hal_callbacks_t *callbacks;
+@@ -235,10 +233,7 @@ static void event_uart_has_bytes(eager_reader_t *reader, UNUSED_ATTR void *conte
+       return;
+ 
+     if (type_byte < DATA_TYPE_ACL || type_byte > DATA_TYPE_EVENT) {
+-      LOG_ERROR(LOG_TAG, "%s Unknown HCI message type 0x%x (min=0x%x max=0x%x). Aborting...",
+-                __func__, type_byte, DATA_TYPE_ACL, DATA_TYPE_EVENT);
+-      LOG_EVENT_INT(BT_HCI_UNKNOWN_MESSAGE_TYPE_NUM, type_byte);
+-      assert(false && "Unknown HCI message type");
++      LOG_ERROR(LOG_TAG, "%s Unknown HCI message type. Dropping this byte 0x%x, min %x, max %x", __func__, type_byte, DATA_TYPE_ACL, DATA_TYPE_EVENT);
+       return;
+     }
+ 
 diff --git a/stack/btm/btm_sec.c b/stack/btm/btm_sec.c
 old mode 100644
 new mode 100755
