@@ -1,10 +1,10 @@
 diff --git a/api/system-current.txt b/api/system-current.txt
 old mode 100644
 new mode 100755
-index c33fe6e..3c982cd
+index b0e4729..ab06bc1
 --- a/api/system-current.txt
 +++ b/api/system-current.txt
-@@ -49337,9 +49337,7 @@ package android.webkit {
+@@ -49336,9 +49336,7 @@ package android.webkit {
  
    public static abstract interface WebViewProvider.ViewDelegate {
      method public abstract boolean dispatchKeyEvent(android.view.KeyEvent);
@@ -17,7 +17,7 @@ index c33fe6e..3c982cd
 diff --git a/core/java/android/content/ContentResolver.java b/core/java/android/content/ContentResolver.java
 old mode 100644
 new mode 100755
-index b3320d6..a181f46
+index daa1b93..70bda15
 --- a/core/java/android/content/ContentResolver.java
 +++ b/core/java/android/content/ContentResolver.java
 @@ -1414,6 +1414,8 @@ public abstract class ContentResolver {
@@ -32,10 +32,10 @@ index b3320d6..a181f46
 diff --git a/core/java/android/hardware/Camera.java b/core/java/android/hardware/Camera.java
 old mode 100644
 new mode 100755
-index acf0677..1023439
+index c6ec700..d78eba1
 --- a/core/java/android/hardware/Camera.java
 +++ b/core/java/android/hardware/Camera.java
-@@ -4164,7 +4164,7 @@ public class Camera {
+@@ -4422,7 +4422,7 @@ public class Camera {
          // Example string: "(10000,26623),(10000,30000)". Return null if the
          // passing string is null or the size is 0.
          private ArrayList<int[]> splitRange(String str) {
@@ -45,12 +45,12 @@ index acf0677..1023439
                  Log.e(TAG, "Invalid range list string=" + str);
                  return null;
 diff --git a/core/java/android/inputmethodservice/IInputMethodWrapper.java b/core/java/android/inputmethodservice/IInputMethodWrapper.java
-index 167d5a0..d9cd3f58 100644
+index 47c1779..2475d11 100644
 --- a/core/java/android/inputmethodservice/IInputMethodWrapper.java
 +++ b/core/java/android/inputmethodservice/IInputMethodWrapper.java
-@@ -287,6 +287,10 @@ class IInputMethodWrapper extends IInputMethod.Stub
-     @Override
-     public void setSessionEnabled(IInputMethodSession session, boolean enabled) {
+@@ -291,6 +291,10 @@ class IInputMethodWrapper extends IInputMethod.Stub
+             return;
+         }
          try {
 +			if (session == null) {
 +                Log.w(TAG, "No Session");
@@ -245,28 +245,28 @@ index cd78e61..a6e436f
 diff --git a/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java b/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
 old mode 100644
 new mode 100755
-index d789477..df615d6
+index 3fbd6b9..4526b0c
 --- a/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
 +++ b/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
-@@ -433,6 +433,7 @@ class GlobalScreenshot {
+@@ -437,6 +437,7 @@ class GlobalScreenshot {
  
-     private MediaActionSound mCameraSound;
+     private Ringtone  mScreenshotSound;
  
 +    private final int mSfHwRotation;
  
      /**
       * @param context everything needs a context :(
-@@ -503,6 +504,9 @@ class GlobalScreenshot {
-         // Setup the Camera shutter sound
-         mCameraSound = new MediaActionSound();
-         mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
-+
-+        // Load hardware rotation from prop
+@@ -507,6 +508,9 @@ class GlobalScreenshot {
+         // Setup the Screenshot sound
+         mScreenshotSound= RingtoneManager.getRingtone(mContext,
+                     Uri.parse("file://" + "/system/media/audio/ui/camera_click.ogg"));
++        
++		// Load hardware rotation from prop
 +        mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
      }
  
      /**
-@@ -547,7 +551,10 @@ class GlobalScreenshot {
+@@ -551,7 +555,10 @@ class GlobalScreenshot {
          // only in the natural orientation of the device :!)
          mDisplay.getRealMetrics(mDisplayMetrics);
          float[] dims = {mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels};
@@ -281,7 +281,7 @@ index d789477..df615d6
 diff --git a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
 old mode 100644
 new mode 100755
-index 9d3889b..4226cf1
+index b5fcb5c..99e46b7
 --- a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
 +++ b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
 @@ -652,7 +652,7 @@ class AppWidgetServiceImpl extends IAppWidgetService.Stub implements WidgetBacku
@@ -296,10 +296,10 @@ index 9d3889b..4226cf1
 diff --git a/services/core/java/com/android/server/AlarmManagerService.java b/services/core/java/com/android/server/AlarmManagerService.java
 old mode 100644
 new mode 100755
-index 20cca16..48a25e3
+index 488f457..2ac20f7
 --- a/services/core/java/com/android/server/AlarmManagerService.java
 +++ b/services/core/java/com/android/server/AlarmManagerService.java
-@@ -2629,7 +2629,8 @@ class AlarmManagerService extends SystemService {
+@@ -2639,7 +2639,8 @@ class AlarmManagerService extends SystemService {
                                  // is a repeating alarm, so toss the hoser.
                                  removeImpl(alarm.operation);
                              }
@@ -312,10 +312,10 @@ index 20cca16..48a25e3
 diff --git a/services/core/java/com/android/server/policy/WindowOrientationListener.java b/services/core/java/com/android/server/policy/WindowOrientationListener.java
 old mode 100644
 new mode 100755
-index 8ef0acb..5e021b8
+index 396bc85..40e3097
 --- a/services/core/java/com/android/server/policy/WindowOrientationListener.java
 +++ b/services/core/java/com/android/server/policy/WindowOrientationListener.java
-@@ -592,7 +592,12 @@ public abstract class WindowOrientationListener {
+@@ -597,7 +597,12 @@ public abstract class WindowOrientationListener {
                  // Reset the orientation listener state if the samples are too far apart in time
                  // or when we see values of (0, 0, 0) which indicates that we polled the
                  // accelerometer too soon after turning it on and we don't have any data yet.
@@ -329,7 +329,7 @@ index 8ef0acb..5e021b8
                  final long then = mLastFilteredTimestampNanos;
                  final float timeDeltaMS = (now - then) * 0.000001f;
                  final boolean skipSample;
-@@ -689,10 +694,11 @@ public abstract class WindowOrientationListener {
+@@ -694,10 +699,11 @@ public abstract class WindowOrientationListener {
                                  // atan2 returns [-180, 180]; normalize to [0, 360]
                                  orientationAngle += 360;
                              }
@@ -345,10 +345,10 @@ index 8ef0acb..5e021b8
 diff --git a/services/core/java/com/android/server/wm/ScreenRotationAnimation.java b/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
 old mode 100644
 new mode 100755
-index c118a21..185e597
+index 7a6999e..9c7b97d
 --- a/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
 +++ b/services/core/java/com/android/server/wm/ScreenRotationAnimation.java
-@@ -67,6 +67,7 @@ class ScreenRotationAnimation {
+@@ -71,6 +71,7 @@ class ScreenRotationAnimation {
      BlackFrame mExitingBlackFrame;
      BlackFrame mEnteringBlackFrame;
      int mWidth, mHeight;
@@ -356,7 +356,7 @@ index c118a21..185e597
  
      int mOriginalRotation;
      int mOriginalWidth, mOriginalHeight;
-@@ -237,13 +238,26 @@ class ScreenRotationAnimation {
+@@ -242,13 +243,26 @@ class ScreenRotationAnimation {
              originalWidth = displayInfo.logicalWidth;
              originalHeight = displayInfo.logicalHeight;
          }
@@ -389,7 +389,7 @@ index c118a21..185e597
          }
  
          mOriginalRotation = originalRotation;
-@@ -361,7 +375,7 @@ class ScreenRotationAnimation {
+@@ -372,7 +386,7 @@ class ScreenRotationAnimation {
          // Compute the transformation matrix that must be applied
          // to the snapshot to make it stay in the same original position
          // with the current screen rotation.
@@ -401,10 +401,10 @@ index c118a21..185e597
 diff --git a/services/core/java/com/android/server/wm/WindowManagerService.java b/services/core/java/com/android/server/wm/WindowManagerService.java
 old mode 100644
 new mode 100755
-index eb9ad6c..eb1f6a3
+index ffbc0c4..488665e
 --- a/services/core/java/com/android/server/wm/WindowManagerService.java
 +++ b/services/core/java/com/android/server/wm/WindowManagerService.java
-@@ -354,6 +354,8 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -360,6 +360,8 @@ public class WindowManagerService extends IWindowManager.Stub
  
      final private KeyguardDisableHandler mKeyguardDisableHandler;
  
@@ -413,7 +413,7 @@ index eb9ad6c..eb1f6a3
      final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
          @Override
          public void onReceive(Context context, Intent intent) {
-@@ -1055,6 +1057,9 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -1067,6 +1069,9 @@ public class WindowManagerService extends IWindowManager.Stub
              SurfaceControl.closeTransaction();
          }
  
@@ -421,9 +421,9 @@ index eb9ad6c..eb1f6a3
 +        mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
 +
          showEmulatorDisplayOverlayIfNeeded();
+         mUiHandler = UiThread.getHandler();
      }
- 
-@@ -6499,6 +6504,8 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -6637,6 +6642,8 @@ public class WindowManagerService extends IWindowManager.Stub
  
              // The screenshot API does not apply the current screen rotation.
              int rot = getDefaultDisplayContentLocked().getDisplay().getRotation();
