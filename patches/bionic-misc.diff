@@ -1,8 +1,8 @@
 diff --git a/libc/Android.mk b/libc/Android.mk
-index d1a8cea..f206ab4 100644
+index 42cda59..1e40708 100644
 --- a/libc/Android.mk
 +++ b/libc/Android.mk
-@@ -621,6 +621,10 @@ ifeq ($(TARGET_ARCH),$(filter $(TARGET_ARCH),mips mips64))
+@@ -626,6 +626,10 @@ ifeq ($(TARGET_BOARD_PLATFORM),$(filter $(TARGET_BOARD_PLATFORM),msm8960))
    use_clang := false
  endif
  
@@ -13,7 +13,7 @@ index d1a8cea..f206ab4 100644
  ifeq ($(use_clang),)
    use_clang := true
  endif
-@@ -636,8 +640,14 @@ ifeq ($(strip $(DEBUG_BIONIC_LIBC)),true)
+@@ -641,8 +645,14 @@ ifeq ($(strip $(DEBUG_BIONIC_LIBC)),true)
    libc_common_cflags += -DDEBUG
  endif
  
@@ -30,7 +30,7 @@ index d1a8cea..f206ab4 100644
  
  # Define some common conlyflags
  libc_common_conlyflags := \
-@@ -1205,11 +1215,14 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
+@@ -1210,11 +1220,14 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
      libc_syscalls \
      libc_tzcode \
      libm \
@@ -46,7 +46,7 @@ index d1a8cea..f206ab4 100644
  $(eval $(call patch-up-arch-specific-flags,LOCAL_CFLAGS,libc_common_cflags))
  $(eval $(call patch-up-arch-specific-flags,LOCAL_SRC_FILES,libc_common_src_files))
  $(eval $(call patch-up-arch-specific-flags,LOCAL_SRC_FILES,libc_arch_dynamic_src_files))
-@@ -1340,7 +1353,11 @@ LOCAL_C_INCLUDES := $(libc_common_c_includes)
+@@ -1345,7 +1358,11 @@ LOCAL_C_INCLUDES := $(libc_common_c_includes)
  LOCAL_MODULE := libc
  LOCAL_CLANG := $(use_clang)
  LOCAL_ADDITIONAL_DEPENDENCIES := $(libc_common_additional_dependencies)
@@ -59,7 +59,7 @@ index d1a8cea..f206ab4 100644
  
  LOCAL_CXX_STL := none
  LOCAL_SYSTEM_SHARED_LIBRARIES :=
-@@ -1402,7 +1419,11 @@ LOCAL_PACK_MODULE_RELOCATIONS := false
+@@ -1407,7 +1424,11 @@ LOCAL_PACK_MODULE_RELOCATIONS := false
  # you wanted!
  
  LOCAL_SHARED_LIBRARIES := libdl
@@ -7360,10 +7360,10 @@ index 0000000..5ae2edc
 diff --git a/linker/linker.cpp b/linker/linker.cpp
 old mode 100644
 new mode 100755
-index 190d41d..fa58c64
+index 1fb4ca5..87b3d20
 --- a/linker/linker.cpp
 +++ b/linker/linker.cpp
-@@ -3829,13 +3829,8 @@ bool soinfo::prelink_image() {
+@@ -3831,13 +3831,8 @@ bool soinfo::prelink_image() {
          break;
  
        case DT_TEXTREL:
@@ -7377,7 +7377,7 @@ index 190d41d..fa58c64
  
        case DT_SYMBOLIC:
          has_DT_SYMBOLIC = true;
-@@ -3847,12 +3842,7 @@ bool soinfo::prelink_image() {
+@@ -3849,12 +3844,7 @@ bool soinfo::prelink_image() {
  
        case DT_FLAGS:
          if (d->d_un.d_val & DF_TEXTREL) {
@@ -7390,7 +7390,7 @@ index 190d41d..fa58c64
          }
          if (d->d_un.d_val & DF_SYMBOLIC) {
            has_DT_SYMBOLIC = true;
-@@ -4013,22 +4003,8 @@ bool soinfo::link_image(const soinfo_list_t& global_group, const soinfo_list_t&
+@@ -4015,22 +4005,8 @@ bool soinfo::link_image(const soinfo_list_t& global_group, const soinfo_list_t&
  
  #if !defined(__LP64__)
    if (has_text_relocations) {
