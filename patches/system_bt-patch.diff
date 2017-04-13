@@ -12,7 +12,7 @@ index dc1d239..32493d8
 diff --git a/bta/dm/bta_dm_act.c b/bta/dm/bta_dm_act.c
 old mode 100644
 new mode 100755
-index 5c76faa..87a35c0
+index 1bf741d..f3b9efb
 --- a/bta/dm/bta_dm_act.c
 +++ b/bta/dm/bta_dm_act.c
 @@ -132,8 +132,10 @@ static void bta_dm_ctrl_features_rd_cmpl_cback(tBTM_STATUS result);
@@ -60,13 +60,13 @@ index 5c76faa..87a35c0
 diff --git a/btif/src/btif_dm.c b/btif/src/btif_dm.c
 old mode 100644
 new mode 100755
-index 49fa274..79b34ab
+index f54b642..1538ecc
 --- a/btif/src/btif_dm.c
 +++ b/btif/src/btif_dm.c
-@@ -233,12 +233,12 @@ static void btif_dm_ble_auth_cmpl_evt (tBTA_DM_AUTH_CMPL *p_auth_cmpl);
- static void btif_dm_ble_passkey_req_evt(tBTA_DM_PIN_REQ *p_pin_req);
+@@ -234,12 +234,12 @@ static void btif_dm_ble_passkey_req_evt(tBTA_DM_PIN_REQ *p_pin_req);
  static void btif_dm_ble_key_nc_req_evt(tBTA_DM_SP_KEY_NOTIF *p_notif_req) ;
  static void btif_dm_ble_oob_req_evt(tBTA_DM_SP_RMT_OOB *req_oob_type);
+ static void btif_dm_ble_sc_oob_req_evt(tBTA_DM_SP_RMT_OOB *req_oob_type);
 -#endif
  
  static void bte_scan_filt_param_cfg_evt(UINT8 action_type,
@@ -77,7 +77,7 @@ index 49fa274..79b34ab
  
  static char* btif_get_default_local_name();
  
-@@ -1364,7 +1364,9 @@ static void btif_dm_search_devices_evt (UINT16 event, char *p_param)
+@@ -1373,7 +1373,9 @@ static void btif_dm_search_devices_evt (UINT16 event, char *p_param)
                  bt_device_type_t dev_type;
                  uint32_t num_properties = 0;
                  bt_status_t status;
@@ -87,7 +87,7 @@ index 49fa274..79b34ab
  
                  memset(properties, 0, sizeof(properties));
                  /* BD_ADDR */
-@@ -2235,6 +2237,7 @@ static void bta_energy_info_cb(tBTA_DM_BLE_TX_TIME_MS tx_time, tBTA_DM_BLE_RX_TI
+@@ -2252,6 +2254,7 @@ static void bta_energy_info_cb(tBTA_DM_BLE_TX_TIME_MS tx_time, tBTA_DM_BLE_RX_TI
  ** Returns          void
  **
  *******************************************************************************/
@@ -95,7 +95,7 @@ index 49fa274..79b34ab
  static void bte_scan_filt_param_cfg_evt(UINT8 action_type,
                                          tBTA_DM_BLE_PF_AVBL_SPACE avbl_space,
                                          tBTA_DM_BLE_REF_VALUE ref_value, tBTA_STATUS status)
-@@ -2251,7 +2254,7 @@ static void bte_scan_filt_param_cfg_evt(UINT8 action_type,
+@@ -2268,7 +2271,7 @@ static void bte_scan_filt_param_cfg_evt(UINT8 action_type,
          BTIF_TRACE_DEBUG("%s", __FUNCTION__);
      }
  }
@@ -104,7 +104,7 @@ index 49fa274..79b34ab
  /*****************************************************************************
  **
  **   btif api functions (no context switch)
-@@ -2271,7 +2274,9 @@ bt_status_t btif_dm_start_discovery(void)
+@@ -2288,7 +2291,9 @@ bt_status_t btif_dm_start_discovery(void)
  {
      tBTA_DM_INQ inq_params;
      tBTA_SERVICE_MASK services = 0;
@@ -114,7 +114,24 @@ index 49fa274..79b34ab
  
      BTIF_TRACE_EVENT("%s", __FUNCTION__);
  
-@@ -2680,9 +2685,10 @@ bt_status_t btif_dm_get_remote_services_by_transport(bt_bdaddr_t *remote_addr, c
+@@ -2399,13 +2404,16 @@ bt_status_t btif_dm_create_bond_out_of_band(const bt_bdaddr_t *bd_addr, int tran
+     // If LE Bluetooth Device Address is provided, use provided address type
+     // value.
+     if (memcmp(oob_data->le_bt_dev_addr, empty, 7) != 0) {
++#if BLE_INCLUDED == TRUE
+         /* byte no 7 is address type in LE Bluetooth Address OOB data */
+         uint8_t address_type = oob_data->le_bt_dev_addr[6];
++
+         if (address_type == BLE_ADDR_PUBLIC || address_type == BLE_ADDR_RANDOM) {
+             // bd_addr->address is already reversed, so use it instead of
+             // oob_data->le_bt_dev_addr
+             BTM_SecAddBleDevice(bd_addr->address, NULL, BT_DEVICE_TYPE_BLE, address_type);
+         }
++#endif
+     }
+ 
+     bdstr_t bdstr;
+@@ -2710,9 +2718,10 @@ bt_status_t btif_dm_get_remote_services_by_transport(bt_bdaddr_t *remote_addr, c
      mask_ext.p_uuid = NULL;
      mask_ext.srvc_mask = BTA_ALL_SERVICE_MASK;
  
@@ -126,7 +143,7 @@ index 49fa274..79b34ab
      return BT_STATUS_SUCCESS;
  }
  
-@@ -2914,12 +2920,15 @@ BOOLEAN btif_dm_get_smp_config(tBTE_APPL_CFG* p_cfg) {
+@@ -2951,12 +2960,15 @@ BOOLEAN btif_dm_get_smp_config(tBTE_APPL_CFG* p_cfg) {
  
      char conf[64];
      const char* recv = stack_config_get_interface()->get_pts_smp_options();
@@ -142,7 +159,7 @@ index 49fa274..79b34ab
      if ((pch = strtok(conf, ",")) != NULL)
          p_cfg->ble_auth_req = (UINT8) strtoul(pch, &endptr, 16);
      else
-@@ -2944,6 +2953,7 @@ BOOLEAN btif_dm_get_smp_config(tBTE_APPL_CFG* p_cfg) {
+@@ -2981,6 +2993,7 @@ BOOLEAN btif_dm_get_smp_config(tBTE_APPL_CFG* p_cfg) {
          p_cfg->ble_max_key_size =  (UINT8) strtoul(pch, &endptr, 16);
      else
          return FALSE;
@@ -153,7 +170,7 @@ index 49fa274..79b34ab
 diff --git a/btif/src/btif_storage.c b/btif/src/btif_storage.c
 old mode 100644
 new mode 100755
-index 82d377d..34b2307
+index 83dcc8c..2753313
 --- a/btif/src/btif_storage.c
 +++ b/btif/src/btif_storage.c
 @@ -162,9 +162,10 @@ extern void btif_gatts_add_bonded_dev_from_nv(BD_ADDR bda);
@@ -231,6 +248,45 @@ index 9c7afe5..062b6c0
        return;
      }
  
+diff --git a/stack/btm/btm_acl.c b/stack/btm/btm_acl.c
+old mode 100644
+new mode 100755
+index 4819012..afd5107
+--- a/stack/btm/btm_acl.c
++++ b/stack/btm/btm_acl.c
+@@ -900,10 +900,12 @@ void BTM_SetDefaultLinkPolicy (UINT16 settings)
+ 
+ 
+ void btm_use_preferred_conn_params(BD_ADDR bda) {
++#if BLE_INCLUDED == TRUE
+     tL2C_LCB *p_lcb = l2cu_find_lcb_by_bd_addr (bda, BT_TRANSPORT_LE);
+     tBTM_SEC_DEV_REC    *p_dev_rec = btm_find_or_alloc_dev (bda);
+ 
+     /* If there are any preferred connection parameters, set them now */
++
+     if ( (p_dev_rec->conn_params.min_conn_int     >= BTM_BLE_CONN_INT_MIN ) &&
+          (p_dev_rec->conn_params.min_conn_int     <= BTM_BLE_CONN_INT_MAX ) &&
+          (p_dev_rec->conn_params.max_conn_int     >= BTM_BLE_CONN_INT_MIN ) &&
+@@ -911,9 +913,9 @@ void btm_use_preferred_conn_params(BD_ADDR bda) {
+          (p_dev_rec->conn_params.slave_latency    <= BTM_BLE_CONN_LATENCY_MAX ) &&
+          (p_dev_rec->conn_params.supervision_tout >= BTM_BLE_CONN_SUP_TOUT_MIN) &&
+          (p_dev_rec->conn_params.supervision_tout <= BTM_BLE_CONN_SUP_TOUT_MAX) &&
+-         ((p_lcb->min_interval < p_dev_rec->conn_params.min_conn_int &&
++         (p_lcb->min_interval < p_dev_rec->conn_params.min_conn_int &&
+           p_dev_rec->conn_params.min_conn_int != BTM_BLE_CONN_PARAM_UNDEF) ||
+-          (p_lcb->min_interval > p_dev_rec->conn_params.max_conn_int) ||
++          (p_lcb->min_interval > p_dev_rec->conn_params.max_conn_int) || 
+           (p_lcb->latency > p_dev_rec->conn_params.slave_latency) ||
+           (p_lcb->timeout > p_dev_rec->conn_params.supervision_tout)))
+     {
+@@ -933,6 +935,7 @@ void btm_use_preferred_conn_params(BD_ADDR bda) {
+                                            p_dev_rec->conn_params.supervision_tout,
+                                            0, 0);
+     }
++#endif
+ }
+ 
+ /*******************************************************************************
 diff --git a/stack/btm/btm_sec.c b/stack/btm/btm_sec.c
 old mode 100644
 new mode 100755
