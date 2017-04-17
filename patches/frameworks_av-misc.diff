@@ -25,7 +25,7 @@ index bd1fd7c..1f39000 100644
      mCamera.clear();
      mCameraProxy.clear();
 diff --git a/media/libstagefright/OMXClient.cpp b/media/libstagefright/OMXClient.cpp
-index e994069..8e322af 100644
+index e40dbcf..4f06349 100644
 --- a/media/libstagefright/OMXClient.cpp
 +++ b/media/libstagefright/OMXClient.cpp
 @@ -207,6 +207,12 @@ bool MuxOMX::isLocalNode_l(node_id node) const {
@@ -41,11 +41,41 @@ index e994069..8e322af 100644
          // all codecs go to codec process unless excluded using system property, in which case
          // all non-secure decoders, OMX.google.* codecs and encoders can go in the codec process
          // (non-OMX.google.* encoders can be excluded using system property.)
+diff --git a/media/libstagefright/SurfaceMediaSource.cpp b/media/libstagefright/SurfaceMediaSource.cpp
+old mode 100644
+new mode 100755
+index 9ed2070..1630853
+--- a/media/libstagefright/SurfaceMediaSource.cpp
++++ b/media/libstagefright/SurfaceMediaSource.cpp
+@@ -427,7 +427,11 @@ void SurfaceMediaSource::signalBufferReturned(MediaBuffer *buffer) {
+     buffer_handle_t bufferHandle = getMediaBufferHandle(buffer);
+ 
+     for (size_t i = 0; i < mCurrentBuffers.size(); i++) {
++#ifdef CAMCORDER_GRALLOC_SOURCE
++        if (mCurrentBuffers[i]->handle == bufferHandle) {
++#else
+         if ((buffer_handle_t)mCurrentBuffers[i]->getNativeBuffer() == bufferHandle) {
++#endif
+             mCurrentBuffers.removeAt(i);
+             foundBuffer = true;
+             break;
+@@ -443,7 +447,11 @@ void SurfaceMediaSource::signalBufferReturned(MediaBuffer *buffer) {
+             continue;
+         }
+ 
++#ifdef CAMCORDER_GRALLOC_SOURCE
++        if (bufferHandle == mSlots[id].mGraphicBuffer->handle) {
++#else
+         if (bufferHandle == (buffer_handle_t)mSlots[id].mGraphicBuffer->getNativeBuffer()) {
++#endif
+             ALOGV("Slot %d returned, matches handle = %p", id,
+                     mSlots[id].mGraphicBuffer->handle);
+ 
 diff --git a/media/libstagefright/omx/OMXNodeInstance.cpp b/media/libstagefright/omx/OMXNodeInstance.cpp
-index 395dad8..2f55c65 100644
+index 2fa9989..2bc6010 100644
 --- a/media/libstagefright/omx/OMXNodeInstance.cpp
 +++ b/media/libstagefright/omx/OMXNodeInstance.cpp
-@@ -1726,11 +1726,11 @@ bool OMXNodeInstance::handleMessage(omx_message &msg) {
+@@ -1747,11 +1747,11 @@ bool OMXNodeInstance::handleMessage(omx_message &msg) {
          BufferMeta *buffer_meta =
              static_cast<BufferMeta *>(buffer->pAppPrivate);
  
@@ -135,12 +165,12 @@ index 7c9315d..f377957 100644
          ALOGV("mpAudioPolicy == NULL");
          return false;
 diff --git a/services/camera/libcameraservice/Android.mk b/services/camera/libcameraservice/Android.mk
-index 8d7f71c..64a288e 100644
+index d98ad47..0b732e2 100644
 --- a/services/camera/libcameraservice/Android.mk
 +++ b/services/camera/libcameraservice/Android.mk
-@@ -80,6 +80,10 @@ LOCAL_EXPORT_C_INCLUDE_DIRS := \
- 
- LOCAL_CFLAGS += -Wall -Wextra -Werror
+@@ -84,6 +84,10 @@ ifeq ($(TARGET_HAS_LEGACY_CAMERA_HAL1),true)
+     LOCAL_CFLAGS += -DNO_CAMERA_SERVER
+ endif
  
 +ifeq ($(TARGET_HAS_LEGACY_CAMERA_HAL1),true)
 +    LOCAL_CFLAGS += -DMETADATA_CAMERA_SOURCE

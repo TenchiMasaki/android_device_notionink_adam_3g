@@ -32,10 +32,10 @@ index daa1b93..70bda15
 diff --git a/core/java/android/hardware/Camera.java b/core/java/android/hardware/Camera.java
 old mode 100644
 new mode 100755
-index c6ec700..d78eba1
+index 1257b95..669833b
 --- a/core/java/android/hardware/Camera.java
 +++ b/core/java/android/hardware/Camera.java
-@@ -4422,7 +4422,7 @@ public class Camera {
+@@ -4436,7 +4436,7 @@ public class Camera {
          // Example string: "(10000,26623),(10000,30000)". Return null if the
          // passing string is null or the size is 0.
          private ArrayList<int[]> splitRange(String str) {
@@ -44,6 +44,33 @@ index c6ec700..d78eba1
                      || str.charAt(str.length() - 1) != ')') {
                  Log.e(TAG, "Invalid range list string=" + str);
                  return null;
+diff --git a/core/java/android/hardware/camera2/legacy/SurfaceTextureRenderer.java b/core/java/android/hardware/camera2/legacy/SurfaceTextureRenderer.java
+old mode 100644
+new mode 100755
+index e0d3905..46d03ef
+--- a/core/java/android/hardware/camera2/legacy/SurfaceTextureRenderer.java
++++ b/core/java/android/hardware/camera2/legacy/SurfaceTextureRenderer.java
+@@ -440,6 +440,20 @@ public class SurfaceTextureRenderer {
+         EGL14.eglChooseConfig(mEGLDisplay, attribList, /*offset*/ 0, configs, /*offset*/ 0,
+                 configs.length, numConfigs, /*offset*/ 0);
+         checkEglError("eglCreateContext RGB888+recordable ES2");
++        if (numConfigs[0] == 0) {
++            Log.w(TAG, "eglChooseConfig returned no configs, retrying without EGL_RECORDABLE_ANDROID");
++            int[] attribList2 = {
++                    EGL14.EGL_RED_SIZE, EGL_COLOR_BITLENGTH,
++                    EGL14.EGL_GREEN_SIZE, EGL_COLOR_BITLENGTH,
++                    EGL14.EGL_BLUE_SIZE, EGL_COLOR_BITLENGTH,
++                    EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
++                    EGL14.EGL_SURFACE_TYPE, EGL14.EGL_PBUFFER_BIT | EGL14.EGL_WINDOW_BIT,
++                    EGL14.EGL_NONE
++            };
++            EGL14.eglChooseConfig(mEGLDisplay, attribList2, /*offset*/ 0, configs, /*offset*/ 0,
++                    configs.length, numConfigs, /*offset*/ 0);
++            checkEglError("eglCreateContext RGB888 ES2");
++        }
+         mConfigs = configs[0];
+         int[] attrib_list = {
+                 EGL14.EGL_CONTEXT_CLIENT_VERSION, GLES_VERSION,
 diff --git a/core/java/android/inputmethodservice/IInputMethodWrapper.java b/core/java/android/inputmethodservice/IInputMethodWrapper.java
 index 47c1779..2475d11 100644
 --- a/core/java/android/inputmethodservice/IInputMethodWrapper.java
@@ -93,7 +120,7 @@ index 5bc6c94..3b86269
 diff --git a/core/java/android/webkit/WebView.java b/core/java/android/webkit/WebView.java
 old mode 100644
 new mode 100755
-index f54edf1..ecace32
+index 3a85519..e103c67
 --- a/core/java/android/webkit/WebView.java
 +++ b/core/java/android/webkit/WebView.java
 @@ -32,7 +32,6 @@ import android.net.http.SslCertificate;
@@ -104,7 +131,7 @@ index f54edf1..ecace32
  import android.os.Looper;
  import android.os.Message;
  import android.os.StrictMode;
-@@ -2643,16 +2642,6 @@ public class WebView extends AbsoluteLayout
+@@ -2659,16 +2658,6 @@ public class WebView extends AbsoluteLayout
          mProvider.getViewDelegate().onFinishTemporaryDetach();
      }
  
@@ -146,13 +173,31 @@ index e5b65e7..94d231c
      }
  
      interface ScrollDelegate {
+diff --git a/core/java/com/android/internal/os/ZygoteInit.java b/core/java/com/android/internal/os/ZygoteInit.java
+old mode 100644
+new mode 100755
+index 29a7978..28f0f7a
+--- a/core/java/com/android/internal/os/ZygoteInit.java
++++ b/core/java/com/android/internal/os/ZygoteInit.java
+@@ -245,9 +245,8 @@ public class ZygoteInit {
+ 
+     private static void preloadOpenGL() {
+         String driverPackageName = SystemProperties.get(PROPERTY_GFX_DRIVER);
+-        if (!SystemProperties.getBoolean(PROPERTY_DISABLE_OPENGL_PRELOADING, false) ||
+-                driverPackageName == null || driverPackageName.isEmpty()) {
+-            EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
++        if (!SystemProperties.getBoolean(PROPERTY_DISABLE_OPENGL_PRELOADING, false) &&
++                (driverPackageName == null || driverPackageName.isEmpty())) {            EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
+         }
+     }
+ 
 diff --git a/core/jni/AndroidRuntime.cpp b/core/jni/AndroidRuntime.cpp
 old mode 100644
 new mode 100755
-index 315887d..8de730a
+index 174d382..bb03a79
 --- a/core/jni/AndroidRuntime.cpp
 +++ b/core/jni/AndroidRuntime.cpp
-@@ -629,6 +629,7 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
+@@ -630,6 +630,7 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
      char methodTraceFileBuf[sizeof("-Xmethod-trace-file:") + PROPERTY_VALUE_MAX];
      char methodTraceFileSizeBuf[sizeof("-Xmethod-trace-file-size:") + PROPERTY_VALUE_MAX];
      char fingerprintBuf[sizeof("-Xfingerprint:") + PROPERTY_VALUE_MAX];
@@ -160,7 +205,7 @@ index 315887d..8de730a
  
      bool checkJni = false;
      property_get("dalvik.vm.checkjni", propBuf, "");
-@@ -899,6 +900,16 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
+@@ -900,6 +901,16 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
      parseRuntimeOption("dalvik.vm.zygote.max-boot-retry", cachePruneBuf,
                         "-Xzygote-max-boot-retry=");
  
@@ -245,10 +290,10 @@ index cd78e61..a6e436f
 diff --git a/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java b/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
 old mode 100644
 new mode 100755
-index 3fbd6b9..4526b0c
+index 48a946a..e0b61fe
 --- a/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
 +++ b/packages/SystemUI/src/com/android/systemui/screenshot/GlobalScreenshot.java
-@@ -437,6 +437,7 @@ class GlobalScreenshot {
+@@ -440,6 +440,7 @@ class GlobalScreenshot {
  
      private Ringtone  mScreenshotSound;
  
@@ -256,7 +301,7 @@ index 3fbd6b9..4526b0c
  
      /**
       * @param context everything needs a context :(
-@@ -507,6 +508,9 @@ class GlobalScreenshot {
+@@ -510,6 +511,9 @@ class GlobalScreenshot {
          // Setup the Screenshot sound
          mScreenshotSound= RingtoneManager.getRingtone(mContext,
                      Uri.parse("file://" + "/system/media/audio/ui/camera_click.ogg"));
@@ -266,7 +311,7 @@ index 3fbd6b9..4526b0c
      }
  
      /**
-@@ -551,7 +555,10 @@ class GlobalScreenshot {
+@@ -554,7 +558,10 @@ class GlobalScreenshot {
          // only in the natural orientation of the device :!)
          mDisplay.getRealMetrics(mDisplayMetrics);
          float[] dims = {mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels};
@@ -281,10 +326,10 @@ index 3fbd6b9..4526b0c
 diff --git a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
 old mode 100644
 new mode 100755
-index b5fcb5c..99e46b7
+index 4ae6e47..bbc374c
 --- a/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
 +++ b/services/appwidget/java/com/android/server/appwidget/AppWidgetServiceImpl.java
-@@ -652,7 +652,7 @@ class AppWidgetServiceImpl extends IAppWidgetService.Stub implements WidgetBacku
+@@ -655,7 +655,7 @@ class AppWidgetServiceImpl extends IAppWidgetService.Stub implements WidgetBacku
      }
  
      private void ensureGroupStateLoadedLocked(int userId, boolean enforceUserUnlockingOrUnlocked) {
@@ -387,10 +432,10 @@ index 7a6999e..9c7b97d
 diff --git a/services/core/java/com/android/server/wm/WindowManagerService.java b/services/core/java/com/android/server/wm/WindowManagerService.java
 old mode 100644
 new mode 100755
-index ffbc0c4..488665e
+index 3ab86cc43..b2d25de
 --- a/services/core/java/com/android/server/wm/WindowManagerService.java
 +++ b/services/core/java/com/android/server/wm/WindowManagerService.java
-@@ -360,6 +360,8 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -361,6 +361,8 @@ public class WindowManagerService extends IWindowManager.Stub
  
      final private KeyguardDisableHandler mKeyguardDisableHandler;
  
@@ -399,7 +444,7 @@ index ffbc0c4..488665e
      final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
          @Override
          public void onReceive(Context context, Intent intent) {
-@@ -1067,6 +1069,9 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -1069,6 +1071,9 @@ public class WindowManagerService extends IWindowManager.Stub
              SurfaceControl.closeTransaction();
          }
  
@@ -409,7 +454,7 @@ index ffbc0c4..488665e
          showEmulatorDisplayOverlayIfNeeded();
          mUiHandler = UiThread.getHandler();
      }
-@@ -6637,6 +6642,8 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -6640,6 +6645,8 @@ public class WindowManagerService extends IWindowManager.Stub
  
              // The screenshot API does not apply the current screen rotation.
              int rot = getDefaultDisplayContentLocked().getDisplay().getRotation();
