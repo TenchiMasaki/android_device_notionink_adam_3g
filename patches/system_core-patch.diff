@@ -1,38 +1,150 @@
 diff --git a/debuggerd/debuggerd.cpp b/debuggerd/debuggerd.cpp
 old mode 100644
 new mode 100755
-index 7b57c20..68f5f38
---- a/debuggerd/debuggerd.cpp
-+++ b/debuggerd/debuggerd.cpp
-@@ -721,7 +721,7 @@ static void worker_process(int fd, debugger_request_t& request) {
- }
- 
- static void monitor_worker_process(int child_pid, const debugger_request_t& request) {
--  struct timespec timeout = {.tv_sec = 10, .tv_nsec = 0 };
-+  struct timespec timeout = {.tv_sec = 30, .tv_nsec = 0 };
-   if (should_attach_gdb(request)) {
-     // If wait_for_gdb is enabled, set the timeout to something large.
-     timeout.tv_sec = INT_MAX;
-diff --git a/include/cutils/iosched_policy.h b/include/cutils/iosched_policy.h
+diff --git a/init/init.cpp b/init/init.cpp
 old mode 100644
 new mode 100755
-index 07c5d1f..0f57746
---- a/include/cutils/iosched_policy.h
-+++ b/include/cutils/iosched_policy.h
-@@ -31,6 +31,7 @@ typedef enum {
- extern int android_set_ioprio(int pid, IoSchedClass clazz, int ioprio);
- extern int android_get_ioprio(int pid, IoSchedClass *clazz, int *ioprio);
- 
-+extern int android_set_rt_ioprio(int pid, int rt);
- #ifdef __cplusplus
- }
+index bb6355a..6292850
+--- a/init/init.cpp
++++ b/init/init.cpp
+@@ -395,7 +395,7 @@ static int set_mmap_rnd_bits_action(const std::vector<std::string>& args)
+ #else
+     LOG(ERROR) << "Unknown architecture";
  #endif
-diff --git a/include/utils/VectorImpl.h b/include/utils/VectorImpl.h
+-
++    ret = 0;
+     if (ret == -1) {
+         LOG(ERROR) << "Unable to set adequate mmap entropy value!";
+         security_failure();
+@@ -821,10 +821,10 @@ static bool selinux_load_split_policy() {
+  */
+ static bool selinux_load_monolithic_policy() {
+     LOG(VERBOSE) << "Loading SELinux policy from monolithic file";
+-    if (selinux_android_load_policy() < 0) {
++    /* if (selinux_android_load_policy() < 0) {
+         PLOG(ERROR) << "Failed to load monolithic SELinux policy";
+         return false;
+-    }
++    } */
+     return true;
+ }
+ 
+diff --git a/init/log.cpp b/init/log.cpp
 old mode 100644
 new mode 100755
-index 21ad71c..88c3a05
---- a/include/utils/VectorImpl.h
-+++ b/include/utils/VectorImpl.h
+index 0615730..c74a7c2
+--- a/init/log.cpp
++++ b/init/log.cpp
+@@ -30,7 +30,7 @@ void InitKernelLogging(char* argv[]) {
+         int saved_errno = errno;
+         android::base::InitLogging(argv, &android::base::KernelLogger);
+         errno = saved_errno;
+-        PLOG(FATAL) << "Couldn't open /sys/fs/selinux/null";
++        // PLOG(FATAL) << "Couldn't open /sys/fs/selinux/null";
+     }
+     dup2(fd, 0);
+     dup2(fd, 1);
+diff --git a/init/service.cpp b/init/service.cpp
+old mode 100644
+new mode 100755
+diff --git a/init/util.cpp b/init/util.cpp
+old mode 100644
+new mode 100755
+diff --git a/libutils/RefBase.cpp b/libutils/RefBase.cpp
+index 24737b9..a1e0dd2 100644
+--- a/libutils/RefBase.cpp
++++ b/libutils/RefBase.cpp
+@@ -393,6 +393,13 @@ private:
+ #endif
+ };
+ 
++class ReferenceConverterBase {
++public:
++    virtual size_t getReferenceTypeSize() const = 0;
++    virtual void* getReferenceBase(void const*) const = 0;
++    inline virtual ~ReferenceConverterBase() { }
++};
++
+ // ---------------------------------------------------------------------------
+ 
+ void RefBase::incStrong(const void* id) const
+@@ -735,6 +742,11 @@ void RefBase::onLastWeakRef(const void* /*id*/)
+ {
+ }
+ 
++extern "C" void _ZN7android7RefBase14moveReferencesEPvPKvjRKNS_22ReferenceConverterBaseE(void* /*dst*/, void const* /*src*/, size_t /*n*/,
++        const ReferenceConverterBase& /*caster*/)
++{
++}
++
+ // ---------------------------------------------------------------------------
+ 
+ #if DEBUG_REFS
+diff --git a/libutils/String8.cpp b/libutils/String8.cpp
+old mode 100644
+new mode 100755
+index ad0e72e..9dad4e9
+--- a/libutils/String8.cpp
++++ b/libutils/String8.cpp
+@@ -165,7 +165,9 @@ String8::String8(StaticLinkage)
+ String8::String8(const String8& o)
+     : mString(o.mString)
+ {
+-    SharedBuffer::bufferFromData(mString)->acquire();
++    if (mString == NULL)
++		mString = getEmptyString();
++	SharedBuffer::bufferFromData(mString)->acquire();
+ }
+ 
+ String8::String8(const char* o)
+diff --git a/libutils/VectorImpl.cpp b/libutils/VectorImpl.cpp
+old mode 100644
+new mode 100755
+index ef3277f..c95e9b5
+--- a/libutils/VectorImpl.cpp
++++ b/libutils/VectorImpl.cpp
+@@ -556,6 +556,17 @@ void VectorImpl::_do_move_backward(void* dest, const void* from, size_t num) con
+     do_move_backward(dest, from, num);
+ }
+ 
++#ifdef NEEDS_VECTORIMPL_SYMBOLS
++void VectorImpl::reservedVectorImpl1() { }
++void VectorImpl::reservedVectorImpl2() { }
++void VectorImpl::reservedVectorImpl3() { }
++void VectorImpl::reservedVectorImpl4() { }
++void VectorImpl::reservedVectorImpl5() { }
++void VectorImpl::reservedVectorImpl6() { }
++void VectorImpl::reservedVectorImpl7() { }
++void VectorImpl::reservedVectorImpl8() { }
++#endif
++
+ /*****************************************************************************/
+ 
+ SortedVectorImpl::SortedVectorImpl(size_t itemSize, uint32_t flags)
+@@ -675,6 +686,17 @@ ssize_t SortedVectorImpl::remove(const void* item)
+     return i;
+ }
+ 
++#ifdef NEEDS_VECTORIMPL_SYMBOLS
++void SortedVectorImpl::reservedSortedVectorImpl1() { };
++void SortedVectorImpl::reservedSortedVectorImpl2() { };
++void SortedVectorImpl::reservedSortedVectorImpl3() { };
++void SortedVectorImpl::reservedSortedVectorImpl4() { };
++void SortedVectorImpl::reservedSortedVectorImpl5() { };
++void SortedVectorImpl::reservedSortedVectorImpl6() { };
++void SortedVectorImpl::reservedSortedVectorImpl7() { };
++void SortedVectorImpl::reservedSortedVectorImpl8() { };
++#endif
++
+ /*****************************************************************************/
+ 
+ }; // namespace android
+diff --git a/libutils/include/utils/VectorImpl.h b/libutils/include/utils/VectorImpl.h
+old mode 100644
+new mode 100755
+index 4dd91fd..29d69d8
+--- a/libutils/include/utils/VectorImpl.h
++++ b/libutils/include/utils/VectorImpl.h
 @@ -105,7 +105,19 @@ protected:
      virtual void            do_splat(void* dest, const void* item, size_t num) const = 0;
      virtual void            do_move_forward(void* dest, const void* from, size_t num) const = 0;
@@ -73,351 +185,13 @@ index 21ad71c..88c3a05
  private:
              ssize_t         _indexOrderOf(const void* item, size_t* order = 0) const;
  
-diff --git a/init/init.cpp b/init/init.cpp
-old mode 100644
-new mode 100755
-index 84da2b9..487ac5c
---- a/init/init.cpp
-+++ b/init/init.cpp
-@@ -340,7 +340,8 @@ static int set_mmap_rnd_bits_action(const std::vector<std::string>& args)
- #endif
-     if (ret == -1) {
-         ERROR("Unable to set adequate mmap entropy value!\n");
--        security_failure();
-+ret=0;
-+        //security_failure();
-     }
-     return ret;
- }
-@@ -559,8 +560,8 @@ static void selinux_initialize(bool in_kernel_domain) {
-     if (in_kernel_domain) {
-         INFO("Loading SELinux policy...\n");
-         if (selinux_android_load_policy() < 0) {
--            ERROR("failed to load policy: %s\n", strerror(errno));
--            security_failure();
-+            //ERROR("failed to load policy: %s\n", strerror(errno));
-+            //security_failure();
-         }
- 
-         bool kernel_enforcing = (security_getenforce() == 1);
-@@ -574,7 +575,7 @@ static void selinux_initialize(bool in_kernel_domain) {
-         }
- 
-         if (write_file("/sys/fs/selinux/checkreqprot", "0") == -1) {
--            security_failure();
-+            //security_failure();
-         }
- 
-         NOTICE("(Initializing SELinux %s took %.2fs.)\n",
-@@ -646,7 +647,7 @@ int main(int argc, char** argv) {
-     if (is_first_stage) {
-         if (restorecon("/init") == -1) {
-             ERROR("restorecon failed: %s\n", strerror(errno));
--            security_failure();
-+            //security_failure();
-         }
-         char* path = argv[0];
-         char* args[] = { path, const_cast<char*>("--second-stage"), nullptr };
-diff --git a/init/service.cpp b/init/service.cpp
-old mode 100644
-new mode 100755
-index 3149f8e..6d3c613
---- a/init/service.cpp
-+++ b/init/service.cpp
-@@ -372,16 +372,16 @@ bool Service::Start() {
-             free(ret_scon);
-         }
-         if (rc == 0 && scon == mycon) {
--            ERROR("Service %s does not have a SELinux domain defined.\n", name_.c_str());
--            free(mycon);
--            free(fcon);
--            return false;
-+            WARNING("Service %s does not have a SELinux domain defined.\n", name_.c_str());
-+            //free(mycon);
-+            //free(fcon);
-+            //return false;
-         }
-         free(mycon);
-         free(fcon);
-         if (rc < 0) {
--            ERROR("could not get context while starting '%s'\n", name_.c_str());
--            return false;
-+            WARNING("could not get context while starting '%s'\n", name_.c_str());
-+            //return false;
-         }
-     }
- 
-diff --git a/init/util.cpp b/init/util.cpp
-old mode 100644
-new mode 100755
-index 89d3276..60899f7
---- a/init/util.cpp
-+++ b/init/util.cpp
-@@ -466,9 +466,13 @@ int restorecon(const char* pathname)
-     return selinux_android_restorecon(pathname, 0);
- }
- 
-+#define RESTORECON_RECURSIVE_FLAGS \
-+        (SELINUX_ANDROID_RESTORECON_FORCE | \
-+        SELINUX_ANDROID_RESTORECON_RECURSE)
-+
- int restorecon_recursive(const char* pathname)
- {
--    return selinux_android_restorecon(pathname, SELINUX_ANDROID_RESTORECON_RECURSE);
-+    return selinux_android_restorecon(pathname, RESTORECON_RECURSIVE_FLAGS);
- }
- 
- int restorecon_recursive_skipce(const char* pathname)
-diff --git a/libcutils/iosched_policy.c b/libcutils/iosched_policy.c
-old mode 100644
-new mode 100755
-index 71bc94b..bb7693f
---- a/libcutils/iosched_policy.c
-+++ b/libcutils/iosched_policy.c
-@@ -1,9 +1,10 @@
- /*
--** Copyright 2007, The Android Open Source Project
-+** Copyright 2007-2014, The Android Open Source Project
-+** Copyright 2015, The CyanogenMod Project
- **
--** Licensed under the Apache License, Version 2.0 (the "License"); 
--** you may not use this file except in compliance with the License. 
--** You may obtain a copy of the License at 
-+** Licensed under the Apache License, Version 2.0 (the "License");
-+** you may not use this file except in compliance with the License.
-+** You may obtain a copy of the License at
- **
- **     http://www.apache.org/licenses/LICENSE-2.0 
- **
-@@ -20,28 +21,30 @@
- #include <stdlib.h>
- #include <string.h>
- #include <unistd.h>
-+#include <pthread.h>
- 
- #include <cutils/iosched_policy.h>
-+#define LOG_TAG "iosched_policy"
-+#include <cutils/log.h>
-+
-+#define __android_unused __attribute__((__unused__))
- 
- #if defined(__ANDROID__)
- #include <linux/ioprio.h>
- #include <sys/syscall.h>
--#define __android_unused
--#else
--#define __android_unused __attribute__((__unused__))
--#endif
-+#include <sys/stat.h>
-+
-+static int __rtio_cgroup_supported = -1;
-+static pthread_once_t __rtio_init_once = PTHREAD_ONCE_INIT;
- 
- int android_set_ioprio(int pid __android_unused, IoSchedClass clazz __android_unused, int ioprio __android_unused) {
--#if defined(__ANDROID__)
-     if (syscall(SYS_ioprio_set, IOPRIO_WHO_PROCESS, pid, ioprio | (clazz << IOPRIO_CLASS_SHIFT))) {
-         return -1;
-     }
--#endif
-     return 0;
- }
- 
- int android_get_ioprio(int pid __android_unused, IoSchedClass *clazz, int *ioprio) {
--#if defined(__ANDROID__)
-     int rc;
- 
-     if ((rc = syscall(SYS_ioprio_get, IOPRIO_WHO_PROCESS, pid)) < 0) {
-@@ -50,9 +53,83 @@ int android_get_ioprio(int pid __android_unused, IoSchedClass *clazz, int *iopri
- 
-     *clazz = (rc >> IOPRIO_CLASS_SHIFT);
-     *ioprio = (rc & 0xff);
-+    return 0;
-+}
-+
-+static void __initialize_rtio(void) {
-+    if (!access("/dev/bfqio/tasks", W_OK) ||
-+        !access("/dev/bfqio/rt-display/tasks", W_OK)) {
-+        __rtio_cgroup_supported = 1;
-+    } else {
-+        __rtio_cgroup_supported = 0;
-+    }
-+}
-+
-+int android_set_rt_ioprio(int tid, int rt) {
-+    int fd = -1, rc = -1;
-+
-+    pthread_once(&__rtio_init_once, __initialize_rtio);
-+    if (__rtio_cgroup_supported != 1) {
-+        return -1;
-+    }
-+
-+    if (rt) {
-+        fd = open("/dev/bfqio/rt-display/tasks", O_WRONLY | O_CLOEXEC);
-+    } else {
-+        fd = open("/dev/bfqio/tasks", O_WRONLY | O_CLOEXEC);
-+    }
-+
-+    if (fd < 0) {
-+        return -1;
-+    }
-+
-+#ifdef HAVE_GETTID
-+    if (tid == 0) {
-+        tid = gettid();
-+    }
-+#endif
-+
-+    // specialized itoa -- works for tid > 0
-+    char text[22];
-+    char *end = text + sizeof(text) - 1;
-+    char *ptr = end;
-+    *ptr = '\0';
-+    while (tid > 0) {
-+        *--ptr = '0' + (tid % 10);
-+        tid = tid / 10;
-+    }
-+
-+    rc = write(fd, ptr, end - ptr);
-+    if (rc < 0) {
-+        /*
-+         * If the thread is in the process of exiting,
-+         * don't flag an error
-+         */
-+        if (errno == ESRCH) {
-+            rc = 0;
-+        } else {
-+            SLOGV("android_set_rt_ioprio failed to write '%s' (%s); fd=%d\n",
-+                  ptr, strerror(errno), fd);
-+        }
-+    }
-+
-+    close(fd);
-+    return rc;
-+}
-+
- #else
-+int android_set_ioprio(int pid __android_unused, IoSchedClass clazz __android_unused, int ioprio __android_unused) {
-+    return 0;
-+}
-+
-+int android_get_ioprio(int pid __android_unused, IoSchedClass *clazz, int *ioprio) {
-     *clazz = IoSchedClass_NONE;
-     *ioprio = 0;
--#endif
-     return 0;
- }
-+
-+int android_set_rt_ioprio(int tid __android_unused, int rt __android_unused)
-+{
-+    return 0;
-+}
-+#endif
-diff --git a/libutils/RefBase.cpp b/libutils/RefBase.cpp
-index f90e28b..b08c8d6 100644
---- a/libutils/RefBase.cpp
-+++ b/libutils/RefBase.cpp
-@@ -378,6 +378,13 @@ private:
- #endif
- };
- 
-+class ReferenceConverterBase {
-+public:
-+    virtual size_t getReferenceTypeSize() const = 0;
-+    virtual void* getReferenceBase(void const*) const = 0;
-+    inline virtual ~ReferenceConverterBase() { }
-+};
-+
- // ---------------------------------------------------------------------------
- 
- void RefBase::incStrong(const void* id) const
-@@ -710,6 +717,11 @@ void RefBase::onLastWeakRef(const void* /*id*/)
- {
- }
- 
-+extern "C" void _ZN7android7RefBase14moveReferencesEPvPKvjRKNS_22ReferenceConverterBaseE(void* /*dst*/, void const* /*src*/, size_t /*n*/,
-+        const ReferenceConverterBase& /*caster*/)
-+{
-+}
-+
- // ---------------------------------------------------------------------------
- 
- #if DEBUG_REFS
-diff --git a/libutils/String8.cpp b/libutils/String8.cpp
-old mode 100644
-new mode 100755
-index 755e0d1..23f9708
---- a/libutils/String8.cpp
-+++ b/libutils/String8.cpp
-@@ -167,7 +167,9 @@ String8::String8(StaticLinkage)
- String8::String8(const String8& o)
-     : mString(o.mString)
- {
--    SharedBuffer::bufferFromData(mString)->acquire();
-+    if (mString == NULL)
-+		mString = getEmptyString();
-+	SharedBuffer::bufferFromData(mString)->acquire();
- }
- 
- String8::String8(const char* o)
-diff --git a/libutils/VectorImpl.cpp b/libutils/VectorImpl.cpp
-old mode 100644
-new mode 100755
-index e8d40ed..c149212
---- a/libutils/VectorImpl.cpp
-+++ b/libutils/VectorImpl.cpp
-@@ -556,6 +556,17 @@ void VectorImpl::_do_move_backward(void* dest, const void* from, size_t num) con
-     do_move_backward(dest, from, num);
- }
- 
-+#ifdef NEEDS_VECTORIMPL_SYMBOLS
-+void VectorImpl::reservedVectorImpl1() { }
-+void VectorImpl::reservedVectorImpl2() { }
-+void VectorImpl::reservedVectorImpl3() { }
-+void VectorImpl::reservedVectorImpl4() { }
-+void VectorImpl::reservedVectorImpl5() { }
-+void VectorImpl::reservedVectorImpl6() { }
-+void VectorImpl::reservedVectorImpl7() { }
-+void VectorImpl::reservedVectorImpl8() { }
-+#endif
-+
- /*****************************************************************************/
- 
- SortedVectorImpl::SortedVectorImpl(size_t itemSize, uint32_t flags)
-@@ -675,6 +686,17 @@ ssize_t SortedVectorImpl::remove(const void* item)
-     return i;
- }
- 
-+#ifdef NEEDS_VECTORIMPL_SYMBOLS
-+void SortedVectorImpl::reservedSortedVectorImpl1() { };
-+void SortedVectorImpl::reservedSortedVectorImpl2() { };
-+void SortedVectorImpl::reservedSortedVectorImpl3() { };
-+void SortedVectorImpl::reservedSortedVectorImpl4() { };
-+void SortedVectorImpl::reservedSortedVectorImpl5() { };
-+void SortedVectorImpl::reservedSortedVectorImpl6() { };
-+void SortedVectorImpl::reservedSortedVectorImpl7() { };
-+void SortedVectorImpl::reservedSortedVectorImpl8() { };
-+#endif
-+
- /*****************************************************************************/
- 
- }; // namespace android
 diff --git a/rootdir/init.rc b/rootdir/init.rc
 old mode 100644
 new mode 100755
-index 56379db..d04881c
+index 3b996a4..9fc28d6
 --- a/rootdir/init.rc
 +++ b/rootdir/init.rc
-@@ -468,6 +468,9 @@ on post-fs-data
- 
-     # Set SELinux security contexts on upgrade or policy update.
-     restorecon_recursive /data
-+    restorecon /data/data
-+    restorecon /data/user
-+    restorecon /data/user/0
- 
-     # Check any timezone data in /data is newer than the copy in /system, delete if not.
-     exec - system system -- /system/bin/tzdatacheck /system/usr/share/zoneinfo /data/misc/zoneinfo
-@@ -653,7 +656,3 @@ on property:ro.debuggable=1
+@@ -699,7 +699,3 @@ on property:ro.debuggable=1
      # The folder is used to store method traces.
      chmod 0773 /data/misc/trace
      start console
@@ -431,46 +205,3 @@ new mode 100755
 diff --git a/rootdir/init.zygote64_32.rc b/rootdir/init.zygote64_32.rc
 old mode 100644
 new mode 100755
-diff --git a/sdcard/sdcard.c b/sdcard/sdcard.c
-old mode 100644
-new mode 100755
-index 9480e4a..b5efbc4
---- a/sdcard/sdcard.c
-+++ b/sdcard/sdcard.c
-@@ -113,6 +113,8 @@
-  * or that a reply has already been written. */
- #define NO_STATUS 1
- 
-+static bool worldWritableExternalStorage = false;
-+
- /* Supplementary groups to execute with */
- static const gid_t kGroups[1] = { AID_PACKAGE_INFO };
- 
-@@ -426,7 +428,11 @@ static void attr_from_stat(struct fuse* fuse, struct fuse_attr *attr,
-         attr->gid = multiuser_get_uid(node->userid, fuse->gid);
-     }
- 
-+
-     int visible_mode = 0775 & ~fuse->mask;
-+
-+    if (worldWritableExternalStorage) visible_mode = 0777;
-+
-     if (node->perm == PERM_PRE_ROOT) {
-         /* Top of multi-user view should always be visible to ensure
-          * secondary users can traverse inside. */
-@@ -2056,7 +2062,15 @@ static bool should_use_sdcardfs(void) {
-     }
- }
- 
-+static void initWorldWritableStorage() {
-+    char value[PROPERTY_VALUE_MAX];
-+    property_get("persist.external_drive_world_rw", value, "");
-+    worldWritableExternalStorage = (value[0] == '1');
-+}
-+
- int main(int argc, char **argv) {
-+    initWorldWritableStorage(); 
-+
-     const char *source_path = NULL;
-     const char *label = NULL;
-     uid_t uid = 0;
