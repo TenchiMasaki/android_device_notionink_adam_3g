@@ -1,0 +1,38 @@
+diff --git a/CommandListener.cpp b/CommandListener.cpp
+old mode 100644
+new mode 100755
+index c2b8310..1c836fd
+--- a/CommandListener.cpp
++++ b/CommandListener.cpp
+@@ -625,7 +625,7 @@ int CommandListener::FstrimCmd::runCommand(SocketClient *cli,
+                 | android::vold::TrimTask::Flags::kBenchmarkAfter;
+     }
+ 
+-    (new android::vold::TrimTask(flags))->start();
++//    (new android::vold::TrimTask(flags))->start();
+     return sendGenericOkFail(cli, 0);
+ }
+ 
+diff --git a/TrimTask.cpp b/TrimTask.cpp
+old mode 100644
+new mode 100755
+index 08e6499..dcb7d42
+--- a/TrimTask.cpp
++++ b/TrimTask.cpp
+@@ -43,7 +43,7 @@ using android::base::StringPrintf;
+ 
+ namespace android {
+ namespace vold {
+-
++#if 0
+ static const char* kWakeLock = "TrimTask";
+ 
+ TrimTask::TrimTask(int flags) : mFlags(flags) {
+@@ -149,6 +149,7 @@ void TrimTask::run() {
+ 
+     release_wake_lock(kWakeLock);
+ }
++#endif
+ 
+ }  // namespace vold
+ }  // namespace android

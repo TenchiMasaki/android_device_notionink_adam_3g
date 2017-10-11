@@ -1,10 +1,10 @@
 diff --git a/compiler/optimizing/code_generator_arm.cc b/compiler/optimizing/code_generator_arm.cc
 old mode 100644
 new mode 100755
-index 45e9b58..b22e7ba
+index 419b2af..016b57c
 --- a/compiler/optimizing/code_generator_arm.cc
 +++ b/compiler/optimizing/code_generator_arm.cc
-@@ -53,10 +53,6 @@ static constexpr Register kCoreCalleeSaves[] =
+@@ -54,10 +54,6 @@ static constexpr Register kCoreCalleeSaves[] =
  static constexpr SRegister kFpuCalleeSaves[] =
      { S16, S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, S27, S28, S29, S30, S31 };
  
@@ -14,8 +14,8 @@ index 45e9b58..b22e7ba
 -
  static constexpr uint32_t kPackedSwitchCompareJumpThreshold = 7;
  
- #define __ down_cast<ArmAssembler*>(codegen->GetAssembler())->
-@@ -4887,8 +4883,10 @@ void ParallelMoveResolverARM::EmitMove(size_t index) {
+ // NOLINT on __ macro to suppress wrong warning/fix (misc-macro-parentheses) from clang-tidy.
+@@ -6449,8 +6445,10 @@ void ParallelMoveResolverARM::EmitMove(size_t index) {
      }
    } else if (source.IsDoubleStackSlot()) {
      if (destination.IsDoubleStackSlot()) {
@@ -28,7 +28,7 @@ index 45e9b58..b22e7ba
      } else if (destination.IsRegisterPair()) {
        DCHECK(ExpectedPairLayout(destination));
        __ LoadFromOffset(
-@@ -5016,13 +5014,16 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
+@@ -6578,13 +6576,16 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
      __ vmovs(source.AsFpuRegister<SRegister>(), destination.AsFpuRegister<SRegister>());
      __ vmovsr(destination.AsFpuRegister<SRegister>(), IP);
    } else if (source.IsRegisterPair() && destination.IsRegisterPair()) {
@@ -49,7 +49,7 @@ index 45e9b58..b22e7ba
      Register low_reg = source.IsRegisterPair()
          ? source.AsRegisterPairLow<Register>()
          : destination.AsRegisterPairLow<Register>();
-@@ -5030,15 +5031,27 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
+@@ -6592,15 +6593,27 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
          ? destination.GetStackIndex()
          : source.GetStackIndex();
      DCHECK(ExpectedPairLayout(source.IsRegisterPair() ? source : destination));
@@ -81,7 +81,7 @@ index 45e9b58..b22e7ba
    } else if (source.IsFpuRegisterPair() || destination.IsFpuRegisterPair()) {
      DRegister reg = source.IsFpuRegisterPair()
          ? FromLowSToD(source.AsFpuRegisterPairLow<SRegister>())
-@@ -5046,9 +5059,15 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
+@@ -6608,9 +6621,15 @@ void ParallelMoveResolverARM::EmitSwap(size_t index) {
      int mem = source.IsFpuRegisterPair()
          ? destination.GetStackIndex()
          : source.GetStackIndex();
@@ -100,10 +100,12 @@ index 45e9b58..b22e7ba
      SRegister reg = source.IsFpuRegister() ? source.AsFpuRegister<SRegister>()
                                             : destination.AsFpuRegister<SRegister>();
 diff --git a/compiler/utils/arm/assembler_arm.h b/compiler/utils/arm/assembler_arm.h
-index ffbe786..86da46a 100644
+old mode 100644
+new mode 100755
+index 0ed8a35..39a191a
 --- a/compiler/utils/arm/assembler_arm.h
 +++ b/compiler/utils/arm/assembler_arm.h
-@@ -737,44 +737,18 @@ class ArmAssembler : public Assembler {
+@@ -707,17 +707,8 @@ class ArmAssembler : public Assembler {
    virtual void LoadImmediate(Register rd, int32_t value, Condition cond = AL) = 0;
    void LoadSImmediate(SRegister sd, float value, Condition cond = AL) {
      if (!vmovs(sd, value, cond)) {
@@ -116,41 +118,9 @@ index ffbe786..86da46a 100644
 -        vsubs(sd, sd, sd, cond);
 -      } else {
 -        LoadImmediate(IP, int_value, cond);
--        vmovsr(sd, IP, cond);
--      }
 +      LoadImmediate(IP, bit_cast<int32_t, float>(value), cond);
-+      vmovsr(sd, IP, cond);
-     }
-   }
- 
-   void LoadDImmediate(DRegister sd, double value, Condition cond = AL) {
-     if (!vmovd(sd, value, cond)) {
-       uint64_t int_value = bit_cast<uint64_t, double>(value);
--      if (int_value == bit_cast<uint64_t, double>(0.0)) {
--        // 0.0 is quite common, so we special case it by loading
--        // 2.0 in `sd` and then substracting it.
--        bool success = vmovd(sd, 2.0, cond);
--        CHECK(success);
--        vsubd(sd, sd, sd, cond);
--      } else {
--        if (sd < 16) {
--          SRegister low = static_cast<SRegister>(sd << 1);
--          SRegister high = static_cast<SRegister>(low + 1);
--          LoadSImmediate(low, bit_cast<float, uint32_t>(Low32Bits(int_value)), cond);
--          if (High32Bits(int_value) == Low32Bits(int_value)) {
--            vmovs(high, low);
--          } else {
--            LoadSImmediate(high, bit_cast<float, uint32_t>(High32Bits(int_value)), cond);
--          }
--        } else {
--          LOG(FATAL) << "Unimplemented loading of double into a D register "
--                     << "that cannot be split into two S registers";
--        }
+         vmovsr(sd, IP, cond);
 -      }
-+      LoadSImmediate(
-+          static_cast<SRegister>(sd << 1), bit_cast<float, uint32_t>(Low32Bits(int_value)));
-+      LoadSImmediate(
-+          static_cast<SRegister>((sd << 1) + 1), bit_cast<float, uint32_t>(High32Bits(int_value)));
      }
    }
  
