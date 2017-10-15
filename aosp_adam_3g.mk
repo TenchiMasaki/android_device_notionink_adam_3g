@@ -21,6 +21,7 @@ PRODUCT_PACKAGES := \
 
 DEVICE_PACKAGE_OVERLAYS += device/notionink/adam_3g/overlay
 
+$(call inherit-product, $(SRC_TARGET_DIR)/product/core.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 
 # Inherit from ADAM common device tree
