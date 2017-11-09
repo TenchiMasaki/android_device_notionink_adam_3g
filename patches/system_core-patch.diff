@@ -1,207 +1,73 @@
-diff --git a/debuggerd/debuggerd.cpp b/debuggerd/debuggerd.cpp
+diff --git a/adb/Android.mk b/adb/Android.mk
 old mode 100644
 new mode 100755
-diff --git a/init/init.cpp b/init/init.cpp
-old mode 100644
-new mode 100755
-index bb6355a..6292850
---- a/init/init.cpp
-+++ b/init/init.cpp
-@@ -395,7 +395,7 @@ static int set_mmap_rnd_bits_action(const std::vector<std::string>& args)
- #else
-     LOG(ERROR) << "Unknown architecture";
- #endif
+index e841205..88f2454
+--- a/adb/Android.mk
++++ b/adb/Android.mk
+@@ -112,6 +112,7 @@ LOCAL_SANITIZE := $(adb_target_sanitize)
+ # Even though we're building a static library (and thus there's no link step for
+ # this to take effect), this adds the includes to our path.
+ LOCAL_STATIC_LIBRARIES := libcrypto_utils libcrypto libbase
++LOCAL_C_INCLUDES := system/core/base/include
+ 
+ include $(BUILD_STATIC_LIBRARY)
+ 
+@@ -131,6 +132,7 @@ LOCAL_SANITIZE := $(adb_target_sanitize)
+ LOCAL_STATIC_LIBRARIES := libcrypto_utils libcrypto libbase
+ 
+ LOCAL_WHOLE_STATIC_LIBRARIES := libadbd_usb
++LOCAL_C_INCLUDES := system/core/base/include
+ 
+ include $(BUILD_STATIC_LIBRARY)
+ 
+@@ -158,6 +160,8 @@ LOCAL_STATIC_LIBRARIES := libcrypto_utils libcrypto libbase libmdnssd
+ LOCAL_STATIC_LIBRARIES_linux := libusb
+ LOCAL_STATIC_LIBRARIES_darwin := libusb
+ 
++LOCAL_C_INCLUDES := system/core/base/include \
++	external/boringssl/include
+ LOCAL_C_INCLUDES_windows := development/host/windows/usb/api/
+ LOCAL_MULTILIB := first
+ 
+@@ -178,6 +182,7 @@ LOCAL_SRC_FILES := \
+ LOCAL_SANITIZE := $(adb_target_sanitize)
+ LOCAL_STATIC_LIBRARIES := libadbd libcrypto_utils libcrypto libusb libmdnssd
+ LOCAL_SHARED_LIBRARIES := liblog libbase libcutils
++LOCAL_C_INCLUDES := system/core/base/include
+ include $(BUILD_NATIVE_TEST)
+ 
+ # libdiagnose_usb
+@@ -191,6 +196,7 @@ LOCAL_SRC_FILES := diagnose_usb.cpp
+ # Even though we're building a static library (and thus there's no link step for
+ # this to take effect), this adds the includes to our path.
+ LOCAL_STATIC_LIBRARIES := libbase
++LOCAL_C_INCLUDES := system/core/base/include
+ include $(BUILD_HOST_STATIC_LIBRARY)
+ 
+ # adb_test
+@@ -238,6 +244,7 @@ LOCAL_LDLIBS_windows := -lws2_32 -luserenv
+ LOCAL_STATIC_LIBRARIES_windows := AdbWinApi
+ 
+ LOCAL_MULTILIB := first
++LOCAL_C_INCLUDES := system/core/base/include
+ 
+ include $(BUILD_HOST_NATIVE_TEST)
+ 
+@@ -308,7 +315,7 @@ LOCAL_CXX_STL := libc++_static
+ # on the host adb tool, and shared libraries that link against libc++
+ # will violate ODR
+ LOCAL_SHARED_LIBRARIES :=
 -
-+    ret = 0;
-     if (ret == -1) {
-         LOG(ERROR) << "Unable to set adequate mmap entropy value!";
-         security_failure();
-@@ -821,10 +821,10 @@ static bool selinux_load_split_policy() {
-  */
- static bool selinux_load_monolithic_policy() {
-     LOG(VERBOSE) << "Loading SELinux policy from monolithic file";
--    if (selinux_android_load_policy() < 0) {
-+    /* if (selinux_android_load_policy() < 0) {
-         PLOG(ERROR) << "Failed to load monolithic SELinux policy";
-         return false;
--    }
-+    } */
-     return true;
- }
++LOCAL_C_INCLUDES := system/core/base/include
+ include $(BUILD_HOST_EXECUTABLE)
  
-diff --git a/init/log.cpp b/init/log.cpp
-old mode 100644
-new mode 100755
-index 0615730..c74a7c2
---- a/init/log.cpp
-+++ b/init/log.cpp
-@@ -30,7 +30,7 @@ void InitKernelLogging(char* argv[]) {
-         int saved_errno = errno;
-         android::base::InitLogging(argv, &android::base::KernelLogger);
-         errno = saved_errno;
--        PLOG(FATAL) << "Couldn't open /sys/fs/selinux/null";
-+        // PLOG(FATAL) << "Couldn't open /sys/fs/selinux/null";
-     }
-     dup2(fd, 0);
-     dup2(fd, 1);
-diff --git a/init/service.cpp b/init/service.cpp
-old mode 100644
-new mode 100755
-diff --git a/init/util.cpp b/init/util.cpp
-old mode 100644
-new mode 100755
-diff --git a/libutils/RefBase.cpp b/libutils/RefBase.cpp
-index 24737b9..a1e0dd2 100644
---- a/libutils/RefBase.cpp
-+++ b/libutils/RefBase.cpp
-@@ -393,6 +393,13 @@ private:
- #endif
- };
+ $(call dist-for-goals,dist_files sdk win_sdk,$(LOCAL_BUILT_MODULE))
+@@ -377,6 +384,8 @@ LOCAL_STATIC_LIBRARIES := \
+     libmdnssd \
+     libdebuggerd_handler \
  
-+class ReferenceConverterBase {
-+public:
-+    virtual size_t getReferenceTypeSize() const = 0;
-+    virtual void* getReferenceBase(void const*) const = 0;
-+    inline virtual ~ReferenceConverterBase() { }
-+};
++LOCAL_C_INCLUDES := system/core/base/include
 +
- // ---------------------------------------------------------------------------
+ include $(BUILD_EXECUTABLE)
  
- void RefBase::incStrong(const void* id) const
-@@ -735,6 +742,11 @@ void RefBase::onLastWeakRef(const void* /*id*/)
- {
- }
- 
-+extern "C" void _ZN7android7RefBase14moveReferencesEPvPKvjRKNS_22ReferenceConverterBaseE(void* /*dst*/, void const* /*src*/, size_t /*n*/,
-+        const ReferenceConverterBase& /*caster*/)
-+{
-+}
-+
- // ---------------------------------------------------------------------------
- 
- #if DEBUG_REFS
-diff --git a/libutils/String8.cpp b/libutils/String8.cpp
-old mode 100644
-new mode 100755
-index ad0e72e..9dad4e9
---- a/libutils/String8.cpp
-+++ b/libutils/String8.cpp
-@@ -165,7 +165,9 @@ String8::String8(StaticLinkage)
- String8::String8(const String8& o)
-     : mString(o.mString)
- {
--    SharedBuffer::bufferFromData(mString)->acquire();
-+    if (mString == NULL)
-+		mString = getEmptyString();
-+	SharedBuffer::bufferFromData(mString)->acquire();
- }
- 
- String8::String8(const char* o)
-diff --git a/libutils/VectorImpl.cpp b/libutils/VectorImpl.cpp
-old mode 100644
-new mode 100755
-index ef3277f..c95e9b5
---- a/libutils/VectorImpl.cpp
-+++ b/libutils/VectorImpl.cpp
-@@ -556,6 +556,17 @@ void VectorImpl::_do_move_backward(void* dest, const void* from, size_t num) con
-     do_move_backward(dest, from, num);
- }
- 
-+#ifdef NEEDS_VECTORIMPL_SYMBOLS
-+void VectorImpl::reservedVectorImpl1() { }
-+void VectorImpl::reservedVectorImpl2() { }
-+void VectorImpl::reservedVectorImpl3() { }
-+void VectorImpl::reservedVectorImpl4() { }
-+void VectorImpl::reservedVectorImpl5() { }
-+void VectorImpl::reservedVectorImpl6() { }
-+void VectorImpl::reservedVectorImpl7() { }
-+void VectorImpl::reservedVectorImpl8() { }
-+#endif
-+
- /*****************************************************************************/
- 
- SortedVectorImpl::SortedVectorImpl(size_t itemSize, uint32_t flags)
-@@ -675,6 +686,17 @@ ssize_t SortedVectorImpl::remove(const void* item)
-     return i;
- }
- 
-+#ifdef NEEDS_VECTORIMPL_SYMBOLS
-+void SortedVectorImpl::reservedSortedVectorImpl1() { };
-+void SortedVectorImpl::reservedSortedVectorImpl2() { };
-+void SortedVectorImpl::reservedSortedVectorImpl3() { };
-+void SortedVectorImpl::reservedSortedVectorImpl4() { };
-+void SortedVectorImpl::reservedSortedVectorImpl5() { };
-+void SortedVectorImpl::reservedSortedVectorImpl6() { };
-+void SortedVectorImpl::reservedSortedVectorImpl7() { };
-+void SortedVectorImpl::reservedSortedVectorImpl8() { };
-+#endif
-+
- /*****************************************************************************/
- 
- }; // namespace android
-diff --git a/libutils/include/utils/VectorImpl.h b/libutils/include/utils/VectorImpl.h
-old mode 100644
-new mode 100755
-index 4dd91fd..29d69d8
---- a/libutils/include/utils/VectorImpl.h
-+++ b/libutils/include/utils/VectorImpl.h
-@@ -105,7 +105,19 @@ protected:
-     virtual void            do_splat(void* dest, const void* item, size_t num) const = 0;
-     virtual void            do_move_forward(void* dest, const void* from, size_t num) const = 0;
-     virtual void            do_move_backward(void* dest, const void* from, size_t num) const = 0;
--    
-+
-+#ifdef NEEDS_VECTORIMPL_SYMBOLS
-+    // take care of FBC...
-+    virtual void            reservedVectorImpl1();
-+    virtual void            reservedVectorImpl2();
-+    virtual void            reservedVectorImpl3();
-+    virtual void            reservedVectorImpl4();
-+    virtual void            reservedVectorImpl5();
-+    virtual void            reservedVectorImpl6();
-+    virtual void            reservedVectorImpl7();
-+    virtual void            reservedVectorImpl8();
-+#endif
-+
- private:
-         void* _grow(size_t where, size_t amount);
-         void  _shrink(size_t where, size_t amount);
-@@ -156,6 +168,18 @@ public:
- protected:
-     virtual int             do_compare(const void* lhs, const void* rhs) const = 0;
- 
-+#ifdef NEEDS_VECTORIMPL_SYMBOLS
-+    // take care of FBC...
-+    virtual void            reservedSortedVectorImpl1();
-+    virtual void            reservedSortedVectorImpl2();
-+    virtual void            reservedSortedVectorImpl3();
-+    virtual void            reservedSortedVectorImpl4();
-+    virtual void            reservedSortedVectorImpl5();
-+    virtual void            reservedSortedVectorImpl6();
-+    virtual void            reservedSortedVectorImpl7();
-+    virtual void            reservedSortedVectorImpl8();
-+#endif
-+
- private:
-             ssize_t         _indexOrderOf(const void* item, size_t* order = 0) const;
- 
-diff --git a/rootdir/init.rc b/rootdir/init.rc
-old mode 100644
-new mode 100755
-index 3b996a4..9fc28d6
---- a/rootdir/init.rc
-+++ b/rootdir/init.rc
-@@ -699,7 +699,3 @@ on property:ro.debuggable=1
-     # The folder is used to store method traces.
-     chmod 0773 /data/misc/trace
-     start console
--
--service flash_recovery /system/bin/install-recovery.sh
--    class main
--    oneshot
-diff --git a/rootdir/init.zygote32_64.rc b/rootdir/init.zygote32_64.rc
-old mode 100644
-new mode 100755
-diff --git a/rootdir/init.zygote64_32.rc b/rootdir/init.zygote64_32.rc
-old mode 100644
-new mode 100755
+ include $(call first-makefiles-under,$(LOCAL_PATH))
