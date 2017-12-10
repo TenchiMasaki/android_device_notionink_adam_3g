@@ -1,10 +1,10 @@
 diff --git a/api/system-current.txt b/api/system-current.txt
 old mode 100644
 new mode 100755
-index b0e4729..ab06bc1
+index d0ebef4..895093c
 --- a/api/system-current.txt
 +++ b/api/system-current.txt
-@@ -49336,9 +49336,7 @@ package android.webkit {
+@@ -49337,9 +49337,7 @@ package android.webkit {
  
    public static abstract interface WebViewProvider.ViewDelegate {
      method public abstract boolean dispatchKeyEvent(android.view.KeyEvent);
@@ -32,18 +32,6 @@ index daa1b93..70bda15
 diff --git a/core/java/android/hardware/Camera.java b/core/java/android/hardware/Camera.java
 old mode 100644
 new mode 100755
-index 1257b95..669833b
---- a/core/java/android/hardware/Camera.java
-+++ b/core/java/android/hardware/Camera.java
-@@ -4436,7 +4436,7 @@ public class Camera {
-         // Example string: "(10000,26623),(10000,30000)". Return null if the
-         // passing string is null or the size is 0.
-         private ArrayList<int[]> splitRange(String str) {
--            if (str == null || str.charAt(0) != '('
-+            if (str == null || str.length() == 0 || str.charAt(0) != '('
-                     || str.charAt(str.length() - 1) != ')') {
-                 Log.e(TAG, "Invalid range list string=" + str);
-                 return null;
 diff --git a/core/java/android/hardware/camera2/legacy/SurfaceTextureRenderer.java b/core/java/android/hardware/camera2/legacy/SurfaceTextureRenderer.java
 old mode 100644
 new mode 100755
@@ -89,10 +77,10 @@ index 47c1779..2475d11 100644
 diff --git a/core/java/android/os/storage/StorageManager.java b/core/java/android/os/storage/StorageManager.java
 old mode 100644
 new mode 100755
-index c5507b9..7c9b320
+index ffad91b..2e08811
 --- a/core/java/android/os/storage/StorageManager.java
 +++ b/core/java/android/os/storage/StorageManager.java
-@@ -1286,7 +1286,10 @@ public class StorageManager {
+@@ -1290,7 +1290,10 @@ public class StorageManager {
              return mMountService.mountAppFuse(name);
          } catch (RemoteException e) {
              throw e.rethrowFromSystemServer();
@@ -176,7 +164,7 @@ index e5b65e7..94d231c
 diff --git a/core/java/com/android/internal/os/ZygoteInit.java b/core/java/com/android/internal/os/ZygoteInit.java
 old mode 100644
 new mode 100755
-index 29a7978..28f0f7a
+index c2fd8c2..b6e884c
 --- a/core/java/com/android/internal/os/ZygoteInit.java
 +++ b/core/java/com/android/internal/os/ZygoteInit.java
 @@ -245,9 +245,8 @@ public class ZygoteInit {
@@ -194,7 +182,7 @@ index 29a7978..28f0f7a
 diff --git a/core/jni/AndroidRuntime.cpp b/core/jni/AndroidRuntime.cpp
 old mode 100644
 new mode 100755
-index 174d382..bb03a79
+index 108f22d..3dcfff4
 --- a/core/jni/AndroidRuntime.cpp
 +++ b/core/jni/AndroidRuntime.cpp
 @@ -630,6 +630,7 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
@@ -432,7 +420,7 @@ index 7a6999e..9c7b97d
 diff --git a/services/core/java/com/android/server/wm/WindowManagerService.java b/services/core/java/com/android/server/wm/WindowManagerService.java
 old mode 100644
 new mode 100755
-index 3ab86cc43..b2d25de
+index a1faa88..deb7dc4
 --- a/services/core/java/com/android/server/wm/WindowManagerService.java
 +++ b/services/core/java/com/android/server/wm/WindowManagerService.java
 @@ -361,6 +361,8 @@ public class WindowManagerService extends IWindowManager.Stub
@@ -444,7 +432,7 @@ index 3ab86cc43..b2d25de
      final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
          @Override
          public void onReceive(Context context, Intent intent) {
-@@ -1069,6 +1071,9 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -1072,6 +1074,9 @@ public class WindowManagerService extends IWindowManager.Stub
              SurfaceControl.closeTransaction();
          }
  
@@ -454,7 +442,7 @@ index 3ab86cc43..b2d25de
          showEmulatorDisplayOverlayIfNeeded();
          mUiHandler = UiThread.getHandler();
      }
-@@ -6640,6 +6645,8 @@ public class WindowManagerService extends IWindowManager.Stub
+@@ -6647,6 +6652,8 @@ public class WindowManagerService extends IWindowManager.Stub
  
              // The screenshot API does not apply the current screen rotation.
              int rot = getDefaultDisplayContentLocked().getDisplay().getRotation();
@@ -463,3 +451,40 @@ index 3ab86cc43..b2d25de
  
              if (rot == Surface.ROTATION_90 || rot == Surface.ROTATION_270) {
                  rot = (rot == Surface.ROTATION_90) ? Surface.ROTATION_270 : Surface.ROTATION_90;
+diff --git a/wifi/java/android/net/wifi/p2p/WifiP2pManager.java b/wifi/java/android/net/wifi/p2p/WifiP2pManager.java
+old mode 100644
+new mode 100755
+index c989010..8d5cf63
+--- a/wifi/java/android/net/wifi/p2p/WifiP2pManager.java
++++ b/wifi/java/android/net/wifi/p2p/WifiP2pManager.java
+@@ -285,8 +285,6 @@ public class WifiP2pManager {
+ 
+     IWifiP2pManager mService;
+ 
+-    private Channel mChannel;
+-
+     private static final int BASE = Protocol.BASE_WIFI_P2P_MANAGER;
+ 
+     /** @hide */
+@@ -897,16 +895,14 @@ public class WifiP2pManager {
+         return initalizeChannel(srcContext, srcLooper, listener, getP2pStateMachineMessenger());
+     }
+ 
+-    private synchronized Channel initalizeChannel(Context srcContext, Looper srcLooper,
+-                                      ChannelListener listener, Messenger messenger) {
++    private Channel initalizeChannel(Context srcContext, Looper srcLooper, ChannelListener listener,
++                                     Messenger messenger) {
+         if (messenger == null) return null;
+ 
+-        if (mChannel != null) mChannel.mAsyncChannel.disconnect();
+-
+-        mChannel = new Channel(srcContext, srcLooper, listener);
+-        if (mChannel.mAsyncChannel.connectSync(srcContext, mChannel.mHandler, messenger)
++        Channel c = new Channel(srcContext, srcLooper, listener);
++        if (c.mAsyncChannel.connectSync(srcContext, c.mHandler, messenger)
+                 == AsyncChannel.STATUS_SUCCESSFUL) {
+-            return mChannel;
++            return c;
+         } else {
+             return null;
+         }
